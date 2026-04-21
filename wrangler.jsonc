@@ -19,7 +19,7 @@
       "database_name": "activity-game",
       "database_id": "87321b7e-452c-4a7a-b45f-0f70ab84c85f"
     }
-  },
+  ],
   "compatibility_flags": [
     "nodejs_compat"
   ],
