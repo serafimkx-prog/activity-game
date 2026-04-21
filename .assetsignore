@@ -5,10 +5,11 @@
 .DS_Store
 README.md
 GAME_SPEC.md
+_routes.json
 db
 db/**
-functions
-functions/**
+src
+src/**
 wrangler.toml
 wrangler.json
 wrangler.jsonc
