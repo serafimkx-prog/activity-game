@@ -135,12 +135,14 @@ function getCellMode(pos) {
 }
 
 function setAccountView({ name, meta, avatarHtml = 'TG', placeholder = true, showLogout = false, loginHtml = '' }) {
+  const card = q('account-card')
   const avatar = q('account-avatar')
   const nameEl = q('account-name')
   const metaEl = q('account-meta')
   const loginSlot = q('telegram-login-slot')
   const logoutBtn = q('account-logout-btn')
 
+  card.classList.toggle('logged-in', showLogout)
   avatar.classList.toggle('placeholder', placeholder)
   avatar.innerHTML = avatarHtml
   nameEl.textContent = name
