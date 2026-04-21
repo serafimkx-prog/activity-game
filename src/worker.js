@@ -148,6 +148,168 @@ async function handleConfig(request, env) {
   });
 }
 
+async function requireUser(request, env) {
+  const sessionId = getSessionIdFromRequest(request);
+  const user = await getSessionUser(env.DB, sessionId);
+
+  if (!user) {
+    return { errorResponse: error("Authentication required", 401) };
+  }
+
+  return { user };
+}
+
+async function handleCreateGameSession(request, env) {
+  const wrongMethod = methodNotAllowed(request, "POST");
+  if (wrongMethod) return wrongMethod;
+
+  const { user, errorResponse } = await requireUser(request, env);
+  if (errorResponse) return errorResponse;
+
+  let payload;
+  try {
+    payload = await request.json();
+  } catch {
+    return error("Invalid JSON body", 400);
+  }
+
+  const required = ["startedAt", "finishedAt", "turnTime", "teamCount", "winnerName", "winnerPosition", "summary"];
+  for (const field of required) {
+    if (payload[field] === undefined || payload[field] === null) {
+      return error("Missing required game session field", 400, { field });
+    }
+  }
+
+  const durationSeconds = Math.max(
+    0,
+    Math.round((new Date(payload.finishedAt).getTime() - new Date(payload.startedAt).getTime()) / 1000)
+  );
+
+  const inserted = await env.DB
+    .prepare(
+      `INSERT INTO game_sessions (
+         user_id,
+         started_at,
+         finished_at,
+         dictionary_id,
+         dictionary_name,
+         turn_time,
+         open_round_enabled,
+         team_count,
+         winner_name,
+         winner_position,
+         duration_seconds,
+         summary_json
+       ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
+       RETURNING id`
+    )
+    .bind(
+      user.id,
+      payload.startedAt,
+      payload.finishedAt,
+      payload.dictionaryId || null,
+      payload.dictionaryName || null,
+      payload.turnTime,
+      payload.openRoundEnabled ? 1 : 0,
+      payload.teamCount,
+      payload.winnerName,
+      payload.winnerPosition,
+      durationSeconds,
+      JSON.stringify(payload.summary)
+    )
+    .first();
+
+  return json({ ok: true, gameSessionId: inserted.id });
+}
+
+async function handleProfileSummary(request, env) {
+  const wrongMethod = methodNotAllowed(request, "GET");
+  if (wrongMethod) return wrongMethod;
+
+  const { user, errorResponse } = await requireUser(request, env);
+  if (errorResponse) return errorResponse;
+
+  const totals = await env.DB
+    .prepare(
+      `SELECT
+         COUNT(*) AS total_games,
+         AVG(COALESCE(duration_seconds, 0)) AS avg_duration_seconds
+       FROM game_sessions
+       WHERE user_id = ?1`
+    )
+    .bind(user.id)
+    .first();
+
+  const recentRows = await env.DB
+    .prepare(
+      `SELECT
+         id,
+         finished_at,
+         dictionary_id,
+         dictionary_name,
+         team_count,
+         winner_name,
+         winner_position,
+         duration_seconds,
+         summary_json
+       FROM game_sessions
+       WHERE user_id = ?1
+       ORDER BY finished_at DESC
+       LIMIT 20`
+    )
+    .bind(user.id)
+    .all();
+
+  const recentGames = recentRows?.results || [];
+  const profileAliases = [user.firstName, user.username].filter(Boolean).map(value => value.toLowerCase());
+  const wins = recentGames.filter(game => {
+    try {
+      const summary = JSON.parse(game.summary_json);
+      const winnerTeam = (summary.teams || []).find(team => team.name === game.winner_name);
+      if (!winnerTeam) return false;
+      return (winnerTeam.players || []).some(player =>
+        profileAliases.includes(String(player).trim().toLowerCase())
+      );
+    } catch {
+      return false;
+    }
+  }).length;
+
+  const favoriteDictionary = await env.DB
+    .prepare(
+      `SELECT
+         COALESCE(dictionary_name, 'Без словаря') AS dictionary_name,
+         COUNT(*) AS plays
+       FROM game_sessions
+       WHERE user_id = ?1
+       GROUP BY dictionary_name
+       ORDER BY plays DESC, dictionary_name ASC
+       LIMIT 1`
+    )
+    .bind(user.id)
+    .first();
+
+  return json({
+    ok: true,
+    stats: {
+      totalGames: Number(totals?.total_games || 0),
+      wins,
+      averageDurationSeconds: totals?.avg_duration_seconds ? Math.round(Number(totals.avg_duration_seconds)) : 0,
+      favoriteDictionary: favoriteDictionary?.dictionary_name || null,
+    },
+    recentGames: recentGames.slice(0, 5).map(row => ({
+      id: row.id,
+      finishedAt: row.finished_at,
+      dictionaryId: row.dictionary_id,
+      dictionaryName: row.dictionary_name,
+      teamCount: row.team_count,
+      winnerName: row.winner_name,
+      winnerPosition: row.winner_position,
+      durationSeconds: row.duration_seconds || 0,
+    })),
+  });
+}
+
 function ensureBindings(env) {
   if (!env.DB) {
     return error("Missing DB binding", 500);
@@ -180,6 +342,18 @@ export default {
       const bindingError = ensureBindings(env);
       if (bindingError) return bindingError;
       return handleLogout(request, env);
+    }
+
+    if (url.pathname === "/api/game-sessions") {
+      const bindingError = ensureBindings(env);
+      if (bindingError) return bindingError;
+      return handleCreateGameSession(request, env);
+    }
+
+    if (url.pathname === "/api/profile/summary") {
+      const bindingError = ensureBindings(env);
+      if (bindingError) return bindingError;
+      return handleProfileSummary(request, env);
     }
 
     return env.ASSETS.fetch(request);

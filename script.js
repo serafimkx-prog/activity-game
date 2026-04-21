@@ -92,12 +92,15 @@ const state = {
   timer: null,
   timeLeft: 0,
   gameInProgress: false,
+  currentDictionary: null,
+  gameStartedAt: null,
 }
 
 const auth = {
   config: null,
   user: null,
   widgetLoaded: false,
+  statsLoaded: false,
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -155,6 +158,147 @@ function initialsForUser(user) {
   const base = [user.firstName, user.lastName].filter(Boolean).join(' ').trim()
   if (!base) return 'TG'
   return base.split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase()
+}
+
+function formatDuration(seconds) {
+  if (!seconds) return 'меньше минуты'
+  const mins = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  if (!mins) return `${secs} сек`
+  if (!secs) return `${mins} мин`
+  return `${mins} мин ${secs} сек`
+}
+
+function formatGameDate(isoString) {
+  if (!isoString) return '—'
+  return new Date(isoString).toLocaleString('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function renderProfileStatsLocked() {
+  q('profile-stats-content').innerHTML = `
+    <p class="stats-empty">Войди через Telegram, чтобы сохранять завершённые партии и смотреть личную статистику.</p>
+  `
+}
+
+function renderProfileStatsLoading() {
+  q('profile-stats-content').innerHTML = `
+    <p class="stats-empty">Собираем статистику…</p>
+  `
+}
+
+function renderProfileStats(data) {
+  const totalGames = data.stats.totalGames || 0
+  const wins = data.stats.wins || 0
+  const winRate = totalGames ? Math.round((wins / totalGames) * 100) : 0
+  const favoriteDictionary = data.stats.favoriteDictionary || 'Пока нет'
+
+  const recentGames = data.recentGames.length
+    ? `<div class="games-list">
+        ${data.recentGames.map(game => `
+          <div class="game-item">
+            <div class="game-item-head">
+              <div class="game-winner">${escapeHtml(game.winnerName)} победили</div>
+              <div class="game-date">${escapeHtml(formatGameDate(game.finishedAt))}</div>
+            </div>
+            <div class="game-meta">
+              <span class="game-tag">${escapeHtml(game.dictionaryName || 'Без словаря')}</span>
+              <span class="game-tag">${game.teamCount} команд(ы)</span>
+              <span class="game-tag">Финиш: ${game.winnerPosition}</span>
+              <span class="game-tag">${escapeHtml(formatDuration(game.durationSeconds))}</span>
+            </div>
+          </div>
+        `).join('')}
+      </div>`
+    : '<p class="stats-empty">Сыграй первую партию, чтобы здесь появилась история.</p>'
+
+  q('profile-stats-content').innerHTML = `
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Всего игр</div>
+        <div class="stat-value">${totalGames}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Побед</div>
+        <div class="stat-value">${wins}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Винрейт</div>
+        <div class="stat-value">${winRate}%</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Средняя партия</div>
+        <div class="stat-value">${escapeHtml(formatDuration(data.stats.averageDurationSeconds))}</div>
+      </div>
+    </div>
+    <div class="stats-subtitle">Любимый словарь: ${escapeHtml(favoriteDictionary)}</div>
+    <div class="stats-subtitle">Последние игры</div>
+    ${recentGames}
+  `
+}
+
+async function loadProfileStats() {
+  if (!auth.user) {
+    auth.statsLoaded = false
+    renderProfileStatsLocked()
+    return
+  }
+
+  renderProfileStatsLoading()
+
+  try {
+    const response = await fetch('/api/profile/summary', { credentials: 'same-origin' })
+    if (!response.ok) throw new Error('profile summary failed')
+    const payload = await response.json()
+    auth.statsLoaded = true
+    renderProfileStats(payload)
+  } catch {
+    auth.statsLoaded = false
+    q('profile-stats-content').innerHTML = `
+      <p class="stats-empty">Не удалось загрузить историю игр. Попробуй ещё раз чуть позже.</p>
+    `
+  }
+}
+
+async function saveFinishedGame(winner) {
+  if (!auth.user || !state.gameStartedAt) return
+
+  const payload = {
+    startedAt: state.gameStartedAt,
+    finishedAt: new Date().toISOString(),
+    dictionaryId: state.currentDictionary?.id || null,
+    dictionaryName: state.currentDictionary?.name || null,
+    turnTime: state.config.turnTime,
+    openRoundEnabled: state.config.openRoundEnabled,
+    teamCount: state.teams.length,
+    winnerName: winner.name,
+    winnerPosition: winner.position,
+    summary: {
+      teams: state.teams.map(team => ({
+        name: team.name,
+        position: team.position,
+        players: team.players,
+        color: team.color,
+      })),
+    },
+  }
+
+  try {
+    await fetch('/api/game-sessions', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify(payload),
+    })
+    await loadProfileStats()
+  } catch {
+    // History should not interrupt the game flow.
+  }
 }
 
 async function loadAuthConfig() {
@@ -215,6 +359,7 @@ function renderAuthCard() {
       showLogout: true,
       loginHtml: '',
     })
+    loadProfileStats()
     return
   }
 
@@ -224,6 +369,7 @@ function renderAuthCard() {
       meta: 'Нужно добавить username Telegram-бота в конфигурацию Cloudflare',
       loginHtml: '<div class="account-note">После этого на этом месте появится кнопка входа через Telegram.</div>',
     })
+    renderProfileStatsLocked()
     return
   }
 
@@ -232,6 +378,7 @@ function renderAuthCard() {
     meta: 'Подключи аккаунт, чтобы позже сохранить покупки и доступ к платным пакетам.',
     loginHtml: '<div class="account-note">Загружаем кнопку входа…</div>',
   })
+  renderProfileStatsLocked()
 
   renderTelegramLoginWidget()
 }
@@ -546,6 +693,8 @@ q('start-btn').addEventListener('click', async () => {
     explainerIdx: 0,
   }))
   state.teamIndex = 0
+  state.currentDictionary = dict
+  state.gameStartedAt = new Date().toISOString()
   state.gameInProgress = true; // Set game in progress
   goTurnStart()
 })
@@ -810,6 +959,7 @@ function showGameOver(winner) {
     </div>`
   ).join('')
   showScreen('game-over')
+  saveFinishedGame(winner)
   state.gameInProgress = false; // Game over, reset flag
 }
 
@@ -820,6 +970,8 @@ q('restart-btn').addEventListener('click', () => {
   defaultNames.push('Команда 1','Команда 2','Команда 3','Команда 4','Команда 5','Команда 6')
   teamPlayers = [[''], ['']]
   renderTeams()
+  state.currentDictionary = null
+  state.gameStartedAt = null
   state.gameInProgress = false; // Restart game, reset flag
   showScreen('setup')
 })
@@ -851,6 +1003,7 @@ renderTeams()
 loadDictionaries()
 updateSetupMenuButtons(); // Initial check for button visibility
 loadAuthConfig().then(refreshCurrentUser).then(renderAuthCard)
+renderProfileStatsLocked()
 
 q('ts-back-to-menu-btn').addEventListener('click', goSetupMenu); // <-- New event listener
 
