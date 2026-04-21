@@ -1,0 +1,55 @@
+[
+  {
+    "id": "classic",
+    "name": "Классический",
+    "subtitle": "Всё обо всём",
+    "description": "Предметы, действия, понятия — универсальный набор на любую компанию",
+    "icon": "🎭",
+    "file": "words.json",
+    "wordCount": 922,
+    "available": true
+  },
+  {
+    "id": "geo",
+    "name": "География",
+    "subtitle": "Страны и места",
+    "description": "Страны, столицы, рельеф, явления природы, достопримечательности и путешествия",
+    "icon": "🌍",
+    "file": "words_geo.json",
+    "wordCount": 428,
+    "available": true
+  },
+  {
+    "id": "cinema",
+    "name": "Мир кино",
+    "subtitle": "Фильмы и сериалы",
+    "description": "Фильмы, режиссёры, персонажи, жанры и культовые сцены",
+    "icon": "🎬",
+    "file": "words_cinema.json",
+    "wordCount": 800,
+    "available": false,
+    "badge": "Скоро"
+  },
+  {
+    "id": "sport",
+    "name": "Спорт и игры",
+    "subtitle": "Движение и соревнования",
+    "description": "Виды спорта, правила, спортсмены, соревнования и игры",
+    "icon": "⚽",
+    "file": "words_sport.json",
+    "wordCount": 750,
+    "available": false,
+    "badge": "Скоро"
+  },
+  {
+    "id": "science",
+    "name": "Наука и природа",
+    "subtitle": "Знания и открытия",
+    "description": "Физика, биология, география, история и великие изобретения",
+    "icon": "🔬",
+    "file": "words_science.json",
+    "wordCount": 700,
+    "available": false,
+    "badge": "Скоро"
+  }
+]

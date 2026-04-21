@@ -1,0 +1,212 @@
+<!-- Activity Game - Main HTML structure -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Activity</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- SETUP -->
+<div class="screen active" id="screen-setup">
+  <h1>🎭 Activity</h1>
+  <div class="nav-pill">
+    <div class="nav-item active" onclick="showScreen('setup')">Новая игра</div>
+    <div class="nav-item" onclick="showScreen('rules')">Правила</div>
+  </div>
+  <div class="section">
+    <h2>Словарь</h2>
+    <div class="dict-grid" id="dict-grid">
+      <div style="color:#aaa;font-size:.9rem;grid-column:span 2">Загрузка словарей…</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Команды</h2>
+    <div id="teams-container"></div>
+    <button class="add-team-btn" id="add-team-btn">+ Добавить команду</button>
+  </div>
+  <div class="section">
+    <h2>Настройки</h2>
+    <div class="setting-row">
+      <label>Время объяснения (сек)</label>
+      <div class="stepper">
+        <button class="step-btn" onclick="changeTime(-10)">–</button>
+        <input type="number" id="turn-time" value="60" readonly>
+        <button class="step-btn" onclick="changeTime(10)">+</button>
+      </div>
+    </div>
+    <div class="setting-row">
+      <label>
+        Открытый раунд
+        <span class="tooltip-trigger">?
+          <span class="tooltip-text">С вероятностью 10% выпадает красная карточка («Открытый раунд»). Все команды угадывают слово одновременно. Угадавшая команда получает столько очков, сколько указано на карточке (3, 4 или 5). Если угадает соперник — исполнитель получает +2 очка утешения.</span>
+        </span>
+      </label>
+      <label class="switch">
+        <input type="checkbox" id="open-round-enabled" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+  <button class="btn btn-primary" id="start-btn">Начать игру</button>
+  <button class="btn btn-secondary" id="continue-game-btn" style="display: none;">Продолжить игру</button>
+</div>
+
+<!-- RULES -->
+<div class="screen" id="screen-rules">
+  <h1>🎭 Activity</h1>
+  <div class="nav-pill">
+    <div class="nav-item" onclick="showScreen('setup')">Новая игра</div>
+    <div class="nav-item active" onclick="showScreen('rules')">Правила</div>
+  </div>
+  
+  <div class="section">
+    <h2>Суть игры</h2>
+    <p>Команды соревнуются в объяснении слов. Задача — первыми добраться до <span class="highlight">финиша (41 клетка)</span>, используя три способа объяснения: 🗣️ Слова, 🙌 Пантомима, 🎨 Рисование.</p>
+  </div>
+
+  <div class="section">
+    <h2>Ход игры</h2>
+    <ul class="rule-list">
+      <li>На каждой клетке поля фишка команды определяет тип задания.</li>
+      <li>Игрок выбирает сложность (3, 4 или 5 очков), слово открывается только ему (10 секунд на просмотр).</li>
+      <li>На объяснение дается 60 секунд. Если команда угадала — фишка перемещается вперед на количество очков.</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>Открытый раунд <span style="color:#ef4444">(Красная карточка)</span></h2>
+    <p>С вероятностью 10% раунд становится «Открытым»:</p>
+    <ul class="rule-list">
+      <li>Все команды угадывают слово одновременно.</li>
+      <li>Угадавшая команда получает столько очков, <strong>сколько указано на карточке</strong> (3, 4 или 5).</li>
+      <li>Если угадала <strong>команда соперников</strong> — исполнитель получает <strong>+2 очка утешения</strong>.</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>Особые правила</h2>
+    <ul class="rule-list">
+      <li><strong>Столкновение:</strong> Если вы встали на клетку, где уже стоит другая команда, она отступает на 1 клетку назад.</li>
+      <li><strong>Штрафы:</strong> За нарушение правил (слова в пантомиме, буквы в рисунке и т.д.) команда не получает очков в раунде.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- TURN START -->
+<div class="screen" id="screen-turn-start">
+  <div class="turn-header">
+    <div class="team-badge" id="ts-badge"></div>
+    <p class="cell-label" id="ts-cell-label"></p>
+    <p class="explainer-line" id="ts-explainer"></p>
+  </div>
+  <div class="mode-block">
+    <span class="mode-icon-big" id="ts-icon"></span>
+    <div class="mode-name-big" id="ts-mode-name"></div>
+    <p class="mode-hint" id="ts-hint"></p>
+  </div>
+  <div class="board-wrap" id="ts-board"></div>
+  <button class="btn btn-primary" id="ts-ready-btn">Выбрать карточку →</button>
+  <button class="btn btn-secondary" id="ts-back-to-menu-btn">← В меню</button>
+</div>
+
+<!-- CARD SELECTION (difficulty only, no words) -->
+<div class="screen" id="screen-card-selection">
+  <div class="turn-header">
+    <div class="team-badge" id="cs-badge"></div>
+    <p class="cell-label">выбери сложность карточки</p>
+    <p class="explainer-line" id="cs-explainer"></p>
+  </div>
+  <div style="text-align:center;margin-bottom:20px">
+    <span class="mode-pill" id="cs-mode-pill"></span>
+  </div>
+  <div class="diff-grid">
+    <div class="diff-card" data-pts="3">
+      <div class="diff-pts easy">3</div>
+      <div class="diff-label">Лёгкая</div>
+      <div class="diff-moves">фишка +3</div>
+    </div>
+    <div class="diff-card" data-pts="4">
+      <div class="diff-pts medium">4</div>
+      <div class="diff-label">Средняя</div>
+      <div class="diff-moves">фишка +4</div>
+    </div>
+    <div class="diff-card" data-pts="5">
+      <div class="diff-pts hard">5</div>
+      <div class="diff-label">Сложная</div>
+      <div class="diff-moves">фишка +5</div>
+    </div>
+  </div>
+  <p style="color:#aaa;font-size:.85rem;text-align:center;margin-bottom:14px">Слово откроется после выбора</p>
+  <button class="btn btn-secondary" id="cs-back-btn">← К полю</button>
+</div>
+
+<!-- PREVIEW (word revealed + 10s countdown) -->
+<div class="screen" id="screen-preview">
+  <div class="turn-header">
+    <div class="team-badge" id="pv-badge"></div>
+    <p class="cell-label">запомни слово — команда отворачивается!</p>
+  </div>
+  <div class="preview-body">
+    <span class="mode-pill preview-mode-pill" id="pv-mode-pill"></span>
+    <div id="pv-open-round-alert" class="open-round-alert" style="display:none">🎭 ОТКРЫТЫЙ РАУНД!</div>
+    <div class="preview-word" id="pv-word"></div>
+    <div class="countdown-ring" id="pv-countdown"></div>
+    <p style="color:#aaa;font-size:.88rem;margin-bottom:15px">Объяснение начнётся автоматически</p>
+    <button class="btn btn-secondary" onclick="sfxNavBack(); goTurnStart()">✕ Отменить ход</button>
+  </div>
+</div>
+
+<!-- EXPLAINING -->
+<div class="screen" id="screen-explaining">
+  <div class="playing-header" style="position: relative; text-align: center; height: 40px; display: flex; align-items: center; justify-content: center;">
+    <span class="mode-pill" id="ex-mode-pill"></span>
+    <div class="timer" id="ex-timer" style="position: absolute; right: 0;"></div>
+  </div>
+
+  <div class="word-card">
+    <div class="word-text" id="ex-word"></div>
+  </div>
+  <p class="pts-hint" id="ex-pts-hint"></p>
+
+  <div class="btn-row" id="normal-btns">
+    <button class="btn btn-success" id="guess-btn">✓ Угадали!</button>
+    <button class="btn btn-fail" id="fail-btn">✕ Не угадали</button>
+  </div>
+  <div id="open-round-btns" style="display:none; text-align:center;">
+    <p style="margin-bottom:10px; color:#aaa;">Кто угадал?</p>
+    <div id="teams-btns-container" style="display:grid; grid-template-columns:1fr 1fr; gap:8px;"></div>
+    <button class="btn btn-fail" id="open-fail-btn" style="margin-top:8px; padding: 12px 16px; font-size: 0.95rem;">Никто</button>
+  </div>
+  <button class="btn btn-secondary" onclick="sfxNavBack(); goTurnStart()" style="margin-top:8px; padding: 12px 16px;">✕ Отменить ход</button>
+  <div class="pos-row" id="ex-positions"></div>
+</div>
+
+<!-- TURN RESULT -->
+<div class="screen" id="screen-turn-result">
+  <div class="result-body">
+    <span class="outcome-icon" id="tr-icon"></span>
+    <div class="outcome-text" id="tr-text"></div>
+    <div class="outcome-sub" id="tr-sub"></div>
+  </div>
+  <div class="board-wrap" id="tr-board"></div>
+  <button class="btn btn-primary" id="next-turn-btn">Следующий ход →</button>
+</div>
+
+<!-- GAME OVER -->
+<div class="screen" id="screen-game-over">
+  <div class="winner-screen">
+    <span class="winner-emoji">🏆</span>
+    <h1 id="go-winner"></h1>
+    <p style="color:#aaa;font-size:1.1rem;margin-bottom:0">побеждает!</p>
+    <div class="final-list" id="go-scores"></div>
+    <button class="btn btn-primary" id="restart-btn">Играть ещё раз</button>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
