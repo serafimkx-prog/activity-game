@@ -11,29 +11,25 @@
 
 <!-- SETUP -->
 <div class="screen active" id="screen-setup">
-  <h1>🎭 Activity</h1>
-  <div class="nav-pill">
-    <div class="nav-item active" onclick="showScreen('setup')">Новая игра</div>
-    <div class="nav-item" onclick="showScreen('rules')">Правила</div>
-  </div>
-  <div class="section account-section">
-    <div class="account-header">
-      <div>
-        <h2>Аккаунт</h2>
-        <p class="account-subtitle">Вход через Telegram пригодится для покупок и сохранения доступа.</p>
-      </div>
-      <button class="btn btn-sm btn-secondary account-logout" id="account-logout-btn" style="display:none">Выйти</button>
-    </div>
-    <div class="account-card" id="account-card">
-      <div class="account-state">
+  <div class="setup-topbar">
+    <h1>🎭 Activity</h1>
+    <div class="account-pill" id="account-card">
+      <div class="account-state compact">
         <div class="account-avatar placeholder" id="account-avatar">TG</div>
-        <div class="account-copy">
+        <div class="account-copy compact">
           <div class="account-name" id="account-name">Проверяем вход…</div>
           <div class="account-meta" id="account-meta">Подключаем авторизацию</div>
         </div>
       </div>
-      <div class="account-login-area" id="telegram-login-slot"></div>
+      <div class="account-actions">
+        <div class="account-login-area compact" id="telegram-login-slot"></div>
+        <button class="btn btn-sm btn-secondary account-logout" id="account-logout-btn" style="display:none">Выйти</button>
+      </div>
     </div>
+  </div>
+  <div class="nav-pill">
+    <div class="nav-item active" onclick="showScreen('setup')">Новая игра</div>
+    <div class="nav-item" onclick="showScreen('rules')">Правила</div>
   </div>
   <div class="section">
     <h2>Словарь</h2>
