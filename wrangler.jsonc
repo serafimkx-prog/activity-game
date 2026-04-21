@@ -24,6 +24,7 @@
     "nodejs_compat"
   ],
   "vars": {
-    "APP_NAME": "activity-game"
+    "APP_NAME": "activity-game",
+    "TELEGRAM_BOT_USERNAME": ""
   }
 }

@@ -94,6 +94,12 @@ const state = {
   gameInProgress: false,
 }
 
+const auth = {
+  config: null,
+  user: null,
+  widgetLoaded: false,
+}
+
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 function shuffle(arr) {
   const a = [...arr]
@@ -106,6 +112,16 @@ function shuffle(arr) {
 
 function q(id) { return document.getElementById(id) }
 
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, ch => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  }[ch]))
+}
+
 function showScreen(id) {
   clearInterval(state.timer);
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'))
@@ -116,6 +132,149 @@ function showScreen(id) {
 function getCellMode(pos) {
   const idx = Math.min(pos, BOARD_LEN - 1)
   return MODES[BOARD[idx]]
+}
+
+function setAccountView({ name, meta, avatarHtml = 'TG', placeholder = true, showLogout = false, loginHtml = '' }) {
+  const avatar = q('account-avatar')
+  const nameEl = q('account-name')
+  const metaEl = q('account-meta')
+  const loginSlot = q('telegram-login-slot')
+  const logoutBtn = q('account-logout-btn')
+
+  avatar.classList.toggle('placeholder', placeholder)
+  avatar.innerHTML = avatarHtml
+  nameEl.textContent = name
+  metaEl.textContent = meta
+  loginSlot.innerHTML = loginHtml
+  logoutBtn.style.display = showLogout ? 'inline-flex' : 'none'
+}
+
+function initialsForUser(user) {
+  const base = [user.firstName, user.lastName].filter(Boolean).join(' ').trim()
+  if (!base) return 'TG'
+  return base.split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase()
+}
+
+async function loadAuthConfig() {
+  try {
+    const response = await fetch('/api/config')
+    if (!response.ok) throw new Error('config request failed')
+    auth.config = await response.json()
+  } catch {
+    auth.config = { ok: false, telegramBotUsername: null }
+  }
+}
+
+async function refreshCurrentUser() {
+  try {
+    const response = await fetch('/api/me', { credentials: 'same-origin' })
+    if (!response.ok) throw new Error('me request failed')
+    const payload = await response.json()
+    auth.user = payload.user || null
+  } catch {
+    auth.user = null
+  }
+}
+
+function renderTelegramLoginWidget() {
+  if (!auth.config?.telegramBotUsername || auth.user || auth.widgetLoaded) return
+
+  const slot = q('telegram-login-slot')
+  slot.innerHTML = ''
+
+  const script = document.createElement('script')
+  script.async = true
+  script.src = 'https://telegram.org/js/telegram-widget.js?22'
+  script.setAttribute('data-telegram-login', auth.config.telegramBotUsername)
+  script.setAttribute('data-size', 'large')
+  script.setAttribute('data-userpic', 'false')
+  script.setAttribute('data-radius', '10')
+  script.setAttribute('data-request-access', 'write')
+  script.setAttribute('data-onauth', 'handleTelegramAuth(user)')
+  slot.appendChild(script)
+
+  auth.widgetLoaded = true
+}
+
+function renderAuthCard() {
+  if (auth.user) {
+    const avatarHtml = auth.user.photoUrl
+      ? `<img src="${escapeHtml(auth.user.photoUrl)}" alt="${escapeHtml(auth.user.firstName || 'Telegram user')}">`
+      : escapeHtml(initialsForUser(auth.user))
+    const handle = auth.user.username
+      ? `@${auth.user.username}`
+      : 'Telegram-аккаунт подключён'
+
+    setAccountView({
+      name: auth.user.firstName || 'Аккаунт подключён',
+      meta: handle,
+      avatarHtml,
+      placeholder: !auth.user.photoUrl,
+      showLogout: true,
+      loginHtml: '',
+    })
+    return
+  }
+
+  if (!auth.config?.telegramBotUsername) {
+    setAccountView({
+      name: 'Вход скоро появится',
+      meta: 'Нужно добавить username Telegram-бота в конфигурацию Cloudflare',
+      loginHtml: '<div class="account-note">После этого на этом месте появится кнопка входа через Telegram.</div>',
+    })
+    return
+  }
+
+  setAccountView({
+    name: 'Войти через Telegram',
+    meta: 'Подключи аккаунт, чтобы позже сохранить покупки и доступ к платным пакетам.',
+    loginHtml: '<div class="account-note">Загружаем кнопку входа…</div>',
+  })
+
+  renderTelegramLoginWidget()
+}
+
+window.handleTelegramAuth = async function(user) {
+  q('telegram-login-slot').innerHTML = '<div class="account-note">Подтверждаем вход…</div>'
+
+  try {
+    const response = await fetch('/api/auth/telegram', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify(user),
+    })
+    const payload = await response.json()
+
+    if (!response.ok || !payload.ok) {
+      throw new Error(payload.error || 'auth failed')
+    }
+
+    auth.user = payload.user
+    auth.widgetLoaded = false
+    renderAuthCard()
+  } catch (err) {
+    auth.user = null
+    auth.widgetLoaded = false
+    setAccountView({
+      name: 'Вход не удался',
+      meta: 'Попробуй ещё раз через несколько секунд',
+      loginHtml: `<div class="account-note">${escapeHtml(err.message || 'Не удалось выполнить вход')}</div>`,
+    })
+  }
+}
+
+async function logoutTelegramUser() {
+  try {
+    await fetch('/api/logout', {
+      method: 'POST',
+      credentials: 'same-origin',
+    })
+  } finally {
+    auth.user = null
+    auth.widgetLoaded = false
+    renderAuthCard()
+  }
 }
 
 function initPools(data) {
@@ -351,6 +510,8 @@ q('add-team-btn').addEventListener('click', () => {
     renderTeams()
   }
 })
+
+q('account-logout-btn').addEventListener('click', logoutTelegramUser)
 
 q('start-btn').addEventListener('click', async () => {
   sfxNavForward();
@@ -687,6 +848,7 @@ function setBadge(id, team) {
 renderTeams()
 loadDictionaries()
 updateSetupMenuButtons(); // Initial check for button visibility
+loadAuthConfig().then(refreshCurrentUser).then(renderAuthCard)
 
 q('ts-back-to-menu-btn').addEventListener('click', goSetupMenu); // <-- New event listener
 

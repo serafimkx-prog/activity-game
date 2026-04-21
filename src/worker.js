@@ -138,6 +138,16 @@ async function handleLogout(request, env) {
   );
 }
 
+async function handleConfig(request, env) {
+  const wrongMethod = methodNotAllowed(request, "GET");
+  if (wrongMethod) return wrongMethod;
+
+  return json({
+    ok: true,
+    telegramBotUsername: env.TELEGRAM_BOT_USERNAME || null,
+  });
+}
+
 function ensureBindings(env) {
   if (!env.DB) {
     return error("Missing DB binding", 500);
@@ -149,6 +159,10 @@ function ensureBindings(env) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+
+    if (url.pathname === "/api/config") {
+      return handleConfig(request, env);
+    }
 
     if (url.pathname === "/api/auth/telegram") {
       const bindingError = ensureBindings(env);
