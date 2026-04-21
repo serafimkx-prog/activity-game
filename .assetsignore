@@ -1,0 +1,16 @@
+.git
+.git/**
+.wrangler
+.wrangler/**
+.DS_Store
+README.md
+GAME_SPEC.md
+db
+db/**
+functions
+functions/**
+wrangler.toml
+wrangler.json
+wrangler.jsonc
+node_modules
+node_modules/**
