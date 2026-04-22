@@ -1023,7 +1023,6 @@ function getExplainer(team) {
 // ─── Turn Start ────────────────────────────────────────────────────────────────
 function goTurnStart() {
   clearInterval(state.timer);
-  sfxNavBack();
   const team = state.teams[state.teamIndex]
   state.cellMode = getCellMode(team.position)
 
@@ -1369,6 +1368,7 @@ q('gd-back-btn').addEventListener('click', () => {
 
 // Handle Continue Game button click
 q('continue-game-btn').addEventListener('click', () => {
+  sfxNavForward()
   goTurnStart(); // Resume the game
 });
 
