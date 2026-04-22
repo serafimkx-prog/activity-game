@@ -1,123 +1,65 @@
-# Activity Game — Полная база знаний по проекту
+# Activity Game — База знаний по текущему коду
 
-Этот документ нужен как единая точка входа в проект. Он описывает:
+Этот документ описывает проект только по тому, что подтверждается текущим кодом в репозитории.
 
-- что это за продукт;
-- как устроен фронтенд;
-- как устроен backend на Cloudflare Workers;
-- как работают авторизация, история игр и база данных;
-- какие есть важные файлы;
-- как сейчас устроен деплой;
-- какие есть известные ограничения и дальнейшие шаги.
+Если документация расходится с кодом, источником истины считаются:
 
-Документ описывает **текущее состояние проекта на момент его создания**.
+- `script.js` для игрового поведения и UI;
+- `src/worker.js` и `src/lib/*` для backend и авторизации;
+- `db/schema.sql` для структуры базы данных;
+- `wrangler.jsonc` для конфигурации Worker.
 
 ## 1. Что это за проект
 
-`Activity` — браузерная версия настольной игры Activity.
+`Activity` — браузерная игра с локальным игровым процессом и backend-слоем для аккаунта и истории партий.
 
-Игроки делятся на команды, выбирают карточки разной сложности и объясняют слова в одном из режимов:
+Текущая архитектура:
 
-- `EXPLAIN` — словами;
-- `ACT` — пантомимой;
-- `DRAW` — рисованием.
+- фронтенд без сборщика;
+- SPA-подобный интерфейс на одном HTML-документе;
+- backend на `Cloudflare Workers`;
+- база данных `D1`;
+- авторизация через `Telegram Login Widget`.
 
-Сейчас игра работает как:
-
-- статический фронтенд;
-- с backend-слоем на `Cloudflare Workers`;
-- с авторизацией через `Telegram Login Widget`;
-- с сохранением истории завершённых игр для авторизованных пользователей.
-
-На текущем этапе продуктовая модель такая:
-
-- играть можно бесплатно;
-- авторизация нужна для истории и статистики в профиле;
-- словари пока бесплатные;
-- основа под будущую монетизацию уже заложена через аккаунт, Worker API и D1.
-
-## 2. Текущий прод-адрес
-
-Текущий боевой адрес проекта:
-
-- `https://activity.serafimkx.workers.dev/`
-
-Важно:
-
-- раньше в Cloudflare существовали два приложения: `activity` и `activity-game`;
-- сейчас должен использоваться **только `activity`**;
-- вся дальнейшая настройка должна идти именно в Worker `activity`.
-
-## 3. Технологический стек
-
-### Фронтенд
-
-- `HTML`
-- `CSS`
-- `Vanilla JavaScript`
-
-Сборщика фронтенда нет.
-
-### Backend
-
-- `Cloudflare Workers`
-- `D1` как база данных
-
-### Авторизация
-
-- `Telegram Login Widget`
-- серверная валидация Telegram auth payload через `hash`
-
-### Хостинг / деплой
-
-- GitHub repository
-- Cloudflare Worker deploy из GitHub
-
-## 4. Структура репозитория
+## 2. Структура репозитория
 
 Ключевые файлы:
 
-- [index.html](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/index.html) — вся HTML-разметка экранов.
-- [style.css](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/style.css) — все стили интерфейса.
-- [script.js](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/script.js) — вся клиентская игровая логика, UI, auth-клиент, статистика.
-- [src/worker.js](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/src/worker.js) — Worker backend и API endpoints.
-- [db/schema.sql](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/db/schema.sql) — SQL-схема D1.
-- [wrangler.jsonc](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/wrangler.jsonc) — конфиг Worker.
+- [index.html](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/index.html) — все экраны приложения.
+- [style.css](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/style.css) — стили интерфейса.
+- [script.js](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/script.js) — игровой runtime, клиентская auth-логика и статистика.
+- [src/worker.js](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/src/worker.js) — основной Worker entrypoint.
+- [src/lib/http.js](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/src/lib/http.js) — JSON/error helpers.
+- [src/lib/session.js](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/src/lib/session.js) — cookie-сессии.
+- [src/lib/telegram.js](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/src/lib/telegram.js) — проверка Telegram auth payload.
+- [db/schema.sql](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/db/schema.sql) — схема D1.
 - [dictionaries.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/dictionaries.json) — список словарей и их метаданные.
 - [words.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/words.json) — основной словарь.
 - [words_geo.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/words_geo.json) — географический словарь.
-- [.assetsignore](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/.assetsignore) — список файлов/папок, которые нельзя публиковать как static assets.
-- [README.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/README.md) — пользовательское описание проекта.
-- [GAME_SPEC.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/GAME_SPEC.md) — ранняя техническая спецификация проекта.
+- [.assetsignore](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/.assetsignore) — исключения для публикации static assets.
+- [README.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/README.md) — краткое описание проекта.
+- [GAME_SPEC.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/GAME_SPEC.md) — техническая спецификация по текущему коду.
 
-## 5. Как устроен фронтенд
+## 3. Как устроен фронтенд
 
-Фронтенд — это одна SPA-подобная страница с несколькими “экранами”.
+Фронтенд — одна страница с несколькими экранами `.screen`.
 
-### Основной механизм экранов
+Экран активируется через класс `.active`.
 
-Каждый экран — это блок `.screen`.
+Функция `showScreen(id)` в [script.js](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/script.js):
 
-Активный экран получает класс `.active`.
-
-Переключение идет через функцию:
-
-- `showScreen(id)` в [script.js](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/script.js)
-
-Эта функция:
-
-- останавливает текущий таймер;
+- очищает активный таймер;
 - скрывает все экраны;
 - показывает нужный экран;
 - скроллит страницу вверх.
 
-### Основные экраны
+### Экраны
 
-В текущем проекте есть такие экраны:
+В текущем `index.html` есть такие экраны:
 
-- `screen-setup` — “Новая игра”
-- `screen-rules` — “Правила”
-- `screen-profile` — “Профиль”
+- `screen-setup`
+- `screen-rules`
+- `screen-profile`
 - `screen-turn-start`
 - `screen-card-selection`
 - `screen-preview`
@@ -125,158 +67,198 @@
 - `screen-turn-result`
 - `screen-game-over`
 
-### Текущая навигация
+### Верхнеуровневая навигация
 
-На верхнем уровне UI есть три раздела:
+В интерфейсе есть три верхних раздела:
 
 - `Новая игра`
 - `Правила`
 - `Профиль`
 
-Профиль вынесен в отдельный экран, чтобы:
+### Визуальная модель
 
-- не ломать layout `Новой игры`;
-- не перегружать шапку;
-- иметь естественное место под историю, статистику и будущий личный кабинет.
+По коду и стилям интерфейс:
 
-### Базовая визуальная модель
+- тёмный;
+- карточный;
+- mobile-friendly;
+- ограничен шириной `max-width: 600px`;
+- прижат к верхней части viewport, а не центрируется вертикально.
 
-Интерфейс темный, карточный, mobile-friendly.
+## 4. Игровое состояние
 
-Ключевые особенности layout:
+Главное runtime-состояние хранится в объекте `state` в [script.js](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/script.js).
 
-- экран прижат к верхней части viewport, а не вертикально центрирован;
-- основной контейнер центрирован по горизонтали;
-- ширина экрана ограничена `max-width: 600px`;
-- профили, словари, настройки и команды показаны через карточки.
-
-## 6. Как устроена клиентская игровая логика
-
-Вся игровая логика находится в [script.js](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/script.js).
-
-### Главный runtime state
-
-Основное игровое состояние хранится в объекте `state`.
-
-На текущий момент там есть:
+Сейчас там есть:
 
 - команды;
 - индекс текущей команды;
 - текущий режим клетки;
 - текущая выбранная карточка;
-- пулы слов;
-- индексы по пулам;
-- конфиг игры;
+- словарные пулы;
+- индексы внутри пулов;
+- конфиг хода;
 - таймер;
-- флаг активной игры;
-- выбранный словарь текущей партии;
+- `timeLeft`;
+- `gameInProgress`;
+- выбранный словарь;
 - время старта партии.
 
-Состояние авторизации хранится отдельно в объекте `auth`.
+Отдельно есть объект `auth`, в котором лежат:
 
-Там есть:
-
-- публичная auth-конфигурация;
+- публичная конфигурация auth;
 - текущий пользователь;
-- признак загрузки Telegram widget;
-- состояние загрузки статистики.
+- флаг загрузки Telegram widget;
+- флаг загрузки статистики.
+
+## 5. Поле и игровые режимы
 
 ### Поле
 
-Поле генерируется случайно функцией `generateBoard()`.
+Поле создаётся функцией `generateBoard()`.
 
-Распределение:
+Состав поля:
 
-- 14 клеток `E`
-- 14 клеток `A`
-- 13 клеток `D`
+- `14` клеток `E`
+- `14` клеток `A`
+- `13` клеток `D`
 
-Поле визуализируется как “змейка” в сетке `7x6`.
+Всего:
 
-### Словари
+- `41` игровая клетка: `0..40`
+- `1` финишная позиция: `41`
 
-Словари загружаются через:
+### Визуализация поля
 
-- `loadDictionaries()`
+Поле рендерится как змейка в сетке `7x6`.
 
-Сами слова для партии загружаются при старте новой игры:
+Функция `pathToGrid(slotIdx)` раскладывает слоты так:
 
-- `fetch(dict.file)`
+- чётные ряды идут слева направо;
+- нечётные ряды — справа налево.
 
-Сейчас проект использует локальные JSON-файлы:
+### Режимы
 
-- `words.json`
-- `words_geo.json`
+В коде есть три режима:
 
-### Игровой цикл
+- `EXPLAIN`
+- `ACT`
+- `DRAW`
 
-Основная цепочка такая:
+Важно: в текущем UI нет отдельного Canvas-редактора или рисовального полотна. `DRAW` сейчас существует как тип задания, слово для которого показывается тем же игровым циклом, что и для других режимов.
+
+## 6. Словари
+
+Метаданные словарей загружаются через `loadDictionaries()` из [dictionaries.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/dictionaries.json).
+
+Сейчас в файле есть:
+
+- доступные словари:
+  - `classic`
+  - `geo`
+- недоступные словари с `available: false`:
+  - `cinema`
+  - `sport`
+  - `science`
+
+При старте игры фронтенд загружает `dict.file` через `fetch()`.
+
+После этого вызывается `initPools(data)`, которая создаёт перемешанные пулы слов по режимам и сложностям.
+
+## 7. Игровой цикл
+
+Основная цепочка:
 
 1. `goTurnStart()`
 2. `goCardSelection()`
 3. `goPreview()`
 4. `goExplaining()`
 5. `endTurn()` или `endOpenRound()`
-6. `showGameOver()` при победе
+6. `showGameOver()`
 
-### Таймеры
+### Старт новой игры
 
-В игре используется один таймер в `state.timer`.
+По нажатию `Начать игру` код:
 
-Он:
+- собирает названия команд;
+- собирает игроков;
+- читает время хода;
+- читает настройку `openRoundEnabled`;
+- загружает словарь;
+- генерирует поле;
+- инициализирует команды;
+- сохраняет выбранный словарь в `state.currentDictionary`;
+- сохраняет время старта в `state.gameStartedAt`;
+- включает `state.gameInProgress = true`.
 
-- очищается при смене экранов;
-- используется для preview countdown;
-- используется для объяснения слова.
+### Continue game
 
-### Звук
+Если `state.gameInProgress === true`, на экране настройки показывается кнопка `Продолжить игру`.
 
-Звук полностью генерируется через `Web Audio API`.
+При нажатии она возвращает пользователя в `goTurnStart()`.
 
-В проекте нет аудиофайлов, есть набор helper-функций:
+## 8. Таймеры и правила
 
-- `sfxTick`
-- `sfxTimeUp`
-- `sfxSuccess`
-- `sfxFail`
-- `sfxCardPick`
-- `sfxOpenRound`
-- и др.
+### Preview
 
-## 7. Авторизация через Telegram
+В `goPreview()`:
 
-### Общая схема
+- слово показывается только на preview-экране;
+- запускается countdown на `7` секунд;
+- затем автоматически начинается `goExplaining()`.
 
-Пользователь авторизуется через `Telegram Login Widget`.
+### Основной таймер
 
-Flow:
+В `goExplaining()` используется `state.config.turnTime`.
 
-1. фронтенд получает публичную конфигурацию с `/api/config`;
-2. если у Worker есть `TELEGRAM_BOT_USERNAME`, на странице рендерится Telegram widget;
-3. после login Telegram возвращает auth payload;
-4. фронтенд отправляет payload на `/api/auth/telegram`;
-5. Worker валидирует `hash`;
-6. создается или обновляется пользователь в D1;
-7. создается сессия;
-8. браузеру ставится `HttpOnly` cookie;
-9. фронтенд дальше получает пользователя через `/api/me`.
+По умолчанию это `60` секунд, но пользователь может менять значение через stepper в setup-экране.
 
-### Что нужно для работы Telegram login
+Текущее ограничение в UI:
 
-В Cloudflare для Worker `activity` должны быть настроены:
+- минимум `30`
+- максимум `180`
 
-- `TELEGRAM_BOT_USERNAME` — обычная variable
-- `TELEGRAM_BOT_TOKEN` — secret
+### Открытый раунд
 
-Также через `@BotFather` должен быть привязан домен:
+Открытый раунд возможен, если:
 
-- `activity.serafimkx.workers.dev`
+- включён чекбокс `open-round-enabled`;
+- при выборе карточки сработал шанс `10%`.
 
-через команду:
+В открытом раунде:
 
-- `/setdomain`
+- UI показывает кнопки всех команд;
+- угадавшая команда получает очки карточки;
+- если выиграла не команда-исполнитель, команде-исполнителю даётся `+2`.
 
-### Фронтенд-логика auth
+### Столкновение
+
+После успешного движения по обычному ходу или открытому раунду:
+
+- если новая позиция не финишная;
+- и на клетке уже есть другая команда;
+- другая команда отступает на `1`.
+
+В текущей реализации проверка идёт циклом по всем командам, поэтому при совпадении нескольких команд на клетке отступят все найденные совпадения.
+
+### Завершение по таймеру
+
+Когда время заканчивается, `onTimerEnd()`:
+
+- проигрывает звук;
+- меняет подсказку на экране;
+- не завершает ход автоматически.
+
+Результат всё равно выбирается вручную кнопками интерфейса.
+
+## 9. Профиль и клиентская auth-логика
+
+Экран `Профиль` содержит:
+
+- карточку аккаунта;
+- слот под Telegram Login Widget;
+- кнопку logout;
+- блок `История и статистика`.
 
 Ключевые функции в [script.js](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/script.js):
 
@@ -286,39 +268,31 @@ Flow:
 - `renderAuthCard()`
 - `window.handleTelegramAuth`
 - `logoutTelegramUser()`
+- `loadProfileStats()`
+- `saveFinishedGame(winner)`
 
-### Что видит пользователь
+Если пользователь не авторизован:
 
-На экране `Профиль`:
+- показывается призыв войти через Telegram;
+- статистика заменяется locked-состоянием.
 
-- если не вошел — видит предложение войти через Telegram;
-- если вошел — видит имя, username, аватар и кнопку `Выйти`.
+Если авторизован:
 
-## 8. Как устроен backend на Cloudflare Workers
+- показываются имя, username или fallback-описание, аватар и кнопка `Выйти`;
+- выполняется загрузка профиля и последних игр.
 
-Backend находится в:
+## 10. Как устроен backend
 
-- [src/worker.js](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/src/worker.js)
+Backend находится в [src/worker.js](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/src/worker.js).
 
-Это единый Worker entrypoint, который:
+Это единый Worker, который:
 
 - обрабатывает `/api/*`;
-- всё остальное отдает как static assets через `env.ASSETS.fetch(request)`.
+- остальное отдаёт через `env.ASSETS.fetch(request)`.
 
-### Важный принцип
+### Endpoints
 
-Это **не Pages Functions**.
-
-Проект сейчас приведен к схеме:
-
-- один Worker;
-- статические файлы как assets;
-- API на том же Worker;
-- D1 binding на том же Worker.
-
-### Worker endpoints
-
-Сейчас поддерживаются:
+Сейчас в коде есть:
 
 - `GET /api/config`
 - `POST /api/auth/telegram`
@@ -327,78 +301,100 @@ Backend находится в:
 - `POST /api/game-sessions`
 - `GET /api/profile/summary`
 
-### Что делает каждый endpoint
+### Поведение endpoints
 
-#### `GET /api/config`
+`GET /api/config`
 
-Возвращает публичную конфигурацию:
+- возвращает `telegramBotUsername`.
 
-- `telegramBotUsername`
+`POST /api/auth/telegram`
 
-Это нужно фронтенду для рендера Telegram widget.
+- принимает Telegram auth payload;
+- валидирует подпись;
+- создаёт или обновляет пользователя;
+- создаёт сессию;
+- отдаёт `Set-Cookie`.
 
-#### `POST /api/auth/telegram`
+`GET /api/me`
 
-Принимает Telegram auth payload, валидирует его и создает сессию.
+- возвращает, авторизован ли пользователь;
+- возвращает объект пользователя, если сессия валидна.
 
-#### `GET /api/me`
+`POST /api/logout`
 
-Возвращает:
+- удаляет серверную сессию;
+- сбрасывает cookie.
 
-- авторизован ли пользователь;
-- объект текущего пользователя.
+`POST /api/game-sessions`
 
-#### `POST /api/logout`
+- сохраняет завершённую игру для текущего пользователя.
 
-Удаляет серверную сессию и сбрасывает cookie.
+`GET /api/profile/summary`
 
-#### `POST /api/game-sessions`
+- возвращает агрегированную статистику;
+- возвращает список последних игр.
 
-Сохраняет завершенную игру для текущего пользователя.
+## 11. Telegram auth
 
-#### `GET /api/profile/summary`
+Логика Telegram вынесена в [src/lib/telegram.js](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/src/lib/telegram.js).
 
-Возвращает:
+Проверка устроена так:
 
-- агрегированную статистику;
-- последние игры пользователя.
+- обязательны поля `id`, `first_name`, `auth_date`, `hash`;
+- `auth_date` не должен быть старше 24 часов;
+- backend строит `data_check_string`;
+- считает HMAC-SHA256;
+- сравнивает hex-signature с `payload.hash`.
 
-## 9. База данных D1
+Нормализованный профиль содержит:
 
-SQL-схема находится в:
+- `telegramUserId`
+- `username`
+- `firstName`
+- `lastName`
+- `photoUrl`
 
-- [db/schema.sql](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/db/schema.sql)
+## 12. Сессии
+
+Логика сессий находится в [src/lib/session.js](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/src/lib/session.js).
+
+Сейчас по коду:
+
+- cookie называется `activity_session`;
+- TTL сессии — `30` дней;
+- cookie выставляется как:
+  - `Path=/`
+  - `HttpOnly`
+  - `Secure`
+  - `SameSite=Lax`
+
+Если сессия истекла:
+
+- backend удаляет её из базы;
+- `getSessionUser()` возвращает `null`.
+
+## 13. D1 и схема данных
+
+Схема находится в [db/schema.sql](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/db/schema.sql).
 
 ### Таблицы
 
-#### `users`
+`users`
 
-Хранит пользователей Telegram:
+- Telegram-пользователи.
 
-- `id`
-- `telegram_user_id`
-- `username`
-- `first_name`
-- `last_name`
-- `photo_url`
-- `created_at`
-- `last_login_at`
+`sessions`
 
-#### `sessions`
+- серверные сессии.
 
-Серверные сессии:
+`game_sessions`
 
-- `id`
-- `user_id`
-- `expires_at`
-- `created_at`
+- завершённые партии.
 
-#### `game_sessions`
+### Что сохраняется в `game_sessions`
 
-История завершенных партий:
+Backend ожидает и пишет:
 
-- `id`
-- `user_id`
 - `started_at`
 - `finished_at`
 - `dictionary_id`
@@ -410,272 +406,95 @@ SQL-схема находится в:
 - `winner_position`
 - `duration_seconds`
 - `summary_json`
-- `created_at`
 
 ### Важная operational-заметка
 
-Если код с `game_sessions` уже задеплоен, но SQL-миграция ещё не применена в D1, сохранение истории будет ломаться на уровне backend-запроса.
+Если `db/schema.sql` меняется, этого недостаточно.
 
-При этом:
+Нужно отдельно применить SQL в D1, иначе:
 
-- сам сайт останется рабочим;
-- игра останется рабочей;
-- история просто не будет записываться.
+- сайт может продолжить открываться;
+- но связанные backend-операции начнут падать.
 
-То есть после любого изменения схемы SQL нужно **отдельно** применять миграцию в D1 Console или через Wrangler.
+## 14. Как считается статистика
 
-## 10. Как работает история игр и статистика
+В `GET /api/profile/summary` backend считает:
 
-### Бизнес-правило
+- `totalGames`
+- `wins`
+- `averageDurationSeconds`
+- `favoriteDictionary`
+- `recentGames`
 
-На текущем этапе:
+### Как считается победа пользователя
 
-- игра доступна бесплатно всем;
-- история и статистика доступны только авторизованному пользователю;
-- история сохраняется в профиль того пользователя, который авторизован и запускает игру на этом устройстве.
+Сейчас это эвристика:
 
-### Когда игра сохраняется
+- backend смотрит победившую команду в `summary_json`;
+- затем берёт `firstName` и `username` пользователя;
+- если одно из этих значений совпадает с именем игрока в победившей команде, победа засчитывается.
 
-Партия сохраняется при `Game Over`.
+Это важно помнить: статистика побед зависит от того, как игрок записан в составе команды.
 
-На клиенте:
+## 15. Конфигурация Worker
 
-- при старте игры в `state` пишутся:
-  - `currentDictionary`
-  - `gameStartedAt`
-- при завершении вызывается:
-  - `saveFinishedGame(winner)`
+Конфиг находится в [wrangler.jsonc](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/wrangler.jsonc).
 
-### Что именно сохраняется
+Подтверждённые по коду поля:
 
-В `POST /api/game-sessions` уходит:
-
-- начало партии;
-- завершение партии;
-- словарь;
-- настройки;
-- число команд;
-- победитель;
-- итоговая позиция;
-- summary команд и игроков.
-
-### Что показывается в профиле
-
-В блоке `История и статистика`:
-
-- всего игр;
-- побед;
-- винрейт;
-- средняя длительность;
-- любимый словарь;
-- последние игры.
-
-### Как сейчас считается победа
-
-Для MVP победа считается так:
-
-- backend смотрит завершенные игры пользователя;
-- ищет победившую команду внутри `summary_json`;
-- если среди игроков этой команды есть имя, совпадающее с `firstName` или `username` профиля, это считается победой пользователя.
-
-Это рабочий, но неидеальный эвристический вариант.
-
-### Ограничение текущего MVP
-
-Если в команде не указан авторизованный пользователь как игрок, победа может не засчитаться как “личная”, даже если партия была его.
-
-Это сознательное упрощение текущего этапа.
-
-## 11. Как устроен деплой
-
-### GitHub
-
-Проект хранится в GitHub-репозитории:
-
-- `serafimkx-prog/activity-game`
-
-### Cloudflare
-
-Cloudflare читает проект из GitHub и деплоит его как Worker.
-
-Было подтверждено по build logs, что:
-
-- Cloudflare делает `Cloning repository...`
-- затем запускает `npx wrangler deploy`
-
-### Конфигурация деплоя
-
-Файл:
-
-- [wrangler.jsonc](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/wrangler.jsonc)
-
-Ключевые поля:
-
+- `name: "activity-game"`
 - `main: "src/worker.js"`
 - `assets.directory: "."`
 - `assets.binding: "ASSETS"`
 - `assets.run_worker_first: ["/api/*"]`
-- `d1_databases` с binding `DB`
-
-### Почему нужен `.assetsignore`
-
-Ранее Cloudflare пытался загружать как ассеты:
-
-- `.git`
-- `.wrangler`
-- другие внутренние файлы
-
-Поэтому был добавлен:
-
-- [.assetsignore](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/.assetsignore)
-
-Он исключает из static assets:
-
-- `.git`
-- `src`
-- `db`
-- `wrangler`-файлы
-- `README`
-- `GAME_SPEC`
-- и прочие внутренние данные
-
-## 12. Переменные и секреты Cloudflare
-
-### Обычные переменные
-
-В `wrangler.jsonc`:
-
-- `APP_NAME`
-- `TELEGRAM_BOT_USERNAME`
-
-### Secrets
-
-В Cloudflare должен быть secret:
-
-- `TELEGRAM_BOT_TOKEN`
-
-### D1 binding
-
-В Worker должен быть binding:
-
-- `DB`
+- D1 binding `DB`
+- `vars.APP_NAME`
+- `vars.TELEGRAM_BOT_USERNAME`
 
 Текущий `database_id` в конфиге:
 
 - `87321b7e-452c-4a7a-b45f-0f70ab84c85f`
 
-## 13. Что уже точно работает
+## 16. `.assetsignore`
 
-На текущем этапе уже подтверждено, что работает:
+Файл [.assetsignore](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/.assetsignore) исключает из публикации assets, в том числе:
 
-- публикация сайта на Cloudflare;
-- Worker backend;
-- `GET /api/me`;
-- Telegram login;
-- серверная сессия;
-- получение текущего пользователя;
-- отдельный экран `Профиль`;
-- UI логина / logout;
-- верхнее выравнивание интерфейса;
-- навигация `Новая игра / Правила / Профиль`.
+- `.git`
+- `.wrangler`
+- `db`
+- `src`
+- `README.md`
+- `GAME_SPEC.md`
+- `wrangler.toml`
+- `wrangler.json`
+- `wrangler.jsonc`
+- `node_modules`
 
-Также уже написан код для:
+## 17. Что точно подтверждается кодом
 
-- истории игр;
-- статистики профиля.
+На текущий момент по репозиторию точно видно, что реализованы:
 
-Для их работы критично наличие таблицы `game_sessions` в D1.
+- локальный игровой процесс;
+- настройка команд и игроков;
+- выбор словаря;
+- случайная генерация поля;
+- preview перед раундом;
+- обычные и открытые раунды;
+- экран профиля;
+- Telegram login flow на клиенте и backend;
+- серверные сессии;
+- сохранение завершённых игр;
+- профильная summary-статистика;
+- единый Worker для API и static assets.
 
-## 14. Что сейчас в проекте потенциально хрупкое
+## 18. Что не стоит утверждать без отдельной проверки
 
-### 1. Документация и код местами расходятся
+Этот документ намеренно не фиксирует как факт:
 
-Исторически в проекте были старые README/спеки, которые не всегда совпадают с актуальным кодом.
+- конкретный production URL;
+- состояние внешнего Cloudflare-окружения;
+- состояние GitHub-деплоя;
+- наличие секретов в реальном окружении;
+- то, что все backend-фичи уже успешно прогнаны end-to-end.
 
-Например:
-
-- раньше preview/timeouts и некоторые словарные метаданные уже расходились с реальным поведением.
-
-### 2. `DRAW`-режим логически спорный
-
-Поле рисования было удалено из UI как бессмысленное в текущей реализации, потому что в режиме объяснения слово было видно на том же экране.
-
-Сама логика `DRAW` как режима в игре при этом осталась.
-
-То есть режим существует как тип задания, но отдельного canvas-интерфейса больше нет.
-
-### 3. Победы считаются через эвристику
-
-Сейчас статистика побед опирается на имена игроков в победившей команде.
-
-Это нормально для MVP, но в будущем лучше перейти на более явную модель участия пользователя в партии.
-
-### 4. SQL-миграции пока ручные
-
-Любая новая таблица в `db/schema.sql` должна отдельно применяться в D1.
-
-Автоматической миграционной системы пока нет.
-
-## 15. Что важно помнить при дальнейшей разработке
-
-### Если меняется D1-схема
-
-Нужно:
-
-1. обновить `db/schema.sql`
-2. применить SQL в D1 вручную или через Wrangler
-
-### Если меняется auth/UI
-
-Проверять:
-
-- `/api/config`
-- `/api/me`
-- реальный логин через Telegram
-- профильный экран
-
-### Если меняется Worker
-
-Проверять:
-
-- build log Cloudflare
-- что `wrangler.jsonc` валиден
-- что `/api/*` маршруты идут в Worker
-- что static assets не утекли наружу
-
-## 16. Рекомендуемые следующие шаги
-
-Если продолжать проект дальше, логичный порядок такой:
-
-1. Убедиться, что `game_sessions` создана в D1 и история реально сохраняется.
-2. Протестировать историю игр end-to-end:
-   - сыграть короткую партию;
-   - открыть `Профиль`;
-   - проверить статистику.
-3. Улучшить профиль:
-   - пустые состояния;
-   - более явное объяснение ценности авторизации.
-4. Затем перейти к следующему продуктному слою:
-   - `products`
-   - `purchases`
-   - `access`
-5. После этого уже можно решать:
-   - делать ли premium-словари;
-   - делать ли bundle/подписку;
-   - как именно монетизировать.
-
-## 17. Самое краткое резюме проекта
-
-Сейчас проект — это:
-
-- браузерная игра Activity;
-- полностью бесплатная по игровому доступу;
-- с опубликованным сайтом на Cloudflare Workers;
-- с Telegram-авторизацией;
-- с серверными сессиями;
-- с базой пользователей в D1;
-- с подготовленной системой истории игр и статистики в профиле.
-
-Если открыть только один файл, чтобы понять проект в целом, открывать нужно именно этот:
-
-- [PROJECT_KNOWLEDGE_BASE.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/PROJECT_KNOWLEDGE_BASE.md)
+Для таких утверждений нужна отдельная проверка окружения, а не только чтение локального кода.

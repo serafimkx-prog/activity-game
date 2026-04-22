@@ -94,6 +94,10 @@ const state = {
   gameInProgress: false,
   currentDictionary: null,
   gameStartedAt: null,
+  turnLog: [],
+  turnStartedAt: null,
+  currentTurnNumber: 0,
+  lastGameSummary: null,
 }
 
 const auth = {
@@ -101,6 +105,7 @@ const auth = {
   user: null,
   widgetLoaded: false,
   statsLoaded: false,
+  recentGamesMap: {},
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -180,6 +185,185 @@ function formatGameDate(isoString) {
   })
 }
 
+function averageOf(values) {
+  if (!values.length) return null
+  return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length)
+}
+
+function playerSortValue(player) {
+  return [
+    player.stats.pointsEarned,
+    player.stats.successfulCards,
+    player.stats.averageSuccessfulExplanationSeconds === null
+      ? Number.POSITIVE_INFINITY
+      : -player.stats.averageSuccessfulExplanationSeconds,
+  ]
+}
+
+function comparePlayers(a, b) {
+  const [aPoints, aCards, aAvg] = playerSortValue(a)
+  const [bPoints, bCards, bAvg] = playerSortValue(b)
+  if (bPoints !== aPoints) return bPoints - aPoints
+  if (bCards !== aCards) return bCards - aCards
+  return aAvg - bAvg
+}
+
+function buildGameHighlights(teamSummaries, turns) {
+  const players = teamSummaries.flatMap(team =>
+    team.players.map(player => ({
+      teamName: team.name,
+      playerName: player.name,
+      ...player.stats,
+    }))
+  )
+
+  const topScorer = [...players].sort((a, b) => b.pointsEarned - a.pointsEarned)[0]
+  const mostSuccessfulCards = [...players].sort((a, b) => b.successfulCards - a.successfulCards)[0]
+  const mostExplanationTime = [...players].sort((a, b) => b.explanationTimeSeconds - a.explanationTimeSeconds)[0]
+  const fastestSuccessfulTurn = [...turns]
+    .filter(turn => turn.wasSuccessful && turn.durationSeconds >= 0)
+    .sort((a, b) => a.durationSeconds - b.durationSeconds)[0]
+
+  return {
+    topScorer: topScorer && topScorer.pointsEarned > 0 ? {
+      playerName: topScorer.playerName,
+      teamName: topScorer.teamName,
+      pointsEarned: topScorer.pointsEarned,
+    } : null,
+    mostSuccessfulCards: mostSuccessfulCards && mostSuccessfulCards.successfulCards > 0 ? {
+      playerName: mostSuccessfulCards.playerName,
+      teamName: mostSuccessfulCards.teamName,
+      successfulCards: mostSuccessfulCards.successfulCards,
+    } : null,
+    fastestSuccessfulExplanation: fastestSuccessfulTurn ? {
+      playerName: fastestSuccessfulTurn.playerName,
+      teamName: fastestSuccessfulTurn.teamName,
+      durationSeconds: fastestSuccessfulTurn.durationSeconds,
+    } : null,
+    mostExplanationTime: mostExplanationTime && mostExplanationTime.explanationTimeSeconds > 0 ? {
+      playerName: mostExplanationTime.playerName,
+      teamName: mostExplanationTime.teamName,
+      durationSeconds: mostExplanationTime.explanationTimeSeconds,
+    } : null,
+  }
+}
+
+function buildGameSummary(winner) {
+  const finishedAt = new Date().toISOString()
+  const startedAtMs = state.gameStartedAt ? new Date(state.gameStartedAt).getTime() : Date.now()
+  const finishedAtMs = new Date(finishedAt).getTime()
+  const durationSeconds = Math.max(0, Math.round((finishedAtMs - startedAtMs) / 1000))
+
+  const rankedTeams = [...state.teams]
+    .sort((a, b) => b.position - a.position)
+    .map((team, index) => ({ team, place: index + 1 }))
+
+  const teamSummaries = rankedTeams.map(({ team, place }) => {
+    const players = team.players.map(playerName => {
+      const playerTurns = state.turnLog.filter(turn =>
+        turn.teamName === team.name && turn.playerName === playerName
+      )
+      const successfulTurns = playerTurns.filter(turn => turn.wasSuccessful)
+      const successfulDurations = successfulTurns.map(turn => turn.durationSeconds)
+
+      return {
+        name: playerName,
+        stats: {
+          pointsEarned: playerTurns.reduce((sum, turn) => sum + turn.playerPointsEarned, 0),
+          successfulCards: successfulTurns.length,
+          explanationTimeSeconds: playerTurns.reduce((sum, turn) => sum + turn.durationSeconds, 0),
+          averageSuccessfulExplanationSeconds: averageOf(successfulDurations),
+        },
+      }
+    }).sort(comparePlayers)
+
+    const totalPointsEarned = state.turnLog.reduce((sum, turn) => {
+      if (turn.explainerTeamName === team.name) sum += turn.explainerTeamPointsEarned
+      if (turn.winnerTeamName === team.name && turn.winnerTeamName !== turn.explainerTeamName) {
+        sum += turn.winnerTeamPointsEarned
+      }
+      return sum
+    }, 0)
+
+    return {
+      name: team.name,
+      color: team.color,
+      place,
+      finalPosition: team.position,
+      totalPointsEarned,
+      players,
+    }
+  })
+
+  return {
+    version: 2,
+    game: {
+      startedAt: state.gameStartedAt,
+      finishedAt,
+      durationSeconds,
+      dictionaryId: state.currentDictionary?.id || null,
+      dictionaryName: state.currentDictionary?.name || null,
+      turnTime: state.config.turnTime,
+      openRoundEnabled: Boolean(state.config.openRoundEnabled),
+      teamCount: state.teams.length,
+      winnerName: winner.name,
+      winnerPosition: winner.position,
+      openRoundCount: state.turnLog.filter(turn => turn.wasOpenRound).length,
+    },
+    teams: teamSummaries,
+    highlights: buildGameHighlights(teamSummaries, state.turnLog),
+    turns: state.turnLog.map(turn => ({ ...turn })),
+  }
+}
+
+function recordTurn({
+  playerWasSuccessful,
+  playerName = null,
+  playerIndex = null,
+  winnerTeamIndex = null,
+  explainerTeamPointsEarned = 0,
+  winnerTeamPointsEarned = 0,
+  playerPointsEarned = 0,
+  explainerPositionBefore,
+  explainerPositionAfter,
+  winnerPositionBefore = null,
+  winnerPositionAfter = null,
+}) {
+  const explainerTeam = state.teams[state.teamIndex]
+  const resolvedPlayerIndex = playerIndex ?? (explainerTeam.explainerIdx % explainerTeam.players.length)
+  const resolvedPlayerName = playerName ?? explainerTeam.players[resolvedPlayerIndex]
+  const startedAtMs = state.turnStartedAt || Date.now()
+  const finishedAtMs = Date.now()
+  const winnerTeam = winnerTeamIndex === null ? null : state.teams[winnerTeamIndex]
+
+  state.turnLog.push({
+    turnNumber: state.currentTurnNumber,
+    teamName: explainerTeam.name,
+    explainerTeamName: explainerTeam.name,
+    teamIndex: state.teamIndex,
+    playerName: resolvedPlayerName,
+    playerIndex: resolvedPlayerIndex,
+    mode: state.cellMode.key,
+    pointsPlanned: state.selectedCard.points,
+    playerPointsEarned,
+    explainerTeamPointsEarned,
+    winnerTeamPointsEarned,
+    wasSuccessful: playerWasSuccessful,
+    wasOpenRound: Boolean(state.selectedCard?.isOpenRound),
+    startedAt: new Date(startedAtMs).toISOString(),
+    finishedAt: new Date(finishedAtMs).toISOString(),
+    durationSeconds: Math.max(0, Math.round((finishedAtMs - startedAtMs) / 1000)),
+    explainerPositionBefore,
+    explainerPositionAfter,
+    winnerTeamName: winnerTeam?.name || null,
+    winnerTeamIndex,
+    winnerPositionBefore,
+    winnerPositionAfter,
+  })
+
+  state.turnStartedAt = null
+}
+
 function renderProfileStatsLocked() {
   q('profile-stats-content').innerHTML = `
     <p class="stats-empty">Войди через Telegram, чтобы сохранять завершённые партии и смотреть личную статистику.</p>
@@ -194,14 +378,17 @@ function renderProfileStatsLoading() {
 
 function renderProfileStats(data) {
   const totalGames = data.stats.totalGames || 0
-  const wins = data.stats.wins || 0
-  const winRate = totalGames ? Math.round((wins / totalGames) * 100) : 0
+  const totalDurationSeconds = data.stats.totalDurationSeconds || 0
+  const averageTeamCount = data.stats.averageTeamCount
+    ? Number(data.stats.averageTeamCount).toFixed(1).replace('.0', '')
+    : '—'
   const favoriteDictionary = data.stats.favoriteDictionary || 'Пока нет'
+  auth.recentGamesMap = Object.fromEntries((data.recentGames || []).map(game => [game.id, game]))
 
   const recentGames = data.recentGames.length
     ? `<div class="games-list">
         ${data.recentGames.map(game => `
-          <div class="game-item">
+          <div class="game-item clickable" onclick="openGameDetails(${game.id})">
             <div class="game-item-head">
               <div class="game-winner">${escapeHtml(game.winnerName)} победили</div>
               <div class="game-date">${escapeHtml(formatGameDate(game.finishedAt))}</div>
@@ -212,6 +399,7 @@ function renderProfileStats(data) {
               <span class="game-tag">Финиш: ${game.winnerPosition}</span>
               <span class="game-tag">${escapeHtml(formatDuration(game.durationSeconds))}</span>
             </div>
+            <div class="game-open">Открыть статистику</div>
           </div>
         `).join('')}
       </div>`
@@ -224,22 +412,151 @@ function renderProfileStats(data) {
         <div class="stat-value">${totalGames}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Побед</div>
-        <div class="stat-value">${wins}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Винрейт</div>
-        <div class="stat-value">${winRate}%</div>
+        <div class="stat-label">Общее время в играх</div>
+        <div class="stat-value">${escapeHtml(formatDuration(totalDurationSeconds))}</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Средняя партия</div>
         <div class="stat-value">${escapeHtml(formatDuration(data.stats.averageDurationSeconds))}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Среднее число команд</div>
+        <div class="stat-value">${escapeHtml(String(averageTeamCount))}</div>
       </div>
     </div>
     <div class="stats-subtitle">Любимый словарь: ${escapeHtml(favoriteDictionary)}</div>
     <div class="stats-subtitle">Последние игры</div>
     ${recentGames}
   `
+}
+
+function renderSummaryMeta(summary) {
+  const metrics = [
+    { label: 'Длительность партии', value: formatDuration(summary.game.durationSeconds) },
+    { label: 'Словарь', value: summary.game.dictionaryName || 'Без словаря' },
+    { label: 'Команд', value: String(summary.game.teamCount) },
+    { label: 'Время хода', value: `${summary.game.turnTime} сек` },
+    { label: 'Открытые раунды', value: summary.game.openRoundEnabled ? `Вкл. (${summary.game.openRoundCount || 0})` : 'Выкл.' },
+    { label: 'Завершение', value: formatGameDate(summary.game.finishedAt) },
+  ]
+
+  return `
+    <div class="summary-card">
+      <div class="section-title">Общее по партии</div>
+      <div class="summary-grid">
+        ${metrics.map(metric => `
+          <div class="summary-metric">
+            <div class="summary-metric-label">${escapeHtml(metric.label)}</div>
+            <div class="summary-metric-value">${escapeHtml(metric.value)}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `
+}
+
+function renderTeamStats(summary) {
+  return `
+    <div class="team-stats-grid">
+      ${summary.teams.map(team => `
+        <div class="team-summary-card" style="border-left:4px solid ${escapeHtml(team.color)}">
+          <div class="team-summary-head">
+            <div>
+              <div class="team-summary-name">${escapeHtml(team.name)}</div>
+              <div class="team-summary-meta">Финиш: ${team.finalPosition >= FINISH ? '🏁' : `клетка ${team.finalPosition}`} · Очков принесено: ${team.totalPointsEarned}</div>
+            </div>
+            <div class="team-place-badge">${team.place} место</div>
+          </div>
+          <table class="player-stats-table">
+            <thead>
+              <tr>
+                <th>Игрок</th>
+                <th>Очков</th>
+                <th>Карточек</th>
+                <th>Время</th>
+                <th>Среднее</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${team.players.map((player, index) => `
+                <tr>
+                  <td>
+                    <div class="player-name">${escapeHtml(player.name)}</div>
+                    ${index === 0 && team.players.length > 1 ? '<span class="player-leader">Лидер команды</span>' : ''}
+                  </td>
+                  <td>${player.stats.pointsEarned}</td>
+                  <td>${player.stats.successfulCards}</td>
+                  <td>${escapeHtml(formatDuration(player.stats.explanationTimeSeconds))}</td>
+                  <td>${player.stats.averageSuccessfulExplanationSeconds === null ? '—' : escapeHtml(formatDuration(player.stats.averageSuccessfulExplanationSeconds))}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `).join('')}
+    </div>
+  `
+}
+
+function renderHighlights(summary) {
+  const highlightEntries = [
+    summary.highlights.topScorer
+      ? { label: 'Самый результативный объясняющий', value: `${summary.highlights.topScorer.playerName} · ${summary.highlights.topScorer.teamName} · ${summary.highlights.topScorer.pointsEarned} очков` }
+      : null,
+    summary.highlights.mostSuccessfulCards
+      ? { label: 'Больше всего успешных карточек', value: `${summary.highlights.mostSuccessfulCards.playerName} · ${summary.highlights.mostSuccessfulCards.teamName} · ${summary.highlights.mostSuccessfulCards.successfulCards}` }
+      : null,
+    summary.highlights.fastestSuccessfulExplanation
+      ? { label: 'Самое быстрое успешное объяснение', value: `${summary.highlights.fastestSuccessfulExplanation.playerName} · ${summary.highlights.fastestSuccessfulExplanation.teamName} · ${formatDuration(summary.highlights.fastestSuccessfulExplanation.durationSeconds)}` }
+      : null,
+    summary.highlights.mostExplanationTime
+      ? { label: 'Больше всего времени на объяснения', value: `${summary.highlights.mostExplanationTime.playerName} · ${summary.highlights.mostExplanationTime.teamName} · ${formatDuration(summary.highlights.mostExplanationTime.durationSeconds)}` }
+      : null,
+  ].filter(Boolean)
+
+  if (!highlightEntries.length) return ''
+
+  return `
+    <div class="summary-card">
+      <div class="section-title">Интересные факты</div>
+      <div class="highlights-list">
+        ${highlightEntries.map(item => `
+          <div class="highlight-card">
+            <div class="highlight-label">${escapeHtml(item.label)}</div>
+            <div class="highlight-value">${escapeHtml(item.value)}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `
+}
+
+function renderSummaryInto(summary, ids) {
+  q(ids.meta).innerHTML = renderSummaryMeta(summary)
+  q(ids.teams).innerHTML = `
+    <div class="summary-card">
+      <div class="section-title">Игроки по командам</div>
+      ${renderTeamStats(summary)}
+    </div>
+  `
+  q(ids.highlights).innerHTML = renderHighlights(summary)
+}
+
+function renderGameDetails(summary) {
+  q('gd-winner').textContent = `${summary.game.winnerName} побеждают`
+  q('gd-badge').textContent = summary.game.dictionaryName || 'История'
+  renderSummaryInto(summary, {
+    meta: 'gd-summary-meta',
+    teams: 'gd-team-stats',
+    highlights: 'gd-highlights',
+  })
+}
+
+window.openGameDetails = function(id) {
+  const game = auth.recentGamesMap[id]
+  if (!game?.summary) return
+  renderGameDetails(game.summary)
+  showScreen('game-details')
 }
 
 async function loadProfileStats() {
@@ -265,12 +582,12 @@ async function loadProfileStats() {
   }
 }
 
-async function saveFinishedGame(winner) {
-  if (!auth.user || !state.gameStartedAt) return
+async function saveFinishedGame(winner, summary = state.lastGameSummary) {
+  if (!auth.user || !state.gameStartedAt || !summary) return
 
   const payload = {
     startedAt: state.gameStartedAt,
-    finishedAt: new Date().toISOString(),
+    finishedAt: summary.game.finishedAt,
     dictionaryId: state.currentDictionary?.id || null,
     dictionaryName: state.currentDictionary?.name || null,
     turnTime: state.config.turnTime,
@@ -278,14 +595,7 @@ async function saveFinishedGame(winner) {
     teamCount: state.teams.length,
     winnerName: winner.name,
     winnerPosition: winner.position,
-    summary: {
-      teams: state.teams.map(team => ({
-        name: team.name,
-        position: team.position,
-        players: team.players,
-        color: team.color,
-      })),
-    },
+    summary,
   }
 
   try {
@@ -695,6 +1005,10 @@ q('start-btn').addEventListener('click', async () => {
   state.teamIndex = 0
   state.currentDictionary = dict
   state.gameStartedAt = new Date().toISOString()
+  state.turnLog = []
+  state.turnStartedAt = null
+  state.currentTurnNumber = 0
+  state.lastGameSummary = null
   state.gameInProgress = true; // Set game in progress
   goTurnStart()
 })
@@ -815,6 +1129,8 @@ function goExplaining() {
   }
 
   renderPositions()
+  state.currentTurnNumber += 1
+  state.turnStartedAt = Date.now()
   state.timeLeft = state.config.turnTime
   updateTimer()
   showScreen('explaining')
@@ -833,11 +1149,11 @@ window.endOpenRound = function(winnerIdx) {
   const winnerTeam = state.teams[winnerIdx];
   const isExplainer = (winnerIdx === state.teamIndex);
   const pts = state.selectedCard.points;
+  const explainerPrev = team.position
 
   // Новые правила: угадавший получает столько сколько на карточке, проигравший исполнитель получает +2
   const earnedPts = pts;
   const prev = winnerTeam.position;
-  let prevExplainer = team.position;
 
   // Логика движения и бонуса
   let collisionNote = '';
@@ -859,6 +1175,18 @@ window.endOpenRound = function(winnerIdx) {
     team.position += 2;
   }
 
+  recordTurn({
+    playerWasSuccessful: isExplainer,
+    winnerTeamIndex: winnerIdx,
+    explainerTeamPointsEarned: isExplainer ? pts : 2,
+    winnerTeamPointsEarned: pts,
+    playerPointsEarned: isExplainer ? pts : 2,
+    explainerPositionBefore: explainerPrev,
+    explainerPositionAfter: team.position,
+    winnerPositionBefore: prev,
+    winnerPositionAfter: winnerTeam.position,
+  })
+
   const winner = state.teams.find(t => t.position >= FINISH);
   if (winner) { showGameOver(winner); return; }
 
@@ -868,7 +1196,7 @@ window.endOpenRound = function(winnerIdx) {
   } else {
     q('tr-text').textContent = `${winnerTeam.name} угадали! +${earnedPts} очков, ${team.name} получили +2 утешения`;
   }
-  q('tr-sub').innerHTML = `${winnerTeam.name}: клетка ${prev} → ${Math.min(newPos, 40)}${collisionNote}${!isExplainer ? `<br>${team.name}: клетка ${prevExplainer} → ${Math.min(team.position, 40)}` : ''}`;
+  q('tr-sub').innerHTML = `${winnerTeam.name}: клетка ${prev} → ${Math.min(newPos, 40)}${collisionNote}${!isExplainer ? `<br>${team.name}: клетка ${explainerPrev} → ${Math.min(team.position, 40)}` : ''}`;
 
   renderBoard('tr-board');
   showScreen('turn-result');
@@ -912,6 +1240,8 @@ function endTurn(guessed) {
   const pts  = state.selectedCard.points
   const team = state.teams[state.teamIndex]
   const prev = team.position
+  const explainerPlayerIndex = team.explainerIdx % team.players.length
+  const explainerPlayerName = team.players[explainerPlayerIndex]
 
   // Rotate explainer for this team
   team.explainerIdx = (team.explainerIdx + 1) % team.players.length
@@ -932,6 +1262,20 @@ function endTurn(guessed) {
     }
   }
 
+  recordTurn({
+    playerWasSuccessful: guessed,
+    playerName: explainerPlayerName,
+    playerIndex: explainerPlayerIndex,
+    winnerTeamIndex: guessed ? state.teamIndex : null,
+    explainerTeamPointsEarned: guessed ? pts : 0,
+    winnerTeamPointsEarned: guessed ? pts : 0,
+    playerPointsEarned: guessed ? pts : 0,
+    explainerPositionBefore: prev,
+    explainerPositionAfter: team.position,
+    winnerPositionBefore: guessed ? prev : null,
+    winnerPositionAfter: guessed ? team.position : null,
+  })
+
   const newPos = team.position
   const winner = state.teams.find(t => t.position >= FINISH)
   if (winner) { showGameOver(winner); return }
@@ -950,6 +1294,7 @@ q('next-turn-btn').addEventListener('click', () => { sfxNavForward(); state.team
 
 // ─── Game over ──────────────────────────────────────────────────────────────────
 function showGameOver(winner) {
+  state.lastGameSummary = buildGameSummary(winner)
   q('go-winner').textContent = winner.name
   const sorted = [...state.teams].sort((a, b) => b.position - a.position)
   q('go-scores').innerHTML = sorted.map(t =>
@@ -958,8 +1303,13 @@ function showGameOver(winner) {
       <strong>${t.position >= FINISH ? 'финиш 🏁' : 'клетка '+t.position}</strong>
     </div>`
   ).join('')
+  renderSummaryInto(state.lastGameSummary, {
+    meta: 'go-summary-meta',
+    teams: 'go-team-stats',
+    highlights: 'go-highlights',
+  })
   showScreen('game-over')
-  saveFinishedGame(winner)
+  saveFinishedGame(winner, state.lastGameSummary)
   state.gameInProgress = false; // Game over, reset flag
 }
 
@@ -972,6 +1322,10 @@ q('restart-btn').addEventListener('click', () => {
   renderTeams()
   state.currentDictionary = null
   state.gameStartedAt = null
+  state.turnLog = []
+  state.turnStartedAt = null
+  state.currentTurnNumber = 0
+  state.lastGameSummary = null
   state.gameInProgress = false; // Restart game, reset flag
   showScreen('setup')
 })
@@ -1006,6 +1360,10 @@ loadAuthConfig().then(refreshCurrentUser).then(renderAuthCard)
 renderProfileStatsLocked()
 
 q('ts-back-to-menu-btn').addEventListener('click', goSetupMenu); // <-- New event listener
+q('gd-back-btn').addEventListener('click', () => {
+  sfxNavBack()
+  showScreen('profile')
+})
 
 // Handle Continue Game button click
 q('continue-game-btn').addEventListener('click', () => {

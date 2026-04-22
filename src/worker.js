@@ -233,7 +233,9 @@ async function handleProfileSummary(request, env) {
     .prepare(
       `SELECT
          COUNT(*) AS total_games,
-         AVG(COALESCE(duration_seconds, 0)) AS avg_duration_seconds
+         AVG(COALESCE(duration_seconds, 0)) AS avg_duration_seconds,
+         SUM(COALESCE(duration_seconds, 0)) AS total_duration_seconds,
+         AVG(COALESCE(team_count, 0)) AS avg_team_count
        FROM game_sessions
        WHERE user_id = ?1`
     )
@@ -261,20 +263,6 @@ async function handleProfileSummary(request, env) {
     .all();
 
   const recentGames = recentRows?.results || [];
-  const profileAliases = [user.firstName, user.username].filter(Boolean).map(value => value.toLowerCase());
-  const wins = recentGames.filter(game => {
-    try {
-      const summary = JSON.parse(game.summary_json);
-      const winnerTeam = (summary.teams || []).find(team => team.name === game.winner_name);
-      if (!winnerTeam) return false;
-      return (winnerTeam.players || []).some(player =>
-        profileAliases.includes(String(player).trim().toLowerCase())
-      );
-    } catch {
-      return false;
-    }
-  }).length;
-
   const favoriteDictionary = await env.DB
     .prepare(
       `SELECT
@@ -293,8 +281,9 @@ async function handleProfileSummary(request, env) {
     ok: true,
     stats: {
       totalGames: Number(totals?.total_games || 0),
-      wins,
       averageDurationSeconds: totals?.avg_duration_seconds ? Math.round(Number(totals.avg_duration_seconds)) : 0,
+      totalDurationSeconds: totals?.total_duration_seconds ? Math.round(Number(totals.total_duration_seconds)) : 0,
+      averageTeamCount: totals?.avg_team_count ? Number(totals.avg_team_count) : 0,
       favoriteDictionary: favoriteDictionary?.dictionary_name || null,
     },
     recentGames: recentGames.slice(0, 5).map(row => ({
@@ -306,6 +295,13 @@ async function handleProfileSummary(request, env) {
       winnerName: row.winner_name,
       winnerPosition: row.winner_position,
       durationSeconds: row.duration_seconds || 0,
+      summary: (() => {
+        try {
+          return JSON.parse(row.summary_json);
+        } catch {
+          return null;
+        }
+      })(),
     })),
   });
 }

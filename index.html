@@ -239,8 +239,24 @@
     <h1 id="go-winner"></h1>
     <p style="color:#aaa;font-size:1.1rem;margin-bottom:0">побеждает!</p>
     <div class="final-list" id="go-scores"></div>
+    <div id="go-summary-meta"></div>
+    <div id="go-team-stats"></div>
+    <div id="go-highlights"></div>
     <button class="btn btn-primary" id="restart-btn">Играть ещё раз</button>
   </div>
+</div>
+
+<!-- GAME DETAILS -->
+<div class="screen" id="screen-game-details">
+  <div class="turn-header">
+    <div class="team-badge" id="gd-badge" style="background:#6c63ff">История</div>
+    <p class="cell-label">Статистика завершённой партии</p>
+  </div>
+  <div id="gd-winner" class="game-details-winner"></div>
+  <div id="gd-summary-meta"></div>
+  <div id="gd-team-stats"></div>
+  <div id="gd-highlights"></div>
+  <button class="btn btn-secondary" id="gd-back-btn">← Назад в профиль</button>
 </div>
 
 <script src="script.js"></script>
