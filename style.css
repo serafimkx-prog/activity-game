@@ -275,7 +275,7 @@ input:checked+.slider:before{transform:translateX(20px)}
 .team-summary-card{background:#16213e;border-radius:16px;padding:16px;text-align:left;border:1px solid rgba(255,255,255,.06)}
 .team-summary-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px}
 .team-summary-name{font-size:1.05rem;font-weight:900;color:#fff}
-.team-summary-meta{font-size:.85rem;color:#9aa3b8;margin-top:4px}
+.team-summary-meta{font-size:.88rem;color:#d7def7;margin-top:4px;font-weight:700;line-height:1.35}
 .team-place-badge{border-radius:999px;padding:6px 10px;font-size:.78rem;font-weight:800;color:#fff;background:#253259;white-space:nowrap}
 .player-stats-table{width:100%;border-collapse:collapse}
 .player-stats-table th{font-size:.72rem;color:#8ea0c5;text-transform:uppercase;letter-spacing:.04em;font-weight:800;padding:0 0 8px;text-align:right}
@@ -285,10 +285,12 @@ input:checked+.slider:before{transform:translateX(20px)}
 .player-name{font-weight:800;color:#fff}
 .player-leader{display:inline-flex;margin-top:5px;border-radius:999px;padding:3px 8px;font-size:.68rem;font-weight:800;color:#d9e2ff;background:#283968}
 .highlights-list{display:grid;gap:10px;margin:16px 0}
+.inline-highlights{margin-top:14px}
 .highlight-card{background:#16213e;border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:14px;text-align:left}
 .highlight-label{font-size:.76rem;color:#9aa3b8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
 .highlight-value{font-size:.98rem;font-weight:800;color:#fff;line-height:1.35}
 .game-details-winner{font-size:1.6rem;font-weight:900;color:#fff;text-align:center;margin-bottom:10px}
+.points-col,.player-points{font-weight:900;color:#fff}
 
 @media (max-width: 720px){
   .account-actions{flex-direction:column;align-items:stretch}

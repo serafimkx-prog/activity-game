@@ -174,6 +174,16 @@ function formatDuration(seconds) {
   return `${mins} мин ${secs} сек`
 }
 
+function formatPreciseDuration(seconds) {
+  if (seconds === null || seconds === undefined) return '—'
+  const safeSeconds = Math.max(0, Number(seconds) || 0)
+  if (safeSeconds < 60) return `${safeSeconds.toFixed(1)} сек`
+
+  const mins = Math.floor(safeSeconds / 60)
+  const secs = safeSeconds - mins * 60
+  return `${mins} мин ${secs.toFixed(1)} сек`
+}
+
 function formatGameDate(isoString) {
   if (!isoString) return '—'
   return new Date(isoString).toLocaleString('ru-RU', {
@@ -187,7 +197,7 @@ function formatGameDate(isoString) {
 
 function averageOf(values) {
   if (!values.length) return null
-  return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length)
+  return Math.round((values.reduce((sum, value) => sum + value, 0) / values.length) * 10) / 10
 }
 
 function playerSortValue(player) {
@@ -284,6 +294,7 @@ function buildGameSummary(winner) {
       }
       return sum
     }, 0)
+    const totalSuccessfulCards = players.reduce((sum, player) => sum + player.stats.successfulCards, 0)
 
     return {
       name: team.name,
@@ -291,6 +302,7 @@ function buildGameSummary(winner) {
       place,
       finalPosition: team.position,
       totalPointsEarned,
+      totalSuccessfulCards,
       players,
     }
   })
@@ -352,7 +364,7 @@ function recordTurn({
     wasOpenRound: Boolean(state.selectedCard?.isOpenRound),
     startedAt: new Date(startedAtMs).toISOString(),
     finishedAt: new Date(finishedAtMs).toISOString(),
-    durationSeconds: Math.max(0, Math.round((finishedAtMs - startedAtMs) / 1000)),
+    durationSeconds: Math.max(0, Math.round(((finishedAtMs - startedAtMs) / 1000) * 10) / 10),
     explainerPositionBefore,
     explainerPositionAfter,
     winnerTeamName: winnerTeam?.name || null,
@@ -431,14 +443,21 @@ function renderProfileStats(data) {
 }
 
 function renderSummaryMeta(summary) {
-  const metrics = [
-    { label: 'Длительность партии', value: formatDuration(summary.game.durationSeconds) },
-    { label: 'Словарь', value: summary.game.dictionaryName || 'Без словаря' },
-    { label: 'Команд', value: String(summary.game.teamCount) },
-    { label: 'Время хода', value: `${summary.game.turnTime} сек` },
-    { label: 'Открытые раунды', value: summary.game.openRoundEnabled ? `Вкл. (${summary.game.openRoundCount || 0})` : 'Выкл.' },
-    { label: 'Завершение', value: formatGameDate(summary.game.finishedAt) },
-  ]
+  const metrics = [{ label: 'Длительность партии', value: formatDuration(summary.game.durationSeconds) }]
+  const highlightEntries = [
+    summary.highlights.topScorer
+      ? { label: 'Самый результативный объясняющий', value: `${summary.highlights.topScorer.playerName} · ${summary.highlights.topScorer.teamName} · ${summary.highlights.topScorer.pointsEarned} очков` }
+      : null,
+    summary.highlights.mostSuccessfulCards
+      ? { label: 'Больше всего успешных карточек', value: `${summary.highlights.mostSuccessfulCards.playerName} · ${summary.highlights.mostSuccessfulCards.teamName} · ${summary.highlights.mostSuccessfulCards.successfulCards}` }
+      : null,
+    summary.highlights.fastestSuccessfulExplanation
+      ? { label: 'Самое быстрое успешное объяснение', value: `${summary.highlights.fastestSuccessfulExplanation.playerName} · ${summary.highlights.fastestSuccessfulExplanation.teamName} · ${formatPreciseDuration(summary.highlights.fastestSuccessfulExplanation.durationSeconds)}` }
+      : null,
+    summary.highlights.mostExplanationTime
+      ? { label: 'Больше всего времени на объяснения', value: `${summary.highlights.mostExplanationTime.playerName} · ${summary.highlights.mostExplanationTime.teamName} · ${formatPreciseDuration(summary.highlights.mostExplanationTime.durationSeconds)}` }
+      : null,
+  ].filter(Boolean)
 
   return `
     <div class="summary-card">
@@ -451,6 +470,16 @@ function renderSummaryMeta(summary) {
           </div>
         `).join('')}
       </div>
+      ${highlightEntries.length ? `
+        <div class="highlights-list inline-highlights">
+          ${highlightEntries.map(item => `
+            <div class="highlight-card">
+              <div class="highlight-label">${escapeHtml(item.label)}</div>
+              <div class="highlight-value">${escapeHtml(item.value)}</div>
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
     </div>
   `
 }
@@ -463,7 +492,9 @@ function renderTeamStats(summary) {
           <div class="team-summary-head">
             <div>
               <div class="team-summary-name">${escapeHtml(team.name)}</div>
-              <div class="team-summary-meta">Финиш: ${team.finalPosition >= FINISH ? '🏁' : `клетка ${team.finalPosition}`} · Очков принесено: ${team.totalPointsEarned}</div>
+              <div class="team-summary-meta">${team.place === 1
+                ? 'Победители'
+                : `Набрано очков: ${Math.min(team.finalPosition, FINISH)}. Повезет в следующий раз!`}</div>
             </div>
             <div class="team-place-badge">${team.place} место</div>
           </div>
@@ -471,10 +502,10 @@ function renderTeamStats(summary) {
             <thead>
               <tr>
                 <th>Игрок</th>
-                <th>Очков</th>
-                <th>Карточек</th>
                 <th>Время</th>
                 <th>Среднее</th>
+                <th>Карточек</th>
+                <th class="points-col">Очков</th>
               </tr>
             </thead>
             <tbody>
@@ -482,12 +513,12 @@ function renderTeamStats(summary) {
                 <tr>
                   <td>
                     <div class="player-name">${escapeHtml(player.name)}</div>
-                    ${index === 0 && team.players.length > 1 ? '<span class="player-leader">Лидер команды</span>' : ''}
+                    ${index === 0 && team.players.length > 1 ? '<span class="player-leader">MVP команды</span>' : ''}
                   </td>
-                  <td>${player.stats.pointsEarned}</td>
-                  <td>${player.stats.successfulCards}</td>
-                  <td>${escapeHtml(formatDuration(player.stats.explanationTimeSeconds))}</td>
-                  <td>${player.stats.averageSuccessfulExplanationSeconds === null ? '—' : escapeHtml(formatDuration(player.stats.averageSuccessfulExplanationSeconds))}</td>
+                  <td>${escapeHtml(formatPreciseDuration(player.stats.explanationTimeSeconds))}</td>
+                  <td>${player.stats.averageSuccessfulExplanationSeconds === null ? '—' : escapeHtml(formatPreciseDuration(player.stats.averageSuccessfulExplanationSeconds))}</td>
+                  <td>${player.stats.successfulCards}/${team.totalSuccessfulCards}</td>
+                  <td class="player-points">${player.stats.pointsEarned}/${team.totalPointsEarned}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -499,36 +530,7 @@ function renderTeamStats(summary) {
 }
 
 function renderHighlights(summary) {
-  const highlightEntries = [
-    summary.highlights.topScorer
-      ? { label: 'Самый результативный объясняющий', value: `${summary.highlights.topScorer.playerName} · ${summary.highlights.topScorer.teamName} · ${summary.highlights.topScorer.pointsEarned} очков` }
-      : null,
-    summary.highlights.mostSuccessfulCards
-      ? { label: 'Больше всего успешных карточек', value: `${summary.highlights.mostSuccessfulCards.playerName} · ${summary.highlights.mostSuccessfulCards.teamName} · ${summary.highlights.mostSuccessfulCards.successfulCards}` }
-      : null,
-    summary.highlights.fastestSuccessfulExplanation
-      ? { label: 'Самое быстрое успешное объяснение', value: `${summary.highlights.fastestSuccessfulExplanation.playerName} · ${summary.highlights.fastestSuccessfulExplanation.teamName} · ${formatDuration(summary.highlights.fastestSuccessfulExplanation.durationSeconds)}` }
-      : null,
-    summary.highlights.mostExplanationTime
-      ? { label: 'Больше всего времени на объяснения', value: `${summary.highlights.mostExplanationTime.playerName} · ${summary.highlights.mostExplanationTime.teamName} · ${formatDuration(summary.highlights.mostExplanationTime.durationSeconds)}` }
-      : null,
-  ].filter(Boolean)
-
-  if (!highlightEntries.length) return ''
-
-  return `
-    <div class="summary-card">
-      <div class="section-title">Интересные факты</div>
-      <div class="highlights-list">
-        ${highlightEntries.map(item => `
-          <div class="highlight-card">
-            <div class="highlight-label">${escapeHtml(item.label)}</div>
-            <div class="highlight-value">${escapeHtml(item.value)}</div>
-          </div>
-        `).join('')}
-      </div>
-    </div>
-  `
+  return ''
 }
 
 function renderSummaryInto(summary, ids) {
@@ -1300,7 +1302,7 @@ function showGameOver(winner) {
   q('go-scores').innerHTML = sorted.map(t =>
     `<div class="final-row${t.name===winner.name?' winner-row':''}">
       <span>${t.name===winner.name?'🥇 ':''}${t.name}</span>
-      <strong>${t.position >= FINISH ? 'финиш 🏁' : 'клетка '+t.position}</strong>
+      <strong>${t.position >= FINISH ? 'финиш 🏁' : `очки ${Math.min(t.position, FINISH)}/${FINISH}`}</strong>
     </div>`
   ).join('')
   renderSummaryInto(state.lastGameSummary, {
