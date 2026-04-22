@@ -54,20 +54,7 @@ function sfxTimeUp() {
 function sfxSuccess() { [523, 659, 784, 1047].forEach((f, i) => tone(f, i * 0.09, 0.25, 'sine', 0.4)) }
 function sfxFail() { [[350, 0], [294, 0.18], [220, 0.36]].forEach(([f, t]) => tone(f, t, 0.25, 'triangle', 0.4)) }
 function sfxCardPick() { tone(600, 0, 0.05, 'sine', 0.4); tone(900, 0.06, 0.08, 'sine', 0.4) }
-function sfxStartGame() {
-  const ctx = getCtx()
-  const osc = ctx.createOscillator()
-  const gain = ctx.createGain()
-  osc.connect(gain)
-  gain.connect(ctx.destination)
-  osc.type = 'sine'
-  osc.frequency.setValueAtTime(520, ctx.currentTime)
-  gain.gain.setValueAtTime(0.00001, ctx.currentTime)
-  gain.gain.linearRampToValueAtTime(0.32, ctx.currentTime + 0.015)
-  gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.11)
-  osc.start(ctx.currentTime)
-  osc.stop(ctx.currentTime + 0.13)
-}
+function sfxStartGame() { tone(400, 0, 0.04, 'sine', 0.3); tone(600, 0.04, 0.05, 'sine', 0.3) }
 function sfxPreviewStart() { tone(880, 0, 0.08, 'sine', 0.4); tone(1100, 0.12, 0.1, 'sine', 0.4) }
 function sfxNavForward() { tone(400, 0, 0.04, 'sine', 0.3); tone(600, 0.04, 0.05, 'sine', 0.3) }
 function sfxNavBack() { tone(600, 0, 0.04, 'sine', 0.3); tone(400, 0.04, 0.05, 'sine', 0.3) }
