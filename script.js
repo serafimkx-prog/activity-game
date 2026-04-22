@@ -39,6 +39,7 @@ function sfxTimeUp() {
 function sfxSuccess() { [523, 659, 784, 1047].forEach((f, i) => tone(f, i * 0.09, 0.25, 'sine', 0.4)) }
 function sfxFail() { [[350, 0], [294, 0.18], [220, 0.36]].forEach(([f, t]) => tone(f, t, 0.25, 'triangle', 0.4)) }
 function sfxCardPick() { tone(600, 0, 0.05, 'sine', 0.4); tone(900, 0.06, 0.08, 'sine', 0.4) }
+function sfxStartGame() { tone(520, 0, 0.08, 'sine', 0.38) }
 function sfxPreviewStart() { tone(880, 0, 0.08, 'sine', 0.4); tone(1100, 0.12, 0.1, 'sine', 0.4) }
 function sfxNavForward() { tone(400, 0, 0.04, 'sine', 0.3); tone(600, 0.04, 0.05, 'sine', 0.3) }
 function sfxNavBack() { tone(600, 0, 0.04, 'sine', 0.3); tone(400, 0.04, 0.05, 'sine', 0.3) }
@@ -975,7 +976,7 @@ q('add-team-btn').addEventListener('click', () => {
 q('account-logout-btn').addEventListener('click', logoutTelegramUser)
 
 q('start-btn').addEventListener('click', async () => {
-  sfxNavForward();
+  sfxStartGame();
   saveCurrentInputs()
   const names = []
   const playerLists = []
