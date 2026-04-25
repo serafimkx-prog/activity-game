@@ -239,19 +239,16 @@ function averageOf(values) {
 function playerSortValue(player) {
   return [
     player.stats.pointsEarned,
-    player.stats.successfulCards,
-    player.stats.averageSuccessfulExplanationSeconds === null
-      ? Number.POSITIVE_INFINITY
-      : -player.stats.averageSuccessfulExplanationSeconds,
+    player.stats.explanationTimeSeconds,
   ]
 }
 
 function comparePlayers(a, b) {
-  const [aPoints, aCards, aAvg] = playerSortValue(a)
-  const [bPoints, bCards, bAvg] = playerSortValue(b)
+  const [aPoints, aTime] = playerSortValue(a)
+  const [bPoints, bTime] = playerSortValue(b)
   if (bPoints !== aPoints) return bPoints - aPoints
-  if (bCards !== aCards) return bCards - aCards
-  return aAvg - bAvg
+  if (aTime !== bTime) return aTime - bTime
+  return a.name.localeCompare(b.name, 'ru')
 }
 
 function buildGameHighlights(teamSummaries, turns) {
