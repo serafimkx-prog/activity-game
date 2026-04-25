@@ -20,6 +20,17 @@
     "available": true
   },
   {
+    "id": "society",
+    "name": "Общество",
+    "subtitle": "Люди и институты",
+    "description": "Городская жизнь, работа, семья, право, общественные роли, сцены и процессы",
+    "icon": "🏛️",
+    "file": "words_society.json",
+    "wordCount": 1290,
+    "available": true,
+    "badge": "Новый"
+  },
+  {
     "id": "cinema",
     "name": "Мир кино",
     "subtitle": "Фильмы и сериалы",
