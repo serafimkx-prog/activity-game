@@ -185,6 +185,34 @@ async function handleCreateGameSession(request, env) {
     Math.round((new Date(payload.finishedAt).getTime() - new Date(payload.startedAt).getTime()) / 1000)
   );
 
+  const existing = await env.DB
+    .prepare(
+      `SELECT id
+       FROM game_sessions
+       WHERE user_id = ?1
+         AND started_at = ?2
+         AND finished_at = ?3
+         AND COALESCE(dictionary_id, '') = COALESCE(?4, '')
+         AND team_count = ?5
+         AND winner_name = ?6
+         AND winner_position = ?7
+       LIMIT 1`
+    )
+    .bind(
+      user.id,
+      payload.startedAt,
+      payload.finishedAt,
+      payload.dictionaryId || null,
+      payload.teamCount,
+      payload.winnerName,
+      payload.winnerPosition
+    )
+    .first();
+
+  if (existing?.id) {
+    return json({ ok: true, gameSessionId: existing.id, deduplicated: true });
+  }
+
   const inserted = await env.DB
     .prepare(
       `INSERT INTO game_sessions (

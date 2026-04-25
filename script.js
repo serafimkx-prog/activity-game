@@ -97,6 +97,7 @@ const MODES = {
 const TEAM_COLORS = ['#22c55e','#3b82f6','#f97316','#ec4899','#a855f7','#06b6d4']
 const DICTIONARY_FEEDBACK_STORAGE_KEY = 'activity_dictionary_feedback_v1'
 const ACTIVE_GAME_STORAGE_KEY = 'activity_active_game_v1'
+const GAME_SESSION_QUEUE_STORAGE_KEY = 'activity_pending_game_sessions_v1'
 
 // ─── State ─────────────────────────────────────────────────────────────────────
 const state = {
@@ -176,6 +177,26 @@ function clearActiveGameSnapshot() {
   try {
     window.localStorage.removeItem(ACTIVE_GAME_STORAGE_KEY)
   } catch {}
+}
+
+function getPendingGameSessions() {
+  const entries = safeReadLocalStorage(GAME_SESSION_QUEUE_STORAGE_KEY, [])
+  return Array.isArray(entries) ? entries : []
+}
+
+function writePendingGameSessions(entries) {
+  return safeWriteLocalStorage(GAME_SESSION_QUEUE_STORAGE_KEY, entries)
+}
+
+function upsertPendingGameSession(entry) {
+  const entries = getPendingGameSessions().filter(item => item.sessionId !== entry.sessionId)
+  entries.push(entry)
+  return writePendingGameSessions(entries)
+}
+
+function removePendingGameSession(sessionId) {
+  const entries = getPendingGameSessions().filter(item => item.sessionId !== sessionId)
+  return writePendingGameSessions(entries)
 }
 
 function buildActiveGameSnapshot() {
@@ -941,9 +962,10 @@ async function loadProfileStats() {
 }
 
 async function saveFinishedGame(winner, summary = state.lastGameSummary) {
-  if (!auth.user || !state.gameStartedAt || !summary) return
+  if (!state.gameStartedAt || !summary) return
 
   const payload = {
+    sessionId: [state.gameStartedAt, winner.name, summary.game.finishedAt].join('::'),
     startedAt: state.gameStartedAt,
     finishedAt: summary.game.finishedAt,
     dictionaryId: state.currentDictionary?.id || null,
@@ -956,16 +978,51 @@ async function saveFinishedGame(winner, summary = state.lastGameSummary) {
     summary,
   }
 
+  upsertPendingGameSession(payload)
+  if (!auth.user) return
+
   try {
-    await fetch('/api/game-sessions', {
+    const response = await fetch('/api/game-sessions', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       credentials: 'same-origin',
+      keepalive: true,
       body: JSON.stringify(payload),
     })
+    if (!response.ok) throw new Error('game session save failed')
+    removePendingGameSession(payload.sessionId)
     await loadProfileStats()
   } catch {
     // History should not interrupt the game flow.
+  }
+}
+
+async function flushPendingGameSessions() {
+  if (!auth.user) return
+
+  const queue = getPendingGameSessions()
+  if (!queue.length) return
+
+  let didFlushAny = false
+  for (const entry of queue) {
+    try {
+      const response = await fetch('/api/game-sessions', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        credentials: 'same-origin',
+        keepalive: true,
+        body: JSON.stringify(entry),
+      })
+      if (!response.ok) continue
+      removePendingGameSession(entry.sessionId)
+      didFlushAny = true
+    } catch {
+      // Keep the entry for the next retry.
+    }
+  }
+
+  if (didFlushAny) {
+    await loadProfileStats()
   }
 }
 
@@ -1028,6 +1085,7 @@ function renderAuthCard() {
       loginHtml: '',
     })
     loadProfileStats()
+    flushPendingGameSessions()
     return
   }
 
@@ -1756,6 +1814,7 @@ q('continue-game-btn').addEventListener('click', () => {
 });
 
 window.addEventListener('pagehide', persistActiveGameSnapshot)
+window.addEventListener('online', flushPendingGameSessions)
 
 window.changeTime = function(delta) {
   const el = q('turn-time');
