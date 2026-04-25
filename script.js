@@ -178,6 +178,10 @@ function getCellMode(pos) {
   return MODES[BOARD[idx]]
 }
 
+function getModeDisplayName(modeKey) {
+  return Object.values(MODES).find(mode => mode.key === modeKey)?.name || modeKey
+}
+
 function setAccountView({ name, meta, avatarHtml = 'TG', placeholder = true, showLogout = false, loginHtml = '' }) {
   const card = q('account-card')
   const avatar = q('account-avatar')
@@ -494,14 +498,12 @@ function renderTurnFeedbackPrompt() {
   }
 
   section.style.display = 'block'
-  copy.textContent = `Исполнители, насколько слово "${feedback.word}" ощущалось по сложности для режима "${feedback.mode}"? Сейчас оно лежит в уровне ${feedback.originalLevel}.`
+  copy.textContent = `Насколько слово "${feedback.word}" ощущалось по сложности для режима "${getModeDisplayName(feedback.mode)}"? Сейчас оно лежит в уровне ${feedback.originalLevel}.`
   status.textContent = feedback.saveError
     ? 'Не удалось сохранить оценку на этом устройстве.'
     : feedback.ratedLevel
-    ? feedback.saveStorage === 'server'
-      ? `Сохранено в профиль: исполнители оценили это слово как уровень ${feedback.ratedLevel}.`
-      : `Сохранено на этом устройстве: уровень ${feedback.ratedLevel}.`
-    : 'Оценка необязательна. Если нажать, мы сохраним её отдельно для калибровки словаря.'
+    ? 'Спасибо за вашу оценку сложности!'
+    : ''
 
   document.querySelectorAll('.feedback-rating-btn').forEach(btn => {
     btn.classList.toggle('is-selected', Number(btn.dataset.ratedLevel) === feedback.ratedLevel)

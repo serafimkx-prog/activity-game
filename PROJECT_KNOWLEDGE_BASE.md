@@ -156,6 +156,7 @@
 - доступные словари:
   - `classic`
   - `geo`
+  - `society`
 - недоступные словари с `available: false`:
   - `cinema`
   - `sport`
@@ -164,6 +165,8 @@
 При старте игры фронтенд загружает `dict.file` через `fetch()`.
 
 После этого вызывается `initPools(data)`, которая создаёт перемешанные пулы слов по режимам и сложностям.
+
+Правила составления новых словарей зафиксированы в [DICTIONARY_RULES.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/DICTIONARY_RULES.md).
 
 ## 7. Игровой цикл
 
@@ -230,6 +233,7 @@
 - UI показывает кнопки всех команд;
 - угадавшая команда получает очки карточки;
 - если выиграла не команда-исполнитель, команде-исполнителю даётся `+2`.
+- после завершения открытого раунда очередь объясняющего тоже обновляется для активной команды.
 
 ### Столкновение
 
@@ -250,6 +254,37 @@
 - не завершает ход автоматически.
 
 Результат всё равно выбирается вручную кнопками интерфейса.
+
+### Фидбек по сложности слова
+
+На экране результата хода есть блок `Оценка сложности`.
+
+Игроки могут выбрать:
+
+- `Скорее 3`
+- `Скорее 4`
+- `Скорее 5`
+
+Сохраняемый payload включает:
+
+- `feedbackId`
+- `dictionaryId`
+- `dictionaryName`
+- `word`
+- `mode`
+- `originalLevel`
+- `ratedLevel`
+- `wasSuccessful`
+- `wasOpenRound`
+- `durationSeconds`
+- `turnNumber`
+- `gameStartedAt`
+- `createdAt`
+
+Поведение хранения:
+
+- если пользователь авторизован, клиент отправляет `POST /api/dictionary-feedback`;
+- если пользователь не авторизован или backend недоступен, остаётся локальный fallback в `localStorage` с ключом `activity_dictionary_feedback_v1`.
 
 ## 9. Профиль и клиентская auth-логика
 
@@ -300,6 +335,7 @@ Backend находится в [src/worker.js](/Users/k-serafim/Yandex.Disk.local
 - `POST /api/logout`
 - `POST /api/game-sessions`
 - `GET /api/profile/summary`
+- `POST /api/dictionary-feedback`
 
 ### Поведение endpoints
 
@@ -333,6 +369,12 @@ Backend находится в [src/worker.js](/Users/k-serafim/Yandex.Disk.local
 
 - возвращает агрегированную статистику;
 - возвращает список последних игр.
+
+`POST /api/dictionary-feedback`
+
+- принимает фидбек по сложности слова;
+- требует авторизации;
+- делает upsert по паре `user_id + feedback_id`.
 
 ## 11. Telegram auth
 
@@ -391,6 +433,10 @@ Backend находится в [src/worker.js](/Users/k-serafim/Yandex.Disk.local
 
 - завершённые партии.
 
+`dictionary_feedback`
+
+- фидбек пользователей по реальной сложности слов.
+
 ### Что сохраняется в `game_sessions`
 
 Backend ожидает и пишет:
@@ -406,6 +452,26 @@ Backend ожидает и пишет:
 - `winner_position`
 - `duration_seconds`
 - `summary_json`
+
+### Что сохраняется в `dictionary_feedback`
+
+Backend пишет:
+
+- `user_id`
+- `feedback_id`
+- `dictionary_id`
+- `dictionary_name`
+- `word`
+- `mode`
+- `original_level`
+- `rated_level`
+- `was_successful`
+- `was_open_round`
+- `duration_seconds`
+- `turn_number`
+- `game_started_at`
+- `created_at`
+- `updated_at`
 
 ### Важная operational-заметка
 
@@ -477,14 +543,18 @@ Backend ожидает и пишет:
 - локальный игровой процесс;
 - настройка команд и игроков;
 - выбор словаря;
+- правила составления словарей в отдельном markdown-документе;
 - случайная генерация поля;
 - preview перед раундом;
 - обычные и открытые раунды;
+- ротация очереди объясняющего после открытого раунда;
 - экран профиля;
 - Telegram login flow на клиенте и backend;
 - серверные сессии;
 - сохранение завершённых игр;
 - профильная summary-статистика;
+- сбор фидбэка по сложности слова на экране результата;
+- серверное сохранение этого фидбэка в D1 для авторизованных пользователей;
 - единый Worker для API и static assets.
 
 ## 18. Что не стоит утверждать без отдельной проверки

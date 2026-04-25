@@ -18,7 +18,9 @@
 - выбор сложности карточки: `3`, `4`, `5` очков;
 - профиль с входом через Telegram;
 - сохранение завершённых партий для авторизованного пользователя;
-- экран истории и базовой статистики.
+- экран истории и базовой статистики;
+- сбор фидбэка от исполнителей по реальной сложности слов;
+- дополнительный словарь `Общество`.
 
 ## Стек
 
@@ -86,8 +88,11 @@
 
 - `classic` → `words.json`
 - `geo` → `words_geo.json`
+- `society` → `words_society.json`
 
 Также в списке есть словари со статусом `available: false`, которые отображаются как недоступные.
+
+Редакторские правила составления новых словарей зафиксированы в [DICTIONARY_RULES.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/DICTIONARY_RULES.md).
 
 Формат словаря:
 
@@ -122,7 +127,9 @@
 - `src/lib/telegram.js` — валидация Telegram auth payload.
 - `db/schema.sql` — схема D1.
 - `dictionaries.json` — метаданные словарей.
-- `words.json`, `words_geo.json` — словари.
+- `words.json`, `words_geo.json`, `words_society.json` — словари.
+- `DICTIONARY_RULES.md` — правила составления новых словарей.
+- `RECENT_PROJECT_CHANGES.md` — зафиксированные недавние изменения проекта.
 - `wrangler.jsonc` — конфиг Worker.
 
 ## API, которое есть в коде
@@ -133,6 +140,7 @@
 - `POST /api/logout`
 - `POST /api/game-sessions`
 - `GET /api/profile/summary`
+- `POST /api/dictionary-feedback`
 
 ## Что важно помнить
 
@@ -140,3 +148,4 @@
 - Источник истины по поведению игры — `script.js`.
 - Источник истины по backend и auth — `src/worker.js` и `src/lib/*`.
 - После изменения `db/schema.sql` схему нужно отдельно применять в `D1`.
+- Фидбек по сложности слова для авторизованных пользователей сохраняется в backend и D1, а при недоступности сервера остаётся локальный fallback в `localStorage`.

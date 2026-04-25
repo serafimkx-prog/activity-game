@@ -1,0 +1,78 @@
+# Recent Project Changes
+
+Этот файл фиксирует недавние изменения проекта, чтобы их не пришлось восстанавливать по переписке или git diff.
+
+## 1. Словари
+
+- Добавлен новый словарь [words_society.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/words_society.json) с темой `Общество`.
+- Словарь `society` зарегистрирован в [dictionaries.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/dictionaries.json) и доступен в UI.
+- Для составления новых словарей добавлен документ [DICTIONARY_RULES.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/DICTIONARY_RULES.md).
+- В `society` были:
+  - собраны базовые корзины;
+  - расширены уровни `5`;
+  - расширены уровни `4`;
+  - убраны точные дубли;
+  - убраны фразы длиннее `4` слов.
+
+## 2. Фидбек По Сложности Слова
+
+- На экране результата хода добавлен блок `Оценка сложности` с кнопками:
+  - `Скорее 3`
+  - `Скорее 4`
+  - `Скорее 5`
+- Фидбек привязан к конкретному слову, режиму и исходному уровню карточки.
+- Сохраняются:
+  - `feedbackId`
+  - `dictionaryId`
+  - `dictionaryName`
+  - `word`
+  - `mode`
+  - `originalLevel`
+  - `ratedLevel`
+  - `wasSuccessful`
+  - `wasOpenRound`
+  - `durationSeconds`
+  - `turnNumber`
+  - `gameStartedAt`
+  - `createdAt`
+
+## 3. Где Хранится Фидбек
+
+- На клиенте остался `localStorage` fallback с ключом:
+  - `activity_dictionary_feedback_v1`
+- Для авторизованных пользователей добавлено серверное сохранение в Worker API:
+  - `POST /api/dictionary-feedback`
+- В D1 добавлена таблица:
+  - `dictionary_feedback`
+- Схема добавлена в [db/schema.sql](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/db/schema.sql).
+- Таблица `dictionary_feedback` уже создана в удалённой Cloudflare D1 и была проверена через `PRAGMA table_info(dictionary_feedback)`.
+
+Важно:
+
+- Изменение SQL-файла само по себе не обновляет удалённую D1.
+- Для включения серверного сбора нужно отдельно применить SQL к базе Cloudflare D1.
+
+## 4. Игровая Логика
+
+- В открытом раунде теперь тоже обновляется очередь объясняющего:
+  - `endOpenRound()` двигает `explainerIdx` так же, как обычный `endTurn()`.
+- В `turnLog` для открытого раунда теперь явно сохраняется, кто был объясняющим игроком.
+
+## 5. Сортировка Игроков В Команде
+
+- Рейтинг игроков внутри команды теперь определяется так:
+  - сначала по `pointsEarned` по убыванию;
+  - при равенстве по `explanationTimeSeconds` по возрастанию;
+  - затем по имени для стабильного порядка.
+- Это влияет на порядок игроков в post-game summary и на бейдж `MVP команды`.
+
+## 6. Что Нужно Помнить Дальше
+
+- Если добавляем новые словари, ориентируемся на [DICTIONARY_RULES.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/DICTIONARY_RULES.md).
+- Если меняем форму или смысл фидбэка по сложности, надо синхронно смотреть:
+  - [index.html](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/index.html)
+  - [style.css](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/style.css)
+  - [script.js](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/script.js)
+  - [src/worker.js](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/src/worker.js)
+  - [db/schema.sql](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/db/schema.sql)
+- Этот файл, [README.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/README.md), [GAME_SPEC.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/GAME_SPEC.md) и [PROJECT_KNOWLEDGE_BASE.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/PROJECT_KNOWLEDGE_BASE.md) нужно обновлять вместе, если меняется зафиксированное поведение проекта.

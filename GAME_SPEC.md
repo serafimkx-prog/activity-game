@@ -131,6 +131,12 @@
 - показывает доступные и недоступные словари;
 - по умолчанию выбирает первый словарь с `available: true`.
 
+Текущие доступные словари по репозиторию:
+
+- `classic`
+- `geo`
+- `society`
+
 При старте партии игра загружает JSON-файл выбранного словаря:
 
 - `fetch(dict.file)`
@@ -185,7 +191,7 @@
 team.explainerIdx = (team.explainerIdx + 1) % team.players.length
 ```
 
-В открытом раунде отдельной ротации в `endOpenRound()` сейчас нет.
+После открытого раунда в `endOpenRound()` очередь объясняющего тоже обновляется для активной команды.
 
 ### 7.3. Выбор карточки
 
@@ -281,6 +287,35 @@ team.explainerIdx = (team.explainerIdx + 1) % team.players.length
 
 Если нажата кнопка `Никто`, вызывается обычный `endTurn(false)`.
 
+### 8.4. Фидбек по сложности слова
+
+На экране результата хода есть блок `Оценка сложности`.
+
+Игроки могут нажать:
+
+- `Скорее 3`
+- `Скорее 4`
+- `Скорее 5`
+
+Фидбек привязан к:
+
+- слову;
+- режиму;
+- исходному уровню карточки;
+- результату хода;
+- длительности объяснения;
+- словарю;
+- номеру хода.
+
+Если пользователь авторизован:
+
+- клиент отправляет `POST /api/dictionary-feedback`;
+- backend сохраняет запись в D1.
+
+Если backend недоступен или пользователь не авторизован:
+
+- клиент сохраняет fallback-копию в `localStorage`.
+
 ## 9. Звук
 
 Звук генерируется программно через `Web Audio API`.
@@ -320,7 +355,8 @@ team.explainerIdx = (team.explainerIdx + 1) % team.players.length
 - показывать текущего пользователя;
 - делать logout;
 - загружать summary по играм;
-- показывать последние игры.
+- показывать последние игры;
+- отправлять фидбек по сложности слов в backend для авторизованных пользователей.
 
 ## 11. Backend
 
@@ -339,6 +375,7 @@ Worker entrypoint находится в `src/worker.js`.
 - `POST /api/logout`
 - `POST /api/game-sessions`
 - `GET /api/profile/summary`
+- `POST /api/dictionary-feedback`
 
 ## 12. Авторизация
 
@@ -364,6 +401,7 @@ Worker entrypoint находится в `src/worker.js`.
 - `users`
 - `sessions`
 - `game_sessions`
+- `dictionary_feedback`
 
 Индексы:
 
@@ -371,5 +409,8 @@ Worker entrypoint находится в `src/worker.js`.
 - `idx_sessions_expires_at`
 - `idx_game_sessions_user_id`
 - `idx_game_sessions_finished_at`
+- `idx_dictionary_feedback_user_feedback`
+- `idx_dictionary_feedback_user_id`
+- `idx_dictionary_feedback_dictionary_id`
 
 После изменения схемы SQL её нужно отдельно применить в D1.
