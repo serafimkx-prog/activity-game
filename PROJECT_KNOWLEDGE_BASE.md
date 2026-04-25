@@ -155,20 +155,24 @@
 
 ## 6. Словари
 
-Метаданные словарей загружаются через `loadDictionaries()` из [dictionaries.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/dictionaries.json).
+Метаданные словарей хранятся в [dictionaries.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/dictionaries.json), а фронтенд получает их через `GET /api/dictionaries`.
 
 Сейчас в файле есть:
 
-- доступные словари:
+- доступные по релизу словари:
   - `classic`
   - `geo`
   - `society`
+- по модели доступа:
+  - `classic` — free
+  - `geo` — premium
+  - `society` — premium
 - недоступные словари с `available: false`:
   - `cinema`
   - `sport`
   - `science`
 
-При старте игры фронтенд загружает `dict.file` через `fetch()`.
+При старте игры фронтенд загружает `dict.file` через `fetch()`, но Worker отдельно защищает premium-файлы словарей и проверяет доступ в таблице `user_dictionary_access`.
 
 После этого вызывается `initPools(data)`, которая создаёт перемешанные пулы слов по режимам и сложностям.
 

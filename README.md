@@ -91,6 +91,12 @@
 - `geo` → `words_geo.json`
 - `society` → `words_society.json`
 
+По текущей модели доступа:
+
+- `classic` — бесплатный словарь;
+- `geo` и `society` — premium-словари;
+- доступ к premium-словарям проверяется на backend, а не только через UI.
+
 Также в списке есть словари со статусом `available: false`, которые отображаются как недоступные.
 
 Редакторские правила составления новых словарей зафиксированы в [DICTIONARY_RULES.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/DICTIONARY_RULES.md).
@@ -138,6 +144,7 @@
 - `GET /api/config`
 - `POST /api/auth/telegram`
 - `GET /api/me`
+- `GET /api/dictionaries`
 - `POST /api/logout`
 - `POST /api/game-sessions`
 - `GET /api/profile/summary`
@@ -150,6 +157,7 @@
 - Источник истины по backend и auth — `src/worker.js` и `src/lib/*`.
 - Источник истины по runtime-конфигу Worker — `wrangler.jsonc`, включая `TELEGRAM_BOT_USERNAME`.
 - После изменения `db/schema.sql` схему нужно отдельно применять в `D1`.
+- Доступ к premium-словарям сейчас хранится в таблице `user_dictionary_access`.
 - Фидбек по сложности слова для авторизованных пользователей сохраняется в backend и D1, а при недоступности сервера остаётся локальный fallback в `localStorage`.
 - Активная партия восстанавливается после `refresh` через `localStorage`.
 - Завершённые партии сначала ставятся в локальную очередь и повторно отправляются в backend при следующей возможности.

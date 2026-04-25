@@ -67,3 +67,20 @@ CREATE INDEX IF NOT EXISTS idx_dictionary_feedback_user_id
   ON dictionary_feedback(user_id);
 CREATE INDEX IF NOT EXISTS idx_dictionary_feedback_dictionary_id
   ON dictionary_feedback(dictionary_id);
+
+CREATE TABLE IF NOT EXISTS user_dictionary_access (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  dictionary_id TEXT NOT NULL,
+  granted_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  access_source TEXT NOT NULL DEFAULT 'manual',
+  note TEXT,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_user_dictionary_access_unique
+  ON user_dictionary_access(user_id, dictionary_id);
+CREATE INDEX IF NOT EXISTS idx_user_dictionary_access_user_id
+  ON user_dictionary_access(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_dictionary_access_dictionary_id
+  ON user_dictionary_access(dictionary_id);

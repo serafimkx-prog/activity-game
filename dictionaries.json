@@ -7,7 +7,8 @@
     "icon": "🎭",
     "file": "words.json",
     "wordCount": 922,
-    "available": true
+    "available": true,
+    "access": "free"
   },
   {
     "id": "geo",
@@ -17,7 +18,9 @@
     "icon": "🌍",
     "file": "words_geo.json",
     "wordCount": 800,
-    "available": true
+    "available": true,
+    "access": "premium",
+    "priceLabel": "Премиум"
   },
   {
     "id": "society",
@@ -28,6 +31,8 @@
     "file": "words_society.json",
     "wordCount": 1290,
     "available": true,
+    "access": "premium",
+    "priceLabel": "Премиум",
     "badge": "Новый"
   },
   {

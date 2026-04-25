@@ -12,6 +12,66 @@ import {
   verifyTelegramAuth,
 } from "./lib/telegram.js";
 
+function normalizeDictionaryMeta(dictionary) {
+  return {
+    ...dictionary,
+    available: dictionary.available !== false,
+    access: dictionary.access === "premium" ? "premium" : "free",
+    priceLabel: dictionary.priceLabel || null,
+  };
+}
+
+async function loadDictionaryCatalog(request, env) {
+  const assetUrl = new URL("/dictionaries.json", request.url);
+  const response = await env.ASSETS.fetch(new Request(assetUrl.toString(), { method: "GET" }));
+  if (!response.ok) {
+    throw new Error("Failed to load dictionary catalog");
+  }
+
+  const payload = await response.json();
+  return Array.isArray(payload) ? payload.map(normalizeDictionaryMeta) : [];
+}
+
+async function getOptionalUser(request, env) {
+  const sessionId = getSessionIdFromRequest(request);
+  return getSessionUser(env.DB, sessionId);
+}
+
+async function getUserDictionaryAccessIds(db, userId) {
+  if (!userId) return new Set();
+
+  const rows = await db
+    .prepare(
+      `SELECT dictionary_id
+       FROM user_dictionary_access
+       WHERE user_id = ?1`
+    )
+    .bind(userId)
+    .all();
+
+  return new Set((rows?.results || []).map(row => row.dictionary_id));
+}
+
+function buildDictionaryClientMeta(dictionary, accessIds, user) {
+  const requiresPurchase = dictionary.access === "premium";
+  const hasAccess = !requiresPurchase || accessIds.has(dictionary.id);
+  const canPlay = dictionary.available && hasAccess;
+  const lockedReason = !dictionary.available
+    ? "coming_soon"
+    : canPlay
+      ? null
+      : user
+        ? "purchase_required"
+        : "login_required";
+
+  return {
+    ...dictionary,
+    canPlay,
+    requiresPurchase,
+    lockedReason,
+  };
+}
+
 async function upsertUser(db, profile) {
   const existing = await db
     .prepare(
@@ -148,6 +208,20 @@ async function handleConfig(request, env) {
   });
 }
 
+async function handleDictionariesList(request, env) {
+  const wrongMethod = methodNotAllowed(request, "GET");
+  if (wrongMethod) return wrongMethod;
+
+  const dictionaries = await loadDictionaryCatalog(request, env);
+  const user = await getOptionalUser(request, env);
+  const accessIds = await getUserDictionaryAccessIds(env.DB, user?.id);
+
+  return json({
+    ok: true,
+    dictionaries: dictionaries.map(dictionary => buildDictionaryClientMeta(dictionary, accessIds, user)),
+  });
+}
+
 async function requireUser(request, env) {
   const sessionId = getSessionIdFromRequest(request);
   const user = await getSessionUser(env.DB, sessionId);
@@ -157,6 +231,26 @@ async function requireUser(request, env) {
   }
 
   return { user };
+}
+
+async function protectDictionaryAsset(request, env) {
+  const dictionaries = await loadDictionaryCatalog(request, env);
+  const pathname = new URL(request.url).pathname.replace(/^\//, "");
+  const dictionary = dictionaries.find(item => item.file === pathname);
+
+  if (!dictionary) return null;
+  if (!dictionary.available) return error("Dictionary is not available yet", 404);
+  if (dictionary.access !== "premium") return env.ASSETS.fetch(request);
+
+  const user = await getOptionalUser(request, env);
+  if (!user) return error("Authentication required", 401);
+
+  const accessIds = await getUserDictionaryAccessIds(env.DB, user.id);
+  if (!accessIds.has(dictionary.id)) {
+    return error("Dictionary access required", 403, { dictionaryId: dictionary.id });
+  }
+
+  return env.ASSETS.fetch(request);
 }
 
 async function handleCreateGameSession(request, env) {
@@ -454,6 +548,12 @@ export default {
       return handleMe(request, env);
     }
 
+    if (url.pathname === "/api/dictionaries") {
+      const bindingError = ensureBindings(env);
+      if (bindingError) return bindingError;
+      return handleDictionariesList(request, env);
+    }
+
     if (url.pathname === "/api/logout") {
       const bindingError = ensureBindings(env);
       if (bindingError) return bindingError;
@@ -476,6 +576,11 @@ export default {
       const bindingError = ensureBindings(env);
       if (bindingError) return bindingError;
       return handleDictionaryFeedback(request, env);
+    }
+
+    const protectedDictionaryAssetResponse = await protectDictionaryAsset(request, env);
+    if (protectedDictionaryAssetResponse) {
+      return protectedDictionaryAssetResponse;
     }
 
     return env.ASSETS.fetch(request);

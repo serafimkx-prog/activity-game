@@ -315,7 +315,10 @@ function restoreActiveGameFromSnapshot() {
 
   const dictionaryId = snapshot.state.currentDictionaryId || snapshot.selectedDictId
   const dictionary = dictionaries.find(dict => dict.id === dictionaryId)
-  if (!dictionary) return false
+  if (!dictionary?.canPlay) {
+    clearActiveGameSnapshot()
+    return false
+  }
 
   BOARD = Array.isArray(snapshot.board) ? [...snapshot.board] : []
   if (!BOARD.length) return false
@@ -1187,6 +1190,7 @@ window.handleTelegramAuth = async function(user) {
 
     auth.user = payload.user
     auth.widgetLoaded = false
+    await loadDictionaries()
     renderAuthCard()
   } catch (err) {
     auth.user = null
@@ -1208,6 +1212,7 @@ async function logoutTelegramUser() {
   } finally {
     auth.user = null
     auth.widgetLoaded = false
+    await loadDictionaries()
     renderAuthCard()
   }
 }
@@ -1333,17 +1338,41 @@ let dictionaries = []
 let selectedDictId = null
 
 async function loadDictionaries() {
+  const previousSelectedId = selectedDictId
+
   try {
-    dictionaries = await fetch('dictionaries.json').then(r => r.json())
+    const response = await fetch('/api/dictionaries', { credentials: 'same-origin' })
+    if (!response.ok) throw new Error('dictionaries request failed')
+    const payload = await response.json()
+    dictionaries = Array.isArray(payload.dictionaries) ? payload.dictionaries : []
   } catch {
-    // Fallback: единственный словарь без метаданных
-    dictionaries = [{
-      id: 'classic', name: 'Классический', subtitle: 'Всё обо всём',
-      icon: '🎭', file: 'words.json', wordCount: 922, available: true
+    const staticCatalog = await fetch('dictionaries.json').then(r => r.json()).catch(() => [])
+    dictionaries = Array.isArray(staticCatalog) ? staticCatalog.map(dict => ({
+      ...dict,
+      access: dict.access === 'premium' ? 'premium' : 'free',
+      canPlay: dict.available !== false && dict.access !== 'premium',
+      requiresPurchase: dict.access === 'premium',
+      lockedReason: dict.available === false ? 'coming_soon' : dict.access === 'premium' ? 'login_required' : null,
+      priceLabel: dict.priceLabel || null,
+    })) : [{
+      id: 'classic',
+      name: 'Классический',
+      subtitle: 'Всё обо всём',
+      icon: '🎭',
+      file: 'words.json',
+      wordCount: 922,
+      available: true,
+      access: 'free',
+      canPlay: true,
+      requiresPurchase: false,
+      lockedReason: null,
+      priceLabel: null,
     }]
   }
-  const first = dictionaries.find(d => d.available)
-  if (first) selectedDictId = first.id
+
+  const preserved = dictionaries.find(dict => dict.id === previousSelectedId && dict.canPlay)
+  const firstPlayable = dictionaries.find(dict => dict.canPlay)
+  selectedDictId = preserved?.id || firstPlayable?.id || null
   renderDictGrid()
 }
 
@@ -1351,24 +1380,73 @@ function renderDictGrid() {
   const grid = q('dict-grid')
   grid.innerHTML = dictionaries.map(d => {
     const isSel = d.id === selectedDictId
-    const locked = !d.available
+    const locked = !d.canPlay
+    const badge = !d.available
+      ? (d.badge || 'Скоро')
+      : locked && d.access === 'premium'
+        ? (d.priceLabel || 'Премиум')
+        : d.badge
+    const footerText = !d.available
+      ? 'Словарь ещё не открыт'
+      : locked
+        ? d.lockedReason === 'login_required'
+          ? 'Войди, чтобы увидеть доступ'
+          : 'Нужен доступ к пакету'
+        : 'Количество слов: ' + d.wordCount
+
     return `<div class="dict-card${isSel ? ' selected' : ''}${locked ? ' locked' : ''}"
-                 ${locked ? '' : `onclick="selectDict('${d.id}')"`}>
+                 onclick="${locked ? `selectLockedDict('${d.id}')` : `selectDict('${d.id}')`}">
       ${isSel ? '<div class="dict-check">✓</div>' : ''}
-      ${!isSel && d.badge ? `<div class="dict-badge">${d.badge}</div>` : ''}
+      ${!isSel && badge ? `<div class="dict-badge">${badge}</div>` : ''}
       <div class="dict-icon">${d.icon}</div>
       <div class="dict-name">${d.name}</div>
       <div class="dict-sub">${d.subtitle}</div>
-      <div class="dict-words">${d.available ? 'Количество слов: ' + d.wordCount : ''}</div>
+      <div class="dict-words">${footerText}</div>
     </div>`
   }).join('')
 }
 
+async function loadDictionaryEntries(dict) {
+  const response = await fetch(dict.file, { credentials: 'same-origin' })
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null)
+    const errorCode = payload?.error || ''
+
+    if (response.status === 401) {
+      throw new Error('Войди через Telegram, чтобы открыть этот словарь.')
+    }
+    if (response.status === 403 && errorCode === 'Dictionary access required') {
+      throw new Error(`Словарь "${dict.name}" входит в платный пакет. Доступ пока выдаётся вручную после оплаты.`)
+    }
+    if (response.status === 404) {
+      throw new Error('Этот словарь пока недоступен.')
+    }
+
+    throw new Error('Не удалось загрузить словарь.')
+  }
+
+  return response.json()
+}
+
 window.selectDict = function(id) {
   const dict = dictionaries.find(d => d.id === id)
-  if (!dict || !dict.available) return
+  if (!dict || !dict.canPlay) return
   selectedDictId = id
   renderDictGrid()
+}
+
+window.selectLockedDict = function(id) {
+  const dict = dictionaries.find(d => d.id === id)
+  if (!dict) return
+  if (dict.lockedReason === 'coming_soon') {
+    alert('Этот словарь ещё не открыт.')
+    return
+  }
+  if (dict.lockedReason === 'login_required') {
+    alert('Войди через Telegram, чтобы сохранить покупки и получить доступ к платным словарям.')
+    return
+  }
+  alert(`Словарь "${dict.name}" входит в платный пакет. Доступ пока выдаётся вручную после оплаты.`)
 }
 
 // ─── Setup ─────────────────────────────────────────────────────────────────────
@@ -1466,9 +1544,18 @@ q('start-btn').addEventListener('click', async () => {
 
   const dict = dictionaries.find(d => d.id === selectedDictId)
   if (!dict) { alert('Выбери словарь'); return }
+  if (!dict.canPlay) {
+    selectLockedDict(dict.id)
+    return
+  }
   let data
-  try { data = await fetch(dict.file).then(r => r.json()) }
-  catch { alert(`Не удалось загрузить ${dict.file}.\nЗапусти: python3 -m http.server 8080`); return }
+  try {
+    data = await loadDictionaryEntries(dict)
+  } catch (err) {
+    await loadDictionaries()
+    alert(err.message || 'Не удалось загрузить словарь.')
+    return
+  }
 
   generateBoard()
   initPools(data)
