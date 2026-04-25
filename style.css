@@ -283,6 +283,19 @@ input:checked+.slider:before{transform:translateX(20px)}
 .team-summary-name{font-size:1.05rem;font-weight:900;color:#fff}
 .team-summary-meta{font-size:.88rem;color:#d7def7;margin-top:4px;font-weight:700;line-height:1.35}
 .team-place-badge{border-radius:999px;padding:6px 10px;font-size:.78rem;font-weight:800;color:#fff;background:#253259;white-space:nowrap}
+.metric-label-with-tooltip{display:inline-flex;align-items:center;gap:6px;vertical-align:middle}
+.metric-tooltip-trigger{width:16px;height:16px;font-size:.62rem;background:#31416f;flex:0 0 auto}
+.metric-tooltip-trigger:focus .metric-tooltip-text,
+.metric-tooltip-trigger:hover .metric-tooltip-text{visibility:visible !important;opacity:1 !important}
+.metric-tooltip-text{width:240px !important;left:50% !important;bottom:140% !important;margin-left:-120px !important;padding:10px 12px !important;font-size:.78rem !important;line-height:1.4 !important;border-radius:10px !important;background:#0b1731 !important;border:1px solid rgba(255,255,255,.1) !important;box-shadow:0 10px 24px rgba(0,0,0,.35) !important;text-transform:none !important;letter-spacing:normal !important}
+.team-mode-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 14px}
+.mode-stat-card{display:flex;align-items:center;gap:10px;background:#0f3460;border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:12px;min-width:0}
+.mode-progress{--progress:0%;--accent:#6c63ff;position:relative;width:56px;height:56px;border-radius:50%;background:conic-gradient(var(--accent) var(--progress), rgba(255,255,255,.09) 0);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.mode-progress::before{content:'';position:absolute;inset:6px;border-radius:50%;background:#16213e}
+.mode-progress-value{position:relative;z-index:1;font-size:.72rem;font-weight:900;color:#fff}
+.mode-stat-copy{min-width:0}
+.mode-stat-name{font-size:.78rem;font-weight:800;color:#dbe5ff;line-height:1.2}
+.mode-stat-value{margin-top:4px;font-size:.98rem;font-weight:900;color:#fff}
 .player-stats-table{width:100%;border-collapse:collapse}
 .player-stats-table th{font-size:.72rem;color:#8ea0c5;text-transform:uppercase;letter-spacing:.04em;font-weight:800;padding:0 0 8px;text-align:right}
 .player-stats-table th:first-child,.player-stats-table td:first-child{text-align:left}
@@ -304,6 +317,7 @@ input:checked+.slider:before{transform:translateX(20px)}
   .stats-grid{grid-template-columns:1fr}
   .game-item-head{flex-direction:column;align-items:flex-start}
   .summary-grid{grid-template-columns:1fr}
+  .team-mode-stats{grid-template-columns:1fr}
   .feedback-rating-row{grid-template-columns:1fr}
   .player-stats-table{display:block;overflow-x:auto;white-space:nowrap}
 }

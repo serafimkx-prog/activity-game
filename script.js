@@ -451,16 +451,38 @@ function averageOf(values) {
 function playerSortValue(player) {
   return [
     player.stats.pointsEarned,
+    player.stats.averageSuccessfulExplanationSeconds ?? Number.POSITIVE_INFINITY,
     player.stats.explanationTimeSeconds,
   ]
 }
 
 function comparePlayers(a, b) {
-  const [aPoints, aTime] = playerSortValue(a)
-  const [bPoints, bTime] = playerSortValue(b)
+  const [aPoints, aAverageSuccessfulTime, aTime] = playerSortValue(a)
+  const [bPoints, bAverageSuccessfulTime, bTime] = playerSortValue(b)
   if (bPoints !== aPoints) return bPoints - aPoints
+  if (aAverageSuccessfulTime !== bAverageSuccessfulTime) return aAverageSuccessfulTime - bAverageSuccessfulTime
   if (aTime !== bTime) return aTime - bTime
   return a.name.localeCompare(b.name, 'ru')
+}
+
+function buildModeStatsFromTurns(turns, teamName) {
+  const teamTurns = turns.filter(turn => turn.explainerTeamName === teamName)
+
+  return ['EXPLAIN', 'ACT', 'DRAW'].map(modeKey => {
+    const modeTurns = teamTurns.filter(turn => turn.mode === modeKey)
+    const successfulTurns = modeTurns.filter(turn => turn.wasSuccessful)
+    const totalTurns = modeTurns.length
+    const successfulCount = successfulTurns.length
+
+    return {
+      modeKey,
+      modeName: getModeDisplayName(modeKey),
+      modeIcon: Object.values(MODES).find(mode => mode.key === modeKey)?.icon || '',
+      successfulCount,
+      totalTurns,
+      successRatePercent: totalTurns ? Math.round((successfulCount / totalTurns) * 100) : 0,
+    }
+  })
 }
 
 function buildGameHighlights(teamSummaries, turns) {
@@ -514,8 +536,9 @@ function buildGameSummary(winner) {
     .map((team, index) => ({ team, place: index + 1 }))
 
   const teamSummaries = rankedTeams.map(({ team, place }) => {
+    const teamTurns = state.turnLog.filter(turn => turn.explainerTeamName === team.name)
     const players = team.players.map(playerName => {
-      const playerTurns = state.turnLog.filter(turn =>
+      const playerTurns = teamTurns.filter(turn =>
         turn.teamName === team.name && turn.playerName === playerName
       )
       const successfulTurns = playerTurns.filter(turn => turn.wasSuccessful)
@@ -540,6 +563,7 @@ function buildGameSummary(winner) {
       return sum
     }, 0)
     const totalSuccessfulCards = players.reduce((sum, player) => sum + player.stats.successfulCards, 0)
+    const modeStats = buildModeStatsFromTurns(state.turnLog, team.name)
 
     return {
       name: team.name,
@@ -548,6 +572,7 @@ function buildGameSummary(winner) {
       finalPosition: team.position,
       totalPointsEarned,
       totalSuccessfulCards,
+      modeStats,
       players,
     }
   })
@@ -819,6 +844,40 @@ function renderProfileStats(data) {
   `
 }
 
+function renderTooltipLabel(label, tooltip) {
+  return `
+    <span class="metric-label-with-tooltip">
+      <span>${escapeHtml(label)}</span>
+      <span class="tooltip-trigger metric-tooltip-trigger" tabindex="0" aria-label="${escapeHtml(tooltip)}">?
+        <span class="tooltip-text metric-tooltip-text">${escapeHtml(tooltip)}</span>
+      </span>
+    </span>
+  `
+}
+
+function renderModeStats(team, turns = []) {
+  const modeStats = Array.isArray(team.modeStats) ? team.modeStats : buildModeStatsFromTurns(turns, team.name)
+
+  return `
+    <div class="team-mode-stats">
+      ${modeStats.map(modeStat => `
+        <div class="mode-stat-card">
+          <div class="mode-progress" style="--progress:${modeStat.successRatePercent}%;--accent:${escapeHtml(team.color)}">
+            <span class="mode-progress-value">${modeStat.successRatePercent}%</span>
+          </div>
+          <div class="mode-stat-copy">
+            <div class="mode-stat-name">${renderTooltipLabel(
+              `${modeStat.modeIcon} ${modeStat.modeName}`,
+              `Успешные ходы команды в режиме «${modeStat.modeName}» относительно всех её ходов в этом режиме.`
+            )}</div>
+            <div class="mode-stat-value">${modeStat.successfulCount}/${modeStat.totalTurns || 0}</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `
+}
+
 function renderSummaryMeta(summary) {
   const metrics = [{ label: 'Длительность партии', value: formatDuration(summary.game.durationSeconds) }]
   const highlightEntries = [
@@ -841,8 +900,8 @@ function renderSummaryMeta(summary) {
       <div class="section-title">Общее по партии</div>
       <div class="summary-grid">
         ${metrics.map(metric => `
-          <div class="summary-metric">
-            <div class="summary-metric-label">${escapeHtml(metric.label)}</div>
+        <div class="summary-metric">
+            <div class="summary-metric-label">${renderTooltipLabel(metric.label, 'Ключевая метрика по всей завершённой партии.')}</div>
             <div class="summary-metric-value">${escapeHtml(metric.value)}</div>
           </div>
         `).join('')}
@@ -875,14 +934,15 @@ function renderTeamStats(summary) {
             </div>
             <div class="team-place-badge">${team.place} место</div>
           </div>
+          ${renderModeStats(team, summary.turns || [])}
           <table class="player-stats-table">
             <thead>
               <tr>
                 <th>Игрок</th>
-                <th>Время</th>
-                <th>Среднее</th>
-                <th>Карточек</th>
-                <th class="points-col">Очков</th>
+                <th>${renderTooltipLabel('Время', 'Общее время, которое игрок потратил на все свои ходы с объяснениями.')}</th>
+                <th>${renderTooltipLabel('Среднее', 'Среднее время только по успешным объяснениям. При равенстве очков именно этот показатель определяет MVP команды.')}</th>
+                <th>${renderTooltipLabel('Карточек', 'Успешные карточки игрока / все успешные карточки команды.')}</th>
+                <th class="points-col">${renderTooltipLabel('Очков', 'Очки игрока / все очки команды за партию.')}</th>
               </tr>
             </thead>
             <tbody>
