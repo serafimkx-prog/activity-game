@@ -1284,6 +1284,11 @@ window.endOpenRound = function(winnerIdx) {
   const isExplainer = (winnerIdx === state.teamIndex);
   const pts = state.selectedCard.points;
   const explainerPrev = team.position
+  const explainerPlayerIndex = team.explainerIdx % team.players.length
+  const explainerPlayerName = team.players[explainerPlayerIndex]
+
+  // Open rounds should also advance the explainer queue for the active team.
+  team.explainerIdx = (team.explainerIdx + 1) % team.players.length
 
   // Новые правила: угадавший получает столько сколько на карточке, проигравший исполнитель получает +2
   const earnedPts = pts;
@@ -1311,6 +1316,8 @@ window.endOpenRound = function(winnerIdx) {
 
   recordTurn({
     playerWasSuccessful: isExplainer,
+    playerName: explainerPlayerName,
+    playerIndex: explainerPlayerIndex,
     winnerTeamIndex: winnerIdx,
     explainerTeamPointsEarned: isExplainer ? pts : 2,
     winnerTeamPointsEarned: pts,
