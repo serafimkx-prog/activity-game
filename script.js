@@ -421,6 +421,38 @@ function upsertDictionaryFeedback(entry) {
   return safeWriteLocalStorage(DICTIONARY_FEEDBACK_STORAGE_KEY, nextEntries)
 }
 
+async function persistDictionaryFeedback(entry) {
+  const didSaveLocally = upsertDictionaryFeedback(entry)
+
+  if (!auth.user) {
+    return {
+      ok: didSaveLocally,
+      storage: didSaveLocally ? 'local' : 'failed',
+    }
+  }
+
+  try {
+    const response = await fetch('/api/dictionary-feedback', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify(entry),
+    })
+
+    if (!response.ok) throw new Error('dictionary feedback failed')
+
+    return {
+      ok: true,
+      storage: 'server',
+    }
+  } catch {
+    return {
+      ok: didSaveLocally,
+      storage: didSaveLocally ? 'local' : 'failed',
+    }
+  }
+}
+
 function buildPendingTurnFeedback() {
   const turn = state.turnLog[state.turnLog.length - 1]
   const word = state.selectedCard?.entries?.[state.cellMode?.key]
@@ -444,6 +476,7 @@ function buildPendingTurnFeedback() {
     durationSeconds: turn.durationSeconds,
     ratedLevel: null,
     saveError: false,
+    saveStorage: null,
   }
 }
 
@@ -465,7 +498,9 @@ function renderTurnFeedbackPrompt() {
   status.textContent = feedback.saveError
     ? 'Не удалось сохранить оценку на этом устройстве.'
     : feedback.ratedLevel
-    ? `Сохранено: исполнители оценили это слово как уровень ${feedback.ratedLevel}.`
+    ? feedback.saveStorage === 'server'
+      ? `Сохранено в профиль: исполнители оценили это слово как уровень ${feedback.ratedLevel}.`
+      : `Сохранено на этом устройстве: уровень ${feedback.ratedLevel}.`
     : 'Оценка необязательна. Если нажать, мы сохраним её отдельно для калибровки словаря.'
 
   document.querySelectorAll('.feedback-rating-btn').forEach(btn => {
@@ -473,7 +508,7 @@ function renderTurnFeedbackPrompt() {
   })
 }
 
-function saveTurnFeedback(ratedLevel) {
+async function saveTurnFeedback(ratedLevel) {
   if (!state.pendingTurnFeedback || !state.currentDictionary) return
 
   const nextFeedback = {
@@ -481,7 +516,7 @@ function saveTurnFeedback(ratedLevel) {
     ratedLevel,
   }
 
-  const didSave = upsertDictionaryFeedback({
+  const payload = {
     feedbackId: nextFeedback.feedbackId,
     dictionaryId: state.currentDictionary.id || null,
     dictionaryName: state.currentDictionary.name || null,
@@ -495,12 +530,14 @@ function saveTurnFeedback(ratedLevel) {
     turnNumber: nextFeedback.turnNumber,
     gameStartedAt: state.gameStartedAt,
     createdAt: new Date().toISOString(),
-  })
+  }
+  const result = await persistDictionaryFeedback(payload)
 
   state.pendingTurnFeedback = {
     ...nextFeedback,
-    ratedLevel: didSave ? ratedLevel : null,
-    saveError: !didSave,
+    ratedLevel: result.ok ? ratedLevel : null,
+    saveError: !result.ok,
+    saveStorage: result.ok ? result.storage : null,
   }
   renderTurnFeedbackPrompt()
 }

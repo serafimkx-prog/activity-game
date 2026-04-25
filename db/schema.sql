@@ -40,3 +40,30 @@ CREATE TABLE IF NOT EXISTS game_sessions (
 
 CREATE INDEX IF NOT EXISTS idx_game_sessions_user_id ON game_sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_game_sessions_finished_at ON game_sessions(finished_at);
+
+CREATE TABLE IF NOT EXISTS dictionary_feedback (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  feedback_id TEXT NOT NULL,
+  dictionary_id TEXT,
+  dictionary_name TEXT,
+  word TEXT NOT NULL,
+  mode TEXT NOT NULL,
+  original_level INTEGER NOT NULL,
+  rated_level INTEGER NOT NULL,
+  was_successful INTEGER NOT NULL DEFAULT 0,
+  was_open_round INTEGER NOT NULL DEFAULT 0,
+  duration_seconds REAL,
+  turn_number INTEGER,
+  game_started_at TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_dictionary_feedback_user_feedback
+  ON dictionary_feedback(user_id, feedback_id);
+CREATE INDEX IF NOT EXISTS idx_dictionary_feedback_user_id
+  ON dictionary_feedback(user_id);
+CREATE INDEX IF NOT EXISTS idx_dictionary_feedback_dictionary_id
+  ON dictionary_feedback(dictionary_id);

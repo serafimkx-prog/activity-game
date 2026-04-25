@@ -222,6 +222,98 @@ async function handleCreateGameSession(request, env) {
   return json({ ok: true, gameSessionId: inserted.id });
 }
 
+async function handleDictionaryFeedback(request, env) {
+  const wrongMethod = methodNotAllowed(request, "POST");
+  if (wrongMethod) return wrongMethod;
+
+  const { user, errorResponse } = await requireUser(request, env);
+  if (errorResponse) return errorResponse;
+
+  let payload;
+  try {
+    payload = await request.json();
+  } catch {
+    return error("Invalid JSON body", 400);
+  }
+
+  const required = ["feedbackId", "word", "mode", "originalLevel", "ratedLevel"];
+  for (const field of required) {
+    if (payload[field] === undefined || payload[field] === null || payload[field] === "") {
+      return error("Missing required dictionary feedback field", 400, { field });
+    }
+  }
+
+  if (!["DRAW", "EXPLAIN", "ACT"].includes(payload.mode)) {
+    return error("Invalid dictionary feedback mode", 400);
+  }
+
+  const originalLevel = Number(payload.originalLevel);
+  const ratedLevel = Number(payload.ratedLevel);
+  if (![3, 4, 5].includes(originalLevel) || ![3, 4, 5].includes(ratedLevel)) {
+    return error("Invalid dictionary feedback level", 400);
+  }
+
+  const durationSeconds =
+    payload.durationSeconds === null || payload.durationSeconds === undefined
+      ? null
+      : Number(payload.durationSeconds);
+
+  const turnNumber =
+    payload.turnNumber === null || payload.turnNumber === undefined
+      ? null
+      : Number(payload.turnNumber);
+
+  await env.DB
+    .prepare(
+      `INSERT INTO dictionary_feedback (
+         user_id,
+         feedback_id,
+         dictionary_id,
+         dictionary_name,
+         word,
+         mode,
+         original_level,
+         rated_level,
+         was_successful,
+         was_open_round,
+         duration_seconds,
+         turn_number,
+         game_started_at
+       ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
+       ON CONFLICT(user_id, feedback_id) DO UPDATE SET
+         dictionary_id = excluded.dictionary_id,
+         dictionary_name = excluded.dictionary_name,
+         word = excluded.word,
+         mode = excluded.mode,
+         original_level = excluded.original_level,
+         rated_level = excluded.rated_level,
+         was_successful = excluded.was_successful,
+         was_open_round = excluded.was_open_round,
+         duration_seconds = excluded.duration_seconds,
+         turn_number = excluded.turn_number,
+         game_started_at = excluded.game_started_at,
+         updated_at = CURRENT_TIMESTAMP`
+    )
+    .bind(
+      user.id,
+      payload.feedbackId,
+      payload.dictionaryId || null,
+      payload.dictionaryName || null,
+      payload.word,
+      payload.mode,
+      originalLevel,
+      ratedLevel,
+      payload.wasSuccessful ? 1 : 0,
+      payload.wasOpenRound ? 1 : 0,
+      Number.isFinite(durationSeconds) ? durationSeconds : null,
+      Number.isFinite(turnNumber) ? turnNumber : null,
+      payload.gameStartedAt || null
+    )
+    .run();
+
+  return json({ ok: true });
+}
+
 async function handleProfileSummary(request, env) {
   const wrongMethod = methodNotAllowed(request, "GET");
   if (wrongMethod) return wrongMethod;
@@ -350,6 +442,12 @@ export default {
       const bindingError = ensureBindings(env);
       if (bindingError) return bindingError;
       return handleProfileSummary(request, env);
+    }
+
+    if (url.pathname === "/api/dictionary-feedback") {
+      const bindingError = ensureBindings(env);
+      if (bindingError) return bindingError;
+      return handleDictionaryFeedback(request, env);
     }
 
     return env.ASSETS.fetch(request);
