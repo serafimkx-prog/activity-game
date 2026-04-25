@@ -368,10 +368,21 @@ Backend находится в [src/worker.js](/Users/k-serafim/Yandex.Disk.local
 - возвращает, авторизован ли пользователь;
 - возвращает объект пользователя, если сессия валидна.
 
+`GET /api/dictionaries`
+
+- возвращает каталог словарей;
+- добавляет вычисленные поля `canPlay`, `requiresPurchase`, `lockedReason`.
+
 `POST /api/logout`
 
 - удаляет серверную сессию;
 - сбрасывает cookie.
+
+`POST /api/purchase/create`
+
+- создаёт платёж ЮKassa на один premium-словарь (`geo` или `society`);
+- сохраняет заказ в `purchase_orders`;
+- возвращает `confirmationUrl` для редиректа на оплату.
 
 `POST /api/game-sessions`
 
@@ -388,6 +399,12 @@ Backend находится в [src/worker.js](/Users/k-serafim/Yandex.Disk.local
 - принимает фидбек по сложности слова;
 - требует авторизации;
 - делает upsert по паре `user_id + feedback_id`.
+
+`POST /api/payment/webhook/yookassa`
+
+- принимает webhook ЮKassa;
+- обновляет `purchase_orders`;
+- после `payment.succeeded` выдаёт доступ к словарю через `user_dictionary_access`.
 
 ## 11. Telegram auth
 

@@ -1391,8 +1391,13 @@ function renderDictGrid() {
       : locked
         ? d.lockedReason === 'login_required'
           ? 'Войди, чтобы увидеть доступ'
-          : 'Нужен доступ к пакету'
+          : 'Нужна покупка словаря'
         : 'Количество слов: ' + d.wordCount
+    const actionHtml = !d.available
+      ? ''
+      : locked && d.access === 'premium'
+        ? `<button class="dict-buy-btn" onclick="event.stopPropagation(); buyDictionaryAccess('${d.id}')">Купить за 149 ₽</button>`
+        : ''
 
     return `<div class="dict-card${isSel ? ' selected' : ''}${locked ? ' locked' : ''}"
                  onclick="${locked ? `selectLockedDict('${d.id}')` : `selectDict('${d.id}')`}">
@@ -1402,6 +1407,7 @@ function renderDictGrid() {
       <div class="dict-name">${d.name}</div>
       <div class="dict-sub">${d.subtitle}</div>
       <div class="dict-words">${footerText}</div>
+      ${actionHtml}
     </div>`
   }).join('')
 }
@@ -1446,7 +1452,45 @@ window.selectLockedDict = function(id) {
     alert('Войди через Telegram, чтобы сохранить покупки и получить доступ к платным словарям.')
     return
   }
-  alert(`Словарь "${dict.name}" входит в платный пакет. Доступ пока выдаётся вручную после оплаты.`)
+  alert(`Словарь "${dict.name}" можно купить отдельно за 149 ₽.`)
+}
+
+window.buyDictionaryAccess = async function(id) {
+  const dict = dictionaries.find(d => d.id === id)
+  if (!dict) return
+
+  if (!auth.user) {
+    alert('Войди через Telegram, чтобы купить этот словарь.')
+    return
+  }
+
+  try {
+    const response = await fetch('/api/purchase/create', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ dictionaryId: id }),
+    })
+    const payload = await response.json().catch(() => null)
+
+    if (!response.ok || !payload?.ok) {
+      throw new Error(payload?.error || 'Не удалось создать платёж.')
+    }
+
+    if (payload.alreadyOwned) {
+      await loadDictionaries()
+      alert(`Словарь "${dict.name}" уже доступен на этом аккаунте.`)
+      return
+    }
+
+    if (!payload.confirmationUrl) {
+      throw new Error('Не удалось получить ссылку на оплату.')
+    }
+
+    window.location.href = payload.confirmationUrl
+  } catch (err) {
+    alert(err.message || 'Не удалось начать оплату.')
+  }
 }
 
 // ─── Setup ─────────────────────────────────────────────────────────────────────

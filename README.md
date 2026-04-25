@@ -146,9 +146,11 @@
 - `GET /api/me`
 - `GET /api/dictionaries`
 - `POST /api/logout`
+- `POST /api/purchase/create`
 - `POST /api/game-sessions`
 - `GET /api/profile/summary`
 - `POST /api/dictionary-feedback`
+- `POST /api/payment/webhook/yookassa`
 
 ## Что важно помнить
 
@@ -158,6 +160,8 @@
 - Источник истины по runtime-конфигу Worker — `wrangler.jsonc`, включая `TELEGRAM_BOT_USERNAME`.
 - После изменения `db/schema.sql` схему нужно отдельно применять в `D1`.
 - Доступ к premium-словарям сейчас хранится в таблице `user_dictionary_access`.
+- Заказы на покупку словарей сохраняются в таблице `purchase_orders`.
+- Для оплаты нужны Cloudflare secrets/vars: `YOOKASSA_SHOP_ID`, `YOOKASSA_SECRET_KEY`, `YOOKASSA_RETURN_URL`.
 - Фидбек по сложности слова для авторизованных пользователей сохраняется в backend и D1, а при недоступности сервера остаётся локальный fallback в `localStorage`.
 - Активная партия восстанавливается после `refresh` через `localStorage`.
 - Завершённые партии сначала ставятся в локальную очередь и повторно отправляются в backend при следующей возможности.

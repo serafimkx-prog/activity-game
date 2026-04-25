@@ -12,6 +12,23 @@ import {
   verifyTelegramAuth,
 } from "./lib/telegram.js";
 
+const PREMIUM_DICTIONARY_PRODUCTS = {
+  geo: {
+    productCode: "dictionary_geo",
+    dictionaryId: "geo",
+    amountValue: "149.00",
+    amountCurrency: "RUB",
+    description: "Платный словарь География",
+  },
+  society: {
+    productCode: "dictionary_society",
+    dictionaryId: "society",
+    amountValue: "149.00",
+    amountCurrency: "RUB",
+    description: "Платный словарь Общество",
+  },
+};
+
 function normalizeDictionaryMeta(dictionary) {
   return {
     ...dictionary,
@@ -70,6 +87,114 @@ function buildDictionaryClientMeta(dictionary, accessIds, user) {
     requiresPurchase,
     lockedReason,
   };
+}
+
+async function userHasDictionaryAccess(db, userId, dictionaryId) {
+  const existing = await db
+    .prepare(
+      `SELECT 1
+       FROM user_dictionary_access
+       WHERE user_id = ?1
+         AND dictionary_id = ?2
+       LIMIT 1`
+    )
+    .bind(userId, dictionaryId)
+    .first();
+
+  return Boolean(existing);
+}
+
+async function grantDictionaryAccess(db, userId, dictionaryId, accessSource, note) {
+  await db
+    .prepare(
+      `INSERT INTO user_dictionary_access (
+         user_id,
+         dictionary_id,
+         access_source,
+         note
+       ) VALUES (?1, ?2, ?3, ?4)
+       ON CONFLICT(user_id, dictionary_id) DO UPDATE SET
+         granted_at = CURRENT_TIMESTAMP,
+         access_source = excluded.access_source,
+         note = excluded.note`
+    )
+    .bind(userId, dictionaryId, accessSource, note || null)
+    .run();
+}
+
+function getPremiumDictionaryProduct(dictionaryId) {
+  return PREMIUM_DICTIONARY_PRODUCTS[dictionaryId] || null;
+}
+
+function ensureYookassaConfig(env) {
+  if (!env.YOOKASSA_SHOP_ID || !env.YOOKASSA_SECRET_KEY || !env.YOOKASSA_RETURN_URL) {
+    return error("YooKassa is not configured", 500);
+  }
+
+  return null;
+}
+
+async function createYookassaPayment(env, requestOrigin, product, userId, idempotenceKey) {
+  const response = await fetch("https://api.yookassa.ru/v3/payments", {
+    method: "POST",
+    headers: {
+      authorization: `Basic ${btoa(`${env.YOOKASSA_SHOP_ID}:${env.YOOKASSA_SECRET_KEY}`)}`,
+      "content-type": "application/json",
+      "Idempotence-Key": idempotenceKey,
+    },
+    body: JSON.stringify({
+      amount: {
+        value: product.amountValue,
+        currency: product.amountCurrency,
+      },
+      capture: true,
+      confirmation: {
+        type: "redirect",
+        return_url: env.YOOKASSA_RETURN_URL || requestOrigin,
+      },
+      description: product.description,
+      metadata: {
+        user_id: String(userId),
+        dictionary_id: product.dictionaryId,
+        product_code: product.productCode,
+      },
+    }),
+  });
+
+  let payload = null;
+  try {
+    payload = await response.json();
+  } catch {
+    payload = null;
+  }
+
+  if (!response.ok) {
+    throw new Error(payload?.description || payload?.error || "Failed to create YooKassa payment");
+  }
+
+  return payload;
+}
+
+async function fetchYookassaPayment(env, providerPaymentId) {
+  const response = await fetch(`https://api.yookassa.ru/v3/payments/${providerPaymentId}`, {
+    method: "GET",
+    headers: {
+      authorization: `Basic ${btoa(`${env.YOOKASSA_SHOP_ID}:${env.YOOKASSA_SECRET_KEY}`)}`,
+    },
+  });
+
+  let payload = null;
+  try {
+    payload = await response.json();
+  } catch {
+    payload = null;
+  }
+
+  if (!response.ok) {
+    throw new Error(payload?.description || payload?.error || "Failed to verify YooKassa payment");
+  }
+
+  return payload;
 }
 
 async function upsertUser(db, profile) {
@@ -219,6 +344,88 @@ async function handleDictionariesList(request, env) {
   return json({
     ok: true,
     dictionaries: dictionaries.map(dictionary => buildDictionaryClientMeta(dictionary, accessIds, user)),
+  });
+}
+
+async function handlePurchaseCreate(request, env) {
+  const wrongMethod = methodNotAllowed(request, "POST");
+  if (wrongMethod) return wrongMethod;
+
+  const configError = ensureYookassaConfig(env);
+  if (configError) return configError;
+
+  const { user, errorResponse } = await requireUser(request, env);
+  if (errorResponse) return errorResponse;
+
+  let payload;
+  try {
+    payload = await request.json();
+  } catch {
+    return error("Invalid JSON body", 400);
+  }
+
+  const dictionaryId = payload?.dictionaryId;
+  const product = getPremiumDictionaryProduct(dictionaryId);
+  if (!product) {
+    return error("Unsupported premium dictionary", 400, { dictionaryId });
+  }
+
+  const alreadyOwned = await userHasDictionaryAccess(env.DB, user.id, dictionaryId);
+  if (alreadyOwned) {
+    return json({
+      ok: true,
+      alreadyOwned: true,
+      dictionaryId,
+    });
+  }
+
+  const idempotenceKey = crypto.randomUUID();
+  const requestOrigin = new URL(request.url).origin;
+
+  let payment;
+  try {
+    payment = await createYookassaPayment(env, requestOrigin, product, user.id, idempotenceKey);
+  } catch (err) {
+    return error(err.message || "Failed to create payment", 502);
+  }
+
+  const confirmationUrl = payment?.confirmation?.confirmation_url || null;
+
+  await env.DB
+    .prepare(
+      `INSERT INTO purchase_orders (
+         user_id,
+         product_code,
+         dictionary_id,
+         status,
+         amount_value,
+         amount_currency,
+         provider,
+         provider_payment_id,
+         idempotence_key,
+         confirmation_url,
+         raw_create_response
+       ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'yookassa', ?7, ?8, ?9, ?10)`
+    )
+    .bind(
+      user.id,
+      product.productCode,
+      product.dictionaryId,
+      payment?.status || "pending",
+      product.amountValue,
+      product.amountCurrency,
+      payment?.id || null,
+      idempotenceKey,
+      confirmationUrl,
+      JSON.stringify(payment)
+    )
+    .run();
+
+  return json({
+    ok: true,
+    dictionaryId,
+    confirmationUrl,
+    alreadyOwned: false,
   });
 }
 
@@ -436,6 +643,81 @@ async function handleDictionaryFeedback(request, env) {
   return json({ ok: true });
 }
 
+async function handleYookassaWebhook(request, env) {
+  const wrongMethod = methodNotAllowed(request, "POST");
+  if (wrongMethod) return wrongMethod;
+
+  const configError = ensureYookassaConfig(env);
+  if (configError) return configError;
+
+  let payload;
+  try {
+    payload = await request.json();
+  } catch {
+    return error("Invalid JSON body", 400);
+  }
+
+  const event = payload?.event || null;
+  const paymentObject = payload?.object || null;
+  const providerPaymentId = paymentObject?.id || null;
+  if (!event || !paymentObject || !providerPaymentId) {
+    return error("Invalid YooKassa webhook payload", 400);
+  }
+
+  const order = await env.DB
+    .prepare(
+      `SELECT id, user_id, dictionary_id, status
+       FROM purchase_orders
+       WHERE provider_payment_id = ?1
+       LIMIT 1`
+    )
+    .bind(providerPaymentId)
+    .first();
+
+  if (!order) {
+    return json({ ok: true, ignored: true });
+  }
+
+  let verifiedPayment;
+  try {
+    verifiedPayment = await fetchYookassaPayment(env, providerPaymentId);
+  } catch (err) {
+    return error(err.message || "Failed to verify payment", 502);
+  }
+
+  const nextStatus = verifiedPayment?.status || paymentObject.status || order.status;
+  const paidAt = nextStatus === "succeeded" ? new Date().toISOString() : null;
+
+  await env.DB
+    .prepare(
+      `UPDATE purchase_orders
+       SET status = ?2,
+           paid_at = COALESCE(?3, paid_at),
+           raw_webhook_payload = ?4,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE provider_payment_id = ?1`
+    )
+    .bind(
+      providerPaymentId,
+      nextStatus,
+      paidAt,
+      JSON.stringify(payload)
+    )
+    .run();
+
+  if (nextStatus === "succeeded" && order.dictionary_id) {
+    await grantDictionaryAccess(
+      env.DB,
+      order.user_id,
+      order.dictionary_id,
+      "yookassa",
+      `payment:${providerPaymentId}`
+    );
+  }
+
+  return json({ ok: true });
+}
+
 async function handleProfileSummary(request, env) {
   const wrongMethod = methodNotAllowed(request, "GET");
   if (wrongMethod) return wrongMethod;
@@ -560,6 +842,12 @@ export default {
       return handleLogout(request, env);
     }
 
+    if (url.pathname === "/api/purchase/create") {
+      const bindingError = ensureBindings(env);
+      if (bindingError) return bindingError;
+      return handlePurchaseCreate(request, env);
+    }
+
     if (url.pathname === "/api/game-sessions") {
       const bindingError = ensureBindings(env);
       if (bindingError) return bindingError;
@@ -576,6 +864,12 @@ export default {
       const bindingError = ensureBindings(env);
       if (bindingError) return bindingError;
       return handleDictionaryFeedback(request, env);
+    }
+
+    if (url.pathname === "/api/payment/webhook/yookassa") {
+      const bindingError = ensureBindings(env);
+      if (bindingError) return bindingError;
+      return handleYookassaWebhook(request, env);
     }
 
     const protectedDictionaryAssetResponse = await protectDictionaryAsset(request, env);

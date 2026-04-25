@@ -108,6 +108,7 @@
 - Premium-словари нельзя считать защищёнными только через UI:
   Worker отдельно проверяет доступ к их JSON-файлам.
 - Для хранения доступов добавлена таблица `user_dictionary_access` в [db/schema.sql](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/db/schema.sql).
+- Для покупок premium-словарей добавлена таблица `purchase_orders` и endpoints `POST /api/purchase/create` и `POST /api/payment/webhook/yookassa`.
 - Если добавляем новые словари, ориентируемся на [DICTIONARY_RULES.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/DICTIONARY_RULES.md).
 - Если меняем форму или смысл фидбэка по сложности, надо синхронно смотреть:
   - [index.html](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/index.html)

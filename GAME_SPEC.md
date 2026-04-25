@@ -136,6 +136,7 @@
 
 - показывает доступные, premium- и ещё неоткрытые словари;
 - по умолчанию выбирает первый словарь с `canPlay: true`.
+- для premium-словаря без доступа показывает CTA `Купить за 149 ₽`.
 
 Текущие доступные словари по репозиторию:
 
@@ -401,10 +402,13 @@ Worker entrypoint находится в `src/worker.js`.
 - `GET /api/config`
 - `POST /api/auth/telegram`
 - `GET /api/me`
+- `GET /api/dictionaries`
 - `POST /api/logout`
+- `POST /api/purchase/create`
 - `POST /api/game-sessions`
 - `GET /api/profile/summary`
 - `POST /api/dictionary-feedback`
+- `POST /api/payment/webhook/yookassa`
 
 Сохранение завершённой партии на клиенте теперь устроено так:
 

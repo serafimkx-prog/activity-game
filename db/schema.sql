@@ -84,3 +84,30 @@ CREATE INDEX IF NOT EXISTS idx_user_dictionary_access_user_id
   ON user_dictionary_access(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_dictionary_access_dictionary_id
   ON user_dictionary_access(dictionary_id);
+
+CREATE TABLE IF NOT EXISTS purchase_orders (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  product_code TEXT NOT NULL,
+  status TEXT NOT NULL,
+  amount_value TEXT NOT NULL,
+  amount_currency TEXT NOT NULL DEFAULT 'RUB',
+  provider TEXT NOT NULL DEFAULT 'yookassa',
+  provider_payment_id TEXT,
+  idempotence_key TEXT NOT NULL,
+  confirmation_url TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  paid_at TEXT,
+  raw_create_response TEXT,
+  raw_webhook_payload TEXT,
+  dictionary_id TEXT,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_purchase_orders_idempotence_key
+  ON purchase_orders(idempotence_key);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_purchase_orders_provider_payment_id
+  ON purchase_orders(provider_payment_id);
+CREATE INDEX IF NOT EXISTS idx_purchase_orders_dictionary_id
+  ON purchase_orders(dictionary_id);
