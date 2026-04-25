@@ -96,6 +96,7 @@ const MODES = {
 
 const TEAM_COLORS = ['#22c55e','#3b82f6','#f97316','#ec4899','#a855f7','#06b6d4']
 const DICTIONARY_FEEDBACK_STORAGE_KEY = 'activity_dictionary_feedback_v1'
+const ACTIVE_GAME_STORAGE_KEY = 'activity_active_game_v1'
 
 // ─── State ─────────────────────────────────────────────────────────────────────
 const state = {
@@ -166,11 +167,197 @@ function escapeHtml(value) {
   }[ch]))
 }
 
+function getActiveScreenId() {
+  const active = document.querySelector('.screen.active')
+  return active?.id?.replace('screen-', '') || 'setup'
+}
+
+function clearActiveGameSnapshot() {
+  try {
+    window.localStorage.removeItem(ACTIVE_GAME_STORAGE_KEY)
+  } catch {}
+}
+
+function buildActiveGameSnapshot() {
+  if (!state.gameInProgress || !state.currentDictionary || !BOARD.length) return null
+
+  return {
+    version: 1,
+    savedAt: new Date().toISOString(),
+    activeScreen: getActiveScreenId(),
+    board: [...BOARD],
+    selectedDictId,
+    state: {
+      teams: state.teams.map(team => ({ ...team, players: [...team.players] })),
+      teamIndex: state.teamIndex,
+      cellMode: state.cellMode ? { ...state.cellMode } : null,
+      selectedCard: state.selectedCard ? JSON.parse(JSON.stringify(state.selectedCard)) : null,
+      pools: state.pools ? JSON.parse(JSON.stringify(state.pools)) : null,
+      indices: state.indices ? JSON.parse(JSON.stringify(state.indices)) : null,
+      config: { ...state.config },
+      timeLeft: state.timeLeft,
+      gameInProgress: state.gameInProgress,
+      currentDictionaryId: state.currentDictionary.id,
+      gameStartedAt: state.gameStartedAt,
+      turnLog: state.turnLog.map(turn => ({ ...turn })),
+      turnStartedAt: state.turnStartedAt,
+      currentTurnNumber: state.currentTurnNumber,
+      pendingTurnFeedback: state.pendingTurnFeedback ? { ...state.pendingTurnFeedback } : null,
+    },
+  }
+}
+
+function persistActiveGameSnapshot() {
+  const snapshot = buildActiveGameSnapshot()
+  if (!snapshot) {
+    clearActiveGameSnapshot()
+    return false
+  }
+  return safeWriteLocalStorage(ACTIVE_GAME_STORAGE_KEY, snapshot)
+}
+
+function restoreExplainingScreen() {
+  const word = state.selectedCard.entries[state.cellMode.key]
+  const pts = state.selectedCard.points
+  const isOpen = state.selectedCard.isOpenRound
+
+  const pill = q('ex-mode-pill')
+  pill.className = 'mode-pill ' + state.cellMode.css
+  pill.innerHTML = `${state.cellMode.icon} ${state.cellMode.name}`
+
+  q('ex-word').textContent = word
+  if (isOpen) {
+    q('ex-pts-hint').textContent = '🎭 ОТКРЫТЫЙ РАУНД! Угадывают все!'
+    q('ex-pts-hint').style.color = '#ef4444'
+    q('normal-btns').style.display = 'none'
+    q('open-round-btns').style.display = 'block'
+    q('teams-btns-container').innerHTML = state.teams.map((t, i) =>
+      `<button class="btn btn-success" style="padding: 18px; font-size: 1.1rem;" onclick="endOpenRound(${i})">${t.name}</button>`
+    ).join('')
+  } else {
+    q('ex-pts-hint').textContent = `Угадаете — +${pts} очков, фишка вперёд на ${pts}`
+    q('ex-pts-hint').style.color = '#aaa'
+    q('normal-btns').style.display = 'flex'
+    q('open-round-btns').style.display = 'none'
+  }
+
+  renderPositions()
+  updateTimer()
+  showScreen('explaining')
+
+  clearInterval(state.timer)
+  state.timer = setInterval(() => {
+    state.timeLeft--
+    updateTimer()
+    if (state.timeLeft <= 0) { clearInterval(state.timer); onTimerEnd() }
+  }, 1000)
+}
+
+function restorePreviewScreen() {
+  const team = state.teams[state.teamIndex]
+  const word = state.selectedCard.entries[state.cellMode.key]
+
+  setBadge('pv-badge', team)
+  const pill = q('pv-mode-pill')
+  pill.className = 'mode-pill ' + state.cellMode.css
+  pill.innerHTML = `${state.cellMode.icon} ${state.cellMode.name}`
+  q('pv-word').textContent = word
+
+  const alert = q('pv-open-round-alert')
+  alert.style.display = state.selectedCard.isOpenRound ? 'block' : 'none'
+
+  let sec = Math.max(1, Math.floor(state.timeLeft || 7))
+  const cd = q('pv-countdown')
+  cd.textContent = sec + 'с'
+  cd.className = sec <= 3 ? 'countdown-ring urgent' : 'countdown-ring'
+  showScreen('preview')
+
+  clearInterval(state.timer)
+  state.timer = setInterval(() => {
+    sec--
+    state.timeLeft = sec
+    cd.textContent = sec + 'с'
+    if (sec <= 3) cd.className = 'countdown-ring urgent'
+    if (sec <= 0) { clearInterval(state.timer); sfxTurnStart(); goExplaining() }
+  }, 1000)
+}
+
+function restoreTurnResultScreen() {
+  renderTurnFeedbackPrompt()
+  renderBoard('tr-board')
+  showScreen('turn-result')
+}
+
+function restoreActiveGameFromSnapshot() {
+  const snapshot = safeReadLocalStorage(ACTIVE_GAME_STORAGE_KEY, null)
+  if (!snapshot || !snapshot.state?.gameInProgress) return false
+
+  const dictionaryId = snapshot.state.currentDictionaryId || snapshot.selectedDictId
+  const dictionary = dictionaries.find(dict => dict.id === dictionaryId)
+  if (!dictionary) return false
+
+  BOARD = Array.isArray(snapshot.board) ? [...snapshot.board] : []
+  if (!BOARD.length) return false
+
+  selectedDictId = dictionary.id
+  state.teams = Array.isArray(snapshot.state.teams) ? snapshot.state.teams.map(team => ({ ...team, players: [...team.players] })) : []
+  state.teamIndex = Number(snapshot.state.teamIndex) || 0
+  state.cellMode = snapshot.state.cellMode || null
+  state.selectedCard = snapshot.state.selectedCard || null
+  state.pools = snapshot.state.pools || null
+  state.indices = snapshot.state.indices || null
+  state.config = snapshot.state.config || { turnTime: 60 }
+  state.timeLeft = Number(snapshot.state.timeLeft) || 0
+  state.gameInProgress = true
+  state.currentDictionary = dictionary
+  state.gameStartedAt = snapshot.state.gameStartedAt || null
+  state.turnLog = Array.isArray(snapshot.state.turnLog) ? snapshot.state.turnLog.map(turn => ({ ...turn })) : []
+  state.turnStartedAt = snapshot.state.turnStartedAt || null
+  state.currentTurnNumber = Number(snapshot.state.currentTurnNumber) || 0
+  state.lastGameSummary = null
+  state.pendingTurnFeedback = snapshot.state.pendingTurnFeedback || null
+
+  q('turn-time').value = state.config.turnTime || 60
+  q('open-round-enabled').checked = Boolean(state.config.openRoundEnabled)
+  updateSetupMenuButtons()
+  renderDictGrid()
+
+  switch (snapshot.activeScreen) {
+    case 'turn-start':
+      goTurnStart()
+      break
+    case 'card-selection':
+      goCardSelection()
+      break
+    case 'preview':
+      restorePreviewScreen()
+      persistActiveGameSnapshot()
+      break
+    case 'explaining':
+      restoreExplainingScreen()
+      persistActiveGameSnapshot()
+      break
+    case 'turn-result':
+      restoreTurnResultScreen()
+      persistActiveGameSnapshot()
+      break
+    case 'setup':
+      showScreen('setup')
+      break
+    default:
+      goTurnStart()
+      break
+  }
+
+  return true
+}
+
 function showScreen(id) {
   clearInterval(state.timer);
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'))
   q('screen-' + id).classList.add('active')
   window.scrollTo(0, 0)
+  persistActiveGameSnapshot()
 }
 
 function getCellMode(pos) {
@@ -542,6 +729,7 @@ async function saveTurnFeedback(ratedLevel) {
     saveStorage: result.ok ? result.storage : null,
   }
   renderTurnFeedbackPrompt()
+  persistActiveGameSnapshot()
 }
 
 function renderProfileStatsLocked() {
@@ -1258,6 +1446,7 @@ function goPreview() {
   }
 
   let sec = 7
+  state.timeLeft = sec
   const cd = q('pv-countdown')
   cd.textContent = sec + 'с'
   cd.className = 'countdown-ring'
@@ -1266,6 +1455,7 @@ function goPreview() {
   clearInterval(state.timer)
   state.timer = setInterval(() => {
     sec--
+    state.timeLeft = sec
     cd.textContent = sec + 'с'
     if (sec <= 3) cd.className = 'countdown-ring urgent'
     if (sec <= 0) { clearInterval(state.timer); sfxTurnStart(); goExplaining() }
@@ -1498,6 +1688,8 @@ function showGameOver(winner) {
   showScreen('game-over')
   saveFinishedGame(winner, state.lastGameSummary)
   state.gameInProgress = false; // Game over, reset flag
+  updateSetupMenuButtons()
+  clearActiveGameSnapshot()
 }
 
 q('restart-btn').addEventListener('click', () => {
@@ -1515,6 +1707,8 @@ q('restart-btn').addEventListener('click', () => {
   state.lastGameSummary = null
   state.pendingTurnFeedback = null
   state.gameInProgress = false; // Restart game, reset flag
+  updateSetupMenuButtons()
+  clearActiveGameSnapshot()
   showScreen('setup')
 })
 
@@ -1542,8 +1736,10 @@ function setBadge(id, team) {
 
 // ─── Init ───────────────────────────────────────────────────────────────────────
 renderTeams()
-loadDictionaries()
-updateSetupMenuButtons(); // Initial check for button visibility
+loadDictionaries().then(() => {
+  restoreActiveGameFromSnapshot()
+  updateSetupMenuButtons()
+})
 loadAuthConfig().then(refreshCurrentUser).then(renderAuthCard)
 renderProfileStatsLocked()
 
@@ -1558,6 +1754,8 @@ q('continue-game-btn').addEventListener('click', () => {
   sfxNavForward()
   goTurnStart(); // Resume the game
 });
+
+window.addEventListener('pagehide', persistActiveGameSnapshot)
 
 window.changeTime = function(delta) {
   const el = q('turn-time');
