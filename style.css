@@ -257,6 +257,12 @@ input:checked+.slider:before{transform:translateX(20px)}
 .outcome-icon{font-size:3.5rem;display:block;margin-bottom:8px}
 .outcome-text{font-size:1.3rem;font-weight:700;margin-bottom:4px}
 .outcome-sub{color:#aaa;font-size:.9rem}
+.feedback-section{padding:16px}
+.feedback-copy{color:#c9d2e8;font-size:.92rem;line-height:1.45;margin-bottom:12px}
+.feedback-rating-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:10px}
+.feedback-rating-btn{margin-bottom:0}
+.feedback-rating-btn.is-selected{background:#6c63ff;color:#fff;border:1px solid rgba(255,255,255,.18)}
+.feedback-status{min-height:1.2em;font-size:.84rem;color:#9aa3b8}
 
 /* Game over */
 .winner-screen{text-align:center}
@@ -298,6 +304,7 @@ input:checked+.slider:before{transform:translateX(20px)}
   .stats-grid{grid-template-columns:1fr}
   .game-item-head{flex-direction:column;align-items:flex-start}
   .summary-grid{grid-template-columns:1fr}
+  .feedback-rating-row{grid-template-columns:1fr}
   .player-stats-table{display:block;overflow-x:auto;white-space:nowrap}
 }
 

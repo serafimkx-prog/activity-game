@@ -95,6 +95,7 @@ const MODES = {
 }
 
 const TEAM_COLORS = ['#22c55e','#3b82f6','#f97316','#ec4899','#a855f7','#06b6d4']
+const DICTIONARY_FEEDBACK_STORAGE_KEY = 'activity_dictionary_feedback_v1'
 
 // ─── State ─────────────────────────────────────────────────────────────────────
 const state = {
@@ -114,6 +115,7 @@ const state = {
   turnStartedAt: null,
   currentTurnNumber: 0,
   lastGameSummary: null,
+  pendingTurnFeedback: null,
 }
 
 const auth = {
@@ -135,6 +137,24 @@ function shuffle(arr) {
 }
 
 function q(id) { return document.getElementById(id) }
+
+function safeReadLocalStorage(key, fallback) {
+  try {
+    const raw = window.localStorage.getItem(key)
+    return raw ? JSON.parse(raw) : fallback
+  } catch {
+    return fallback
+  }
+}
+
+function safeWriteLocalStorage(key, value) {
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value))
+    return true
+  } catch {
+    return false
+  }
+}
 
 function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, ch => ({
@@ -390,6 +410,102 @@ function recordTurn({
   })
 
   state.turnStartedAt = null
+}
+
+function getDictionaryFeedbackEntries() {
+  const entries = safeReadLocalStorage(DICTIONARY_FEEDBACK_STORAGE_KEY, [])
+  return Array.isArray(entries) ? entries : []
+}
+
+function upsertDictionaryFeedback(entry) {
+  const entries = getDictionaryFeedbackEntries()
+  const nextEntries = entries.filter(item => item.feedbackId !== entry.feedbackId)
+  nextEntries.push(entry)
+  return safeWriteLocalStorage(DICTIONARY_FEEDBACK_STORAGE_KEY, nextEntries)
+}
+
+function buildPendingTurnFeedback() {
+  const turn = state.turnLog[state.turnLog.length - 1]
+  const word = state.selectedCard?.entries?.[state.cellMode?.key]
+  if (!turn || !word || !state.currentDictionary || !state.cellMode) return null
+
+  return {
+    feedbackId: [
+      state.gameStartedAt || 'no-game',
+      turn.turnNumber,
+      state.currentDictionary.id || 'no-dictionary',
+      state.cellMode.key,
+      turn.pointsPlanned,
+      word,
+    ].join('::'),
+    turnNumber: turn.turnNumber,
+    word,
+    mode: state.cellMode.key,
+    originalLevel: turn.pointsPlanned,
+    wasSuccessful: turn.wasSuccessful,
+    wasOpenRound: turn.wasOpenRound,
+    durationSeconds: turn.durationSeconds,
+    ratedLevel: null,
+    saveError: false,
+  }
+}
+
+function renderTurnFeedbackPrompt() {
+  const section = q('turn-feedback-section')
+  const copy = q('turn-feedback-copy')
+  const status = q('turn-feedback-status')
+  const feedback = state.pendingTurnFeedback
+
+  if (!feedback) {
+    section.style.display = 'none'
+    copy.textContent = ''
+    status.textContent = ''
+    return
+  }
+
+  section.style.display = 'block'
+  copy.textContent = `Исполнители, насколько слово "${feedback.word}" ощущалось по сложности для режима "${feedback.mode}"? Сейчас оно лежит в уровне ${feedback.originalLevel}.`
+  status.textContent = feedback.saveError
+    ? 'Не удалось сохранить оценку на этом устройстве.'
+    : feedback.ratedLevel
+    ? `Сохранено: исполнители оценили это слово как уровень ${feedback.ratedLevel}.`
+    : 'Оценка необязательна. Если нажать, мы сохраним её отдельно для калибровки словаря.'
+
+  document.querySelectorAll('.feedback-rating-btn').forEach(btn => {
+    btn.classList.toggle('is-selected', Number(btn.dataset.ratedLevel) === feedback.ratedLevel)
+  })
+}
+
+function saveTurnFeedback(ratedLevel) {
+  if (!state.pendingTurnFeedback || !state.currentDictionary) return
+
+  const nextFeedback = {
+    ...state.pendingTurnFeedback,
+    ratedLevel,
+  }
+
+  const didSave = upsertDictionaryFeedback({
+    feedbackId: nextFeedback.feedbackId,
+    dictionaryId: state.currentDictionary.id || null,
+    dictionaryName: state.currentDictionary.name || null,
+    word: nextFeedback.word,
+    mode: nextFeedback.mode,
+    originalLevel: nextFeedback.originalLevel,
+    ratedLevel: nextFeedback.ratedLevel,
+    wasSuccessful: nextFeedback.wasSuccessful,
+    wasOpenRound: nextFeedback.wasOpenRound,
+    durationSeconds: nextFeedback.durationSeconds,
+    turnNumber: nextFeedback.turnNumber,
+    gameStartedAt: state.gameStartedAt,
+    createdAt: new Date().toISOString(),
+  })
+
+  state.pendingTurnFeedback = {
+    ...nextFeedback,
+    ratedLevel: didSave ? ratedLevel : null,
+    saveError: !didSave,
+  }
+  renderTurnFeedbackPrompt()
 }
 
 function renderProfileStatsLocked() {
@@ -1216,11 +1332,18 @@ window.endOpenRound = function(winnerIdx) {
   }
   q('tr-sub').innerHTML = `${winnerTeam.name}: клетка ${prev} → ${Math.min(newPos, 40)}${collisionNote}${!isExplainer ? `<br>${team.name}: клетка ${explainerPrev} → ${Math.min(team.position, 40)}` : ''}`;
 
+  state.pendingTurnFeedback = buildPendingTurnFeedback()
+  renderTurnFeedbackPrompt()
   renderBoard('tr-board');
   showScreen('turn-result');
 }
 
 q('open-fail-btn').addEventListener('click', () => { clearInterval(state.timer); endTurn(false); })
+document.querySelectorAll('.feedback-rating-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    saveTurnFeedback(Number(btn.dataset.ratedLevel))
+  })
+})
 
 function updateTimer() {
   const el = q('ex-timer')
@@ -1304,6 +1427,8 @@ function endTurn(guessed) {
     ? `Фишка: клетка ${prev} → клетка ${Math.min(newPos, 40)}${collisionNote ? '<br><span style="color:#f59e0b;font-size:.85rem">'+collisionNote.trim()+'</span>' : ''}`
     : `Фишка остаётся на клетке ${prev}`
 
+  state.pendingTurnFeedback = buildPendingTurnFeedback()
+  renderTurnFeedbackPrompt()
   renderBoard('tr-board')
   showScreen('turn-result')
 }
@@ -1312,6 +1437,7 @@ q('next-turn-btn').addEventListener('click', () => { sfxNavForward(); state.team
 
 // ─── Game over ──────────────────────────────────────────────────────────────────
 function showGameOver(winner) {
+  state.pendingTurnFeedback = null
   state.lastGameSummary = buildGameSummary(winner)
   q('go-winner').textContent = winner.name
   const sorted = [...state.teams].sort((a, b) => b.position - a.position)
@@ -1344,6 +1470,7 @@ q('restart-btn').addEventListener('click', () => {
   state.turnStartedAt = null
   state.currentTurnNumber = 0
   state.lastGameSummary = null
+  state.pendingTurnFeedback = null
   state.gameInProgress = false; // Restart game, reset flag
   showScreen('setup')
 })
