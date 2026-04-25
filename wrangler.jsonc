@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "activity-game",
+  "name": "activity",
   "compatibility_date": "2026-04-21",
   "main": "src/worker.js",
   "observability": {
