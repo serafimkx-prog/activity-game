@@ -25,6 +25,6 @@
   ],
   "vars": {
     "APP_NAME": "activity-game",
-    "TELEGRAM_BOT_USERNAME": ""
+    "TELEGRAM_BOT_USERNAME": "activity_auth_bot"
   }
 }
