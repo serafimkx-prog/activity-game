@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "activity-game",
+  "name": "activity",
   "compatibility_date": "2026-04-21",
   "main": "src/worker.js",
   "observability": {
@@ -24,7 +24,7 @@
     "nodejs_compat"
   ],
   "vars": {
-    "APP_NAME": "activity-game",
+    "APP_NAME": "activity",
     "TELEGRAM_BOT_USERNAME": "activity_auth_bot"
   }
 }
