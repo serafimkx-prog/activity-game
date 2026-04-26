@@ -1134,6 +1134,9 @@ function renderTelegramLoginWidget() {
   const slot = q('telegram-login-slot')
   slot.innerHTML = ''
 
+  const stack = document.createElement('div')
+  stack.className = 'telegram-login-stack'
+
   const script = document.createElement('script')
   script.async = true
   script.src = 'https://telegram.org/js/telegram-widget.js?22'
@@ -1143,7 +1146,27 @@ function renderTelegramLoginWidget() {
   script.setAttribute('data-radius', '10')
   script.setAttribute('data-request-access', 'write')
   script.setAttribute('data-onauth', 'handleTelegramAuth(user)')
-  slot.appendChild(script)
+  stack.appendChild(script)
+
+  const helperButton = document.createElement('button')
+  helperButton.type = 'button'
+  helperButton.className = 'btn btn-sm btn-secondary telegram-switch-btn'
+  helperButton.textContent = 'Войти другим аккаунтом'
+  helperButton.addEventListener('click', () => {
+    helperNote.hidden = !helperNote.hidden
+  })
+  stack.appendChild(helperButton)
+
+  const helperNote = document.createElement('div')
+  helperNote.className = 'account-note telegram-switch-note'
+  helperNote.hidden = true
+  helperNote.innerHTML = [
+    'Telegram сам подставляет последний аккаунт из своей сессии.',
+    'Чтобы войти другим аккаунтом, открой сайт в режиме инкогнито или в другом браузере, либо сначала переключи аккаунт в Telegram и вернись сюда.',
+  ].join(' ')
+  stack.appendChild(helperNote)
+
+  slot.appendChild(stack)
 
   auth.widgetLoaded = true
 }

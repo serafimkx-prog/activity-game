@@ -71,6 +71,10 @@ h2{font-size:1.3rem;font-weight:700;margin-bottom:14px}
 .account-login-area{display:flex;justify-content:flex-start;min-height:40px}
 .account-login-area:empty{display:none}
 .account-note{font-size:.82rem;color:#9aa3b8;line-height:1.45}
+.telegram-login-stack{display:flex;flex-direction:column;align-items:flex-start;gap:10px}
+.telegram-switch-btn{background:transparent;border:1px solid rgba(142,167,255,.4);color:#c8d3ff}
+.telegram-switch-btn:hover{border-color:#8ea7ff;color:#fff}
+.telegram-switch-note{max-width:340px}
 .account-logout{flex-shrink:0;margin-bottom:0}
 .stats-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:14px}
 .stat-card{background:#0f3460;border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:14px}
