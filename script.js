@@ -797,9 +797,6 @@ function renderProfileStatsLoading() {
 function renderProfileStats(data) {
   const totalGames = data.stats.totalGames || 0
   const totalDurationSeconds = data.stats.totalDurationSeconds || 0
-  const averageTeamCount = data.stats.averageTeamCount
-    ? Number(data.stats.averageTeamCount).toFixed(1).replace('.0', '')
-    : '—'
   const favoriteDictionary = data.stats.favoriteDictionary || 'Пока нет'
   auth.recentGamesMap = Object.fromEntries((data.recentGames || []).map(game => [game.id, game]))
 
@@ -838,11 +835,10 @@ function renderProfileStats(data) {
         <div class="stat-value">${escapeHtml(formatDuration(data.stats.averageDurationSeconds))}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Среднее число команд</div>
-        <div class="stat-value">${escapeHtml(String(averageTeamCount))}</div>
+        <div class="stat-label">Любимый словарь</div>
+        <div class="stat-value">${escapeHtml(favoriteDictionary)}</div>
       </div>
     </div>
-    <div class="stats-subtitle">Любимый словарь: ${escapeHtml(favoriteDictionary)}</div>
     <div class="stats-subtitle">Последние игры</div>
     ${recentGames}
   `
