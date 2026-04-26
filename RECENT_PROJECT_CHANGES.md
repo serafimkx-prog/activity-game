@@ -121,3 +121,19 @@
   - [src/worker.js](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/src/worker.js)
   - [wrangler.jsonc](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/wrangler.jsonc)
 - Этот файл, [README.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/README.md), [GAME_SPEC.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/GAME_SPEC.md) и [PROJECT_KNOWLEDGE_BASE.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/PROJECT_KNOWLEDGE_BASE.md) нужно обновлять вместе, если меняется зафиксированное поведение проекта.
+
+## 10. Последние UI-Уточнения
+
+- В setup-экране степпер времени хода заменён на ползунок:
+  - по умолчанию `60` секунд;
+  - минимум `30`;
+  - максимум `120`;
+  - шаг `10`.
+- Карточки словарей стали компактнее:
+  - описание словаря вынесено в tooltip по значку `i`;
+  - `Общество` показывает бейдж `149 руб.`;
+  - у доступных словарей внизу показывается `Выбран` или `Выбрать`;
+  - подпись количества везде унифицирована как `Карточек: N`.
+- На setup-экране убран блок с юридическим и платёжным описанием.
+  Теперь он живёт в профиле, в разделе `Покупки и доступ`.
+- В профиле `Любимый словарь` перенесён внутрь основной сетки статистики и больше не дублируется отдельной строкой под блоками.
