@@ -1446,6 +1446,8 @@ function renderDictGrid() {
         : 'Количество слов: ' + d.wordCount
     const actionHtml = !d.available
       ? ''
+      : locked && d.lockedReason === 'login_required' && !d.requiresPurchase
+        ? `<button class="dict-buy-btn" onclick="event.stopPropagation(); showScreen('profile')">Войти</button>`
       : locked && d.requiresPurchase
         ? `<button class="dict-buy-btn" onclick="event.stopPropagation(); buyDictionaryAccess('${d.id}')">Купить за 149 ₽</button>`
         : ''
