@@ -1426,9 +1426,9 @@ function renderDictGrid() {
       ? 'Словарь ещё не открыт'
       : locked
         ? d.lockedReason === 'login_required'
-          ? 'Войди, чтобы открыть словарь'
+          ? 'Карточек: ' + d.wordCount
           : 'Нужна покупка словаря'
-        : 'Количество слов: ' + d.wordCount
+        : 'Карточек: ' + d.wordCount
     const actionHtml = !d.available
       ? ''
       : locked && d.lockedReason === 'login_required' && !d.requiresPurchase
