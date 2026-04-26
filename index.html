@@ -33,10 +33,9 @@
     <h2>Настройки</h2>
     <div class="setting-row">
       <label>Время объяснения (сек)</label>
-      <div class="stepper">
-        <button class="step-btn" onclick="changeTime(-10)">–</button>
-        <input type="number" id="turn-time" value="60" readonly>
-        <button class="step-btn" onclick="changeTime(10)">+</button>
+      <div class="time-slider-wrap">
+        <input type="range" id="turn-time" min="30" max="120" step="10" value="60">
+        <div class="time-slider-value"><span id="turn-time-value">60</span> сек</div>
       </div>
     </div>
     <div class="setting-row">
@@ -134,7 +133,7 @@
     <h2>Покупки и доступ</h2>
     <div class="product-note">
       <p>Платные словари продаются как цифровой доступ к дополнительным наборам карточек.</p>
-      <p>После успешной оплаты словарь открывается на аккаунте, с которым пользователь вошёл через Telegram. Физическая доставка не требуется.</p>
+      <p>После успешной оплаты словарь открывается на аккаунте, с которым пользователь вошёл через Telegram.</p>
       <div class="legal-links">
         <a href="/offer" target="_blank" rel="noopener">Оферта</a>
         <a href="/access" target="_blank" rel="noopener">Как получить доступ</a>

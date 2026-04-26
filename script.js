@@ -342,6 +342,7 @@ function restoreActiveGameFromSnapshot() {
   state.pendingTurnFeedback = snapshot.state.pendingTurnFeedback || null
 
   q('turn-time').value = state.config.turnTime || 60
+  q('turn-time-value').textContent = String(state.config.turnTime || 60)
   q('open-round-enabled').checked = Boolean(state.config.openRoundEnabled)
   updateSetupMenuButtons()
   renderDictGrid()
@@ -1435,7 +1436,9 @@ function renderDictGrid() {
         ? `<button class="dict-buy-btn" onclick="event.stopPropagation(); showScreen('profile')">Войти</button>`
       : locked && d.requiresPurchase
         ? `<button class="dict-buy-btn" onclick="event.stopPropagation(); buyDictionaryAccess('${d.id}')">${auth.user ? 'Купить за 149 ₽' : 'Войти, чтобы купить'}</button>`
-        : ''
+      : isSel
+        ? `<div class="dict-state-pill">Выбран</div>`
+        : `<button class="dict-select-btn" onclick="event.stopPropagation(); selectDict('${d.id}')">Выбрать</button>`
 
     return `<div class="dict-card${isSel ? ' selected' : ''}${locked ? ' locked' : ''}"
                  onclick="${locked ? `selectLockedDict('${d.id}')` : `selectDict('${d.id}')`}">
@@ -2054,10 +2057,6 @@ q('continue-game-btn').addEventListener('click', () => {
 window.addEventListener('pagehide', persistActiveGameSnapshot)
 window.addEventListener('online', flushPendingGameSessions)
 
-window.changeTime = function(delta) {
-  const el = q('turn-time');
-  let val = parseInt(el.value) + delta;
-  if (val < 30) val = 30;
-  if (val > 180) val = 180;
-  el.value = val;
-};
+q('turn-time').addEventListener('input', (event) => {
+  q('turn-time-value').textContent = String(event.target.value || 60)
+})
