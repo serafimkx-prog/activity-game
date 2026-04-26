@@ -206,18 +206,21 @@ input:checked+.slider:before{transform:translateX(20px)}
 
 /* Dictionary selection */
 .dict-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(130px, 1fr));gap:8px}
-.dict-card{background:#0f3460;border:2px solid #1e2d4a;border-radius:12px;padding:10px;cursor:pointer;position:relative;transition:border-color .15s,opacity .15s;user-select:none;text-align:center}
+.dict-card{background:#0f3460;border:2px solid #1e2d4a;border-radius:12px;padding:10px;cursor:pointer;position:relative;transition:border-color .15s,opacity .15s,transform .15s;user-select:none;text-align:center;z-index:0}
 .dict-card:hover:not(.locked){border-color:#6c63ff}
 .dict-card.selected{border-color:#6c63ff;background:#16213e}
 .dict-card.locked{opacity:.82;cursor:default}
+.dict-card:hover,
+.dict-card:focus-within{z-index:30}
 .dict-icon{font-size:1.4rem;line-height:1;margin-bottom:4px}
 .dict-name{font-weight:800;font-size:.85rem;margin-bottom:1px}
 .dict-sub-row{display:flex;align-items:center;justify-content:center;gap:6px;min-height:1.4em;margin-bottom:8px}
 .dict-sub{font-size:.7rem;color:#aaa;line-height:1.2}
-.dict-info-trigger{position:relative;display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:rgba(108,99,255,.2);border:1px solid rgba(108,99,255,.45);color:#c8d3ff;font-size:.65rem;font-weight:800;cursor:help;flex:0 0 auto}
+.dict-info-trigger{position:relative;display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:rgba(108,99,255,.18);border:1px solid rgba(108,99,255,.38);color:#dbe3ff;font-size:.62rem;font-weight:800;cursor:help;flex:0 0 auto}
 .dict-info-trigger:focus .dict-info-tooltip,
 .dict-info-trigger:hover .dict-info-tooltip{visibility:visible;opacity:1}
-.dict-info-tooltip{visibility:hidden;opacity:0;transition:opacity .2s;position:absolute;z-index:20;left:50%;bottom:145%;transform:translateX(-50%);width:220px;padding:10px 12px;border-radius:10px;background:#0b1731;border:1px solid rgba(255,255,255,.1);box-shadow:0 10px 24px rgba(0,0,0,.35);color:#eef2ff;font-size:.76rem;line-height:1.4;font-weight:500;text-align:left;pointer-events:none}
+.dict-info-tooltip{visibility:hidden;opacity:0;transition:opacity .18s ease;position:absolute;z-index:40;left:50%;top:calc(100% + 10px);transform:translateX(-50%);width:210px;padding:10px 12px;border-radius:12px;background:rgba(8,15,32,.98);border:1px solid rgba(142,167,255,.18);box-shadow:0 14px 28px rgba(0,0,0,.34);color:#eef2ff;font-size:.75rem;line-height:1.45;font-weight:500;text-align:left;pointer-events:none}
+.dict-info-tooltip::before{content:"";position:absolute;left:50%;top:-6px;transform:translateX(-50%) rotate(45deg);width:12px;height:12px;background:rgba(8,15,32,.98);border-left:1px solid rgba(142,167,255,.18);border-top:1px solid rgba(142,167,255,.18)}
 .dict-words{font-size:.65rem;color:#6c63ff;font-weight:600}
 .dict-badge{position:absolute;top:6px;right:6px;background:#2a2a4a;border-radius:6px;padding:1px 6px;font-size:.65rem;color:#888;font-weight:600}
 .dict-check{position:absolute;top:6px;right:6px;background:#6c63ff;border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:.65rem;line-height:1}
