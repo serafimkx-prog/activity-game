@@ -1432,6 +1432,9 @@ function renderDictGrid() {
   grid.innerHTML = dictionaries.map(d => {
     const isSel = d.id === selectedDictId
     const locked = !d.canPlay
+    const infoHtml = d.description
+      ? `<span class="dict-info-trigger" onclick="event.stopPropagation()" tabindex="0" role="button" aria-label="Описание словаря ${escapeHtml(d.name)}">i<span class="dict-info-tooltip">${escapeHtml(d.description)}</span></span>`
+      : ''
     const badge = !d.available
       ? (d.badge || 'Скоро')
       : locked && d.requiresPurchase
@@ -1458,8 +1461,10 @@ function renderDictGrid() {
       ${!isSel && badge ? `<div class="dict-badge">${badge}</div>` : ''}
       <div class="dict-icon">${d.icon}</div>
       <div class="dict-name">${d.name}</div>
-      <div class="dict-sub">${d.subtitle}</div>
-      <div class="dict-desc">${d.description || ''}</div>
+      <div class="dict-sub-row">
+        <div class="dict-sub">${d.subtitle}</div>
+        ${infoHtml}
+      </div>
       <div class="dict-words">${footerText}</div>
       ${actionHtml}
     </div>`
@@ -1521,7 +1526,6 @@ window.buyDictionaryAccess = async function(id) {
 
   if (!auth.user) {
     showScreen('profile')
-    alert('Войди через Telegram, чтобы купить этот словарь.')
     return
   }
 
