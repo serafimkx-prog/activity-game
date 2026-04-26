@@ -197,6 +197,70 @@ async function fetchYookassaPayment(env, providerPaymentId) {
   return payload;
 }
 
+async function syncPendingPurchasesForUser(db, env, userId, dictionaryId = null) {
+  const rows = await db
+    .prepare(
+      `SELECT id, user_id, dictionary_id, provider_payment_id, status
+       FROM purchase_orders
+       WHERE user_id = ?1
+         AND status = 'pending'
+         AND provider_payment_id IS NOT NULL
+         AND (?2 IS NULL OR dictionary_id = ?2)
+       ORDER BY created_at DESC
+       LIMIT 20`
+    )
+    .bind(userId, dictionaryId || null)
+    .all();
+
+  const pendingOrders = rows?.results || [];
+  let updatedCount = 0;
+
+  for (const order of pendingOrders) {
+    let verifiedPayment;
+    try {
+      verifiedPayment = await fetchYookassaPayment(env, order.provider_payment_id);
+    } catch {
+      continue;
+    }
+
+    const nextStatus = verifiedPayment?.status || order.status;
+    const paidAt = nextStatus === "succeeded" ? new Date().toISOString() : null;
+
+    await db
+      .prepare(
+        `UPDATE purchase_orders
+         SET status = ?2,
+             paid_at = COALESCE(?3, paid_at),
+             raw_webhook_payload = COALESCE(?4, raw_webhook_payload),
+             updated_at = CURRENT_TIMESTAMP
+         WHERE provider_payment_id = ?1`
+      )
+      .bind(
+        order.provider_payment_id,
+        nextStatus,
+        paidAt,
+        JSON.stringify({
+          source: "manual-sync",
+          payment: verifiedPayment,
+        })
+      )
+      .run();
+
+    if (nextStatus === "succeeded" && order.dictionary_id) {
+      await grantDictionaryAccess(
+        db,
+        order.user_id,
+        order.dictionary_id,
+        "yookassa",
+        `payment:${order.provider_payment_id}`
+      );
+      updatedCount += 1;
+    }
+  }
+
+  return updatedCount;
+}
+
 async function upsertUser(db, profile) {
   const existing = await db
     .prepare(
@@ -426,6 +490,37 @@ async function handlePurchaseCreate(request, env) {
     dictionaryId,
     confirmationUrl,
     alreadyOwned: false,
+  });
+}
+
+async function handlePurchaseSync(request, env) {
+  const wrongMethod = methodNotAllowed(request, "POST");
+  if (wrongMethod) return wrongMethod;
+
+  const configError = ensureYookassaConfig(env);
+  if (configError) return configError;
+
+  const { user, errorResponse } = await requireUser(request, env);
+  if (errorResponse) return errorResponse;
+
+  let payload = {};
+  try {
+    payload = await request.json();
+  } catch {
+    payload = {};
+  }
+
+  const dictionaryId = payload?.dictionaryId || null;
+  if (dictionaryId && !getPremiumDictionaryProduct(dictionaryId)) {
+    return error("Unsupported premium dictionary", 400, { dictionaryId });
+  }
+
+  const updatedCount = await syncPendingPurchasesForUser(env.DB, env, user.id, dictionaryId);
+
+  return json({
+    ok: true,
+    updatedCount,
+    dictionaryId,
   });
 }
 
@@ -846,6 +941,12 @@ export default {
       const bindingError = ensureBindings(env);
       if (bindingError) return bindingError;
       return handlePurchaseCreate(request, env);
+    }
+
+    if (url.pathname === "/api/purchase/sync") {
+      const bindingError = ensureBindings(env);
+      if (bindingError) return bindingError;
+      return handlePurchaseSync(request, env);
     }
 
     if (url.pathname === "/api/game-sessions") {

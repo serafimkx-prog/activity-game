@@ -1110,6 +1110,24 @@ async function refreshCurrentUser() {
   }
 }
 
+async function syncPendingDictionaryPurchases(dictionaryId = null) {
+  if (!auth.user) return false
+
+  try {
+    const response = await fetch('/api/purchase/sync', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify(dictionaryId ? { dictionaryId } : {}),
+    })
+    if (!response.ok) return false
+    const payload = await response.json().catch(() => null)
+    return Boolean(payload?.updatedCount)
+  } catch {
+    return false
+  }
+}
+
 function renderTelegramLoginWidget() {
   if (!auth.config?.telegramBotUsername || auth.user || auth.widgetLoaded) return
 
@@ -1149,6 +1167,9 @@ function renderAuthCard() {
     })
     loadProfileStats()
     flushPendingGameSessions()
+    syncPendingDictionaryPurchases().then((didSync) => {
+      if (didSync) loadDictionaries()
+    })
     return
   }
 
@@ -1423,7 +1444,13 @@ async function loadDictionaryEntries(dict) {
       throw new Error('Войди через Telegram, чтобы открыть этот словарь.')
     }
     if (response.status === 403 && errorCode === 'Dictionary access required') {
-      throw new Error(`Словарь "${dict.name}" входит в платный пакет. Доступ пока выдаётся вручную после оплаты.`)
+      await syncPendingDictionaryPurchases(dict.id)
+      await loadDictionaries()
+      const refreshedDict = dictionaries.find(item => item.id === dict.id)
+      if (refreshedDict?.canPlay) {
+        return loadDictionaryEntries(refreshedDict)
+      }
+      throw new Error(`Оплата словаря "${dict.name}" ещё не подтверждена. Если вы уже оплатили, обновите страницу через несколько секунд.`)
     }
     if (response.status === 404) {
       throw new Error('Этот словарь пока недоступен.')
