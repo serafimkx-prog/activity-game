@@ -1406,6 +1406,7 @@ function renderDictGrid() {
       <div class="dict-icon">${d.icon}</div>
       <div class="dict-name">${d.name}</div>
       <div class="dict-sub">${d.subtitle}</div>
+      <div class="dict-desc">${d.description || ''}</div>
       <div class="dict-words">${footerText}</div>
       ${actionHtml}
     </div>`

@@ -209,12 +209,18 @@ input:checked+.slider:before{transform:translateX(20px)}
 .dict-icon{font-size:1.4rem;line-height:1;margin-bottom:4px}
 .dict-name{font-weight:800;font-size:.85rem;margin-bottom:1px}
 .dict-sub{font-size:.7rem;color:#aaa;margin-bottom:4px;line-height:1.2}
+.dict-desc{font-size:.68rem;color:#b9c2da;line-height:1.35;min-height:2.7em;margin:6px 0}
 .dict-words{font-size:.65rem;color:#6c63ff;font-weight:600}
 .dict-badge{position:absolute;top:6px;right:6px;background:#2a2a4a;border-radius:6px;padding:1px 6px;font-size:.65rem;color:#888;font-weight:600}
 .dict-check{position:absolute;top:6px;right:6px;background:#6c63ff;border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:.65rem;line-height:1}
 .dict-buy-btn{margin-top:8px;width:100%;border:none;border-radius:10px;background:#6c63ff;color:#fff;padding:8px 10px;font-size:.74rem;font-weight:800;cursor:pointer;transition:filter .15s,transform .15s}
 .dict-buy-btn:hover{filter:brightness(1.08)}
 .dict-buy-btn:active{transform:translateY(1px)}
+.product-note{margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.08)}
+.product-note p{font-size:.84rem;color:#b9c2da;line-height:1.45;margin-bottom:8px}
+.legal-links{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+.legal-links a{color:#8ea7ff;font-weight:700;text-decoration:none}
+.legal-links a:hover{color:#c8d3ff;text-decoration:underline}
 
 /* Players in setup */
 .players-section{margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.08)}
