@@ -98,7 +98,6 @@ const TEAM_COLORS = ['#22c55e','#3b82f6','#f97316','#ec4899','#a855f7','#06b6d4'
 const DICTIONARY_FEEDBACK_STORAGE_KEY = 'activity_dictionary_feedback_v1'
 const ACTIVE_GAME_STORAGE_KEY = 'activity_active_game_v1'
 const GAME_SESSION_QUEUE_STORAGE_KEY = 'activity_pending_game_sessions_v1'
-const TELEGRAM_LOGIN_HISTORY_STORAGE_KEY = 'activity_telegram_login_history_v1'
 
 // ─── State ─────────────────────────────────────────────────────────────────────
 const state = {
@@ -1106,9 +1105,6 @@ async function refreshCurrentUser() {
     if (!response.ok) throw new Error('me request failed')
     const payload = await response.json()
     auth.user = payload.user || null
-    if (auth.user) {
-      safeWriteLocalStorage(TELEGRAM_LOGIN_HISTORY_STORAGE_KEY, true)
-    }
   } catch {
     auth.user = null
   }
@@ -1151,39 +1147,6 @@ function renderTelegramLoginWidget() {
   script.setAttribute('data-request-access', 'write')
   script.setAttribute('data-onauth', 'handleTelegramAuth(user)')
   stack.appendChild(script)
-
-  const helperButton = document.createElement('button')
-  helperButton.type = 'button'
-  helperButton.className = 'btn btn-sm btn-secondary telegram-switch-btn'
-  helperButton.textContent = 'Войти в другой аккаунт'
-  helperButton.hidden = true
-
-  const helperNote = document.createElement('div')
-  helperNote.className = 'account-note telegram-switch-note'
-  helperNote.hidden = true
-  helperNote.innerHTML = [
-    'Telegram сам подставляет последний аккаунт из своей сессии.',
-    'Чтобы войти другим аккаунтом, открой сайт в режиме инкогнито или в другом браузере, либо сначала переключи аккаунт в Telegram и вернись сюда.',
-  ].join(' ')
-
-  helperButton.addEventListener('click', () => {
-    helperNote.hidden = !helperNote.hidden
-  })
-
-  stack.appendChild(helperButton)
-  stack.appendChild(helperNote)
-
-  const shouldShowAlternateLoginHelp = safeReadLocalStorage(TELEGRAM_LOGIN_HISTORY_STORAGE_KEY, false) === true
-  if (shouldShowAlternateLoginHelp) {
-    helperButton.hidden = false
-  } else {
-    window.setTimeout(() => {
-      const widgetLooksAccountBound = stack.textContent.includes('Войти как')
-      if (widgetLooksAccountBound) {
-        helperButton.hidden = false
-      }
-    }, 500)
-  }
 
   slot.appendChild(stack)
 
@@ -1252,7 +1215,6 @@ window.handleTelegramAuth = async function(user) {
     }
 
     auth.user = payload.user
-    safeWriteLocalStorage(TELEGRAM_LOGIN_HISTORY_STORAGE_KEY, true)
     auth.widgetLoaded = false
     await loadDictionaries()
     renderAuthCard()
