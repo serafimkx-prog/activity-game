@@ -1449,7 +1449,7 @@ function renderDictGrid() {
       : locked && d.lockedReason === 'login_required' && !d.requiresPurchase
         ? `<button class="dict-buy-btn" onclick="event.stopPropagation(); showScreen('profile')">Войти</button>`
       : locked && d.requiresPurchase
-        ? `<button class="dict-buy-btn" onclick="event.stopPropagation(); buyDictionaryAccess('${d.id}')">Купить за 149 ₽</button>`
+        ? `<button class="dict-buy-btn" onclick="event.stopPropagation(); buyDictionaryAccess('${d.id}')">${auth.user ? 'Купить за 149 ₽' : 'Войти, чтобы купить'}</button>`
         : ''
 
     return `<div class="dict-card${isSel ? ' selected' : ''}${locked ? ' locked' : ''}"
@@ -1520,6 +1520,7 @@ window.buyDictionaryAccess = async function(id) {
   if (!dict) return
 
   if (!auth.user) {
+    showScreen('profile')
     alert('Войди через Telegram, чтобы купить этот словарь.')
     return
   }
