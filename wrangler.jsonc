@@ -25,6 +25,7 @@
   ],
   "vars": {
     "APP_NAME": "activity",
-    "TELEGRAM_BOT_USERNAME": "activity_auth_bot"
+    "TELEGRAM_BOT_USERNAME": "activity_auth_bot",
+    "YOOKASSA_RETURN_URL": "https://activity.serafimkx.workers.dev/"
   }
 }
