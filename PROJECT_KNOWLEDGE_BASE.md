@@ -165,14 +165,14 @@
   - `society`
 - по модели доступа:
   - `classic` — free
-  - `geo` — premium
+  - `geo` — free after login
   - `society` — premium
 - недоступные словари с `available: false`:
   - `cinema`
   - `sport`
   - `science`
 
-При старте игры фронтенд загружает `dict.file` через `fetch()`, но Worker отдельно защищает premium-файлы словарей и проверяет доступ в таблице `user_dictionary_access`.
+При старте игры фронтенд загружает `dict.file` через `fetch()`, но Worker отдельно защищает словари с ограниченным доступом: `geo` требует авторизацию, а premium-файлы дополнительно проверяют доступ в таблице `user_dictionary_access`.
 
 После этого вызывается `initPools(data)`, которая создаёт перемешанные пулы слов по режимам и сложностям.
 

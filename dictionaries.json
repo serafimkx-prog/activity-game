@@ -19,8 +19,8 @@
     "file": "words_geo.json",
     "wordCount": 800,
     "available": true,
-    "access": "premium",
-    "priceLabel": "Премиум"
+    "access": "free",
+    "authAccess": "login"
   },
   {
     "id": "society",

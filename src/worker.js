@@ -13,13 +13,6 @@ import {
 } from "./lib/telegram.js";
 
 const PREMIUM_DICTIONARY_PRODUCTS = {
-  geo: {
-    productCode: "dictionary_geo",
-    dictionaryId: "geo",
-    amountValue: "149.00",
-    amountCurrency: "RUB",
-    description: "Платный словарь География",
-  },
   society: {
     productCode: "dictionary_society",
     dictionaryId: "society",
@@ -34,6 +27,7 @@ function normalizeDictionaryMeta(dictionary) {
     ...dictionary,
     available: dictionary.available !== false,
     access: dictionary.access === "premium" ? "premium" : "free",
+    authAccess: dictionary.authAccess === "login" ? "login" : "none",
     priceLabel: dictionary.priceLabel || null,
   };
 }
@@ -70,11 +64,15 @@ async function getUserDictionaryAccessIds(db, userId) {
 }
 
 function buildDictionaryClientMeta(dictionary, accessIds, user) {
+  const requiresAuth = dictionary.authAccess === "login";
   const requiresPurchase = dictionary.access === "premium";
-  const hasAccess = !requiresPurchase || accessIds.has(dictionary.id);
-  const canPlay = dictionary.available && hasAccess;
+  const hasPurchaseAccess = !requiresPurchase || accessIds.has(dictionary.id);
+  const hasAuthAccess = !requiresAuth || Boolean(user);
+  const canPlay = dictionary.available && hasPurchaseAccess && hasAuthAccess;
   const lockedReason = !dictionary.available
     ? "coming_soon"
+    : !hasAuthAccess
+      ? "login_required"
     : canPlay
       ? null
       : user
@@ -542,9 +540,11 @@ async function protectDictionaryAsset(request, env) {
 
   if (!dictionary) return null;
   if (!dictionary.available) return error("Dictionary is not available yet", 404);
-  if (dictionary.access !== "premium") return env.ASSETS.fetch(request);
-
   const user = await getOptionalUser(request, env);
+  if (dictionary.authAccess === "login" && !user) {
+    return error("Authentication required", 401);
+  }
+  if (dictionary.access !== "premium") return env.ASSETS.fetch(request);
   if (!user) return error("Authentication required", 401);
 
   const accessIds = await getUserDictionaryAccessIds(env.DB, user.id);

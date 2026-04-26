@@ -141,14 +141,14 @@
 Текущие доступные словари по репозиторию:
 
 - `classic` — free
-- `geo` — premium
+- `geo` — free after login
 - `society` — premium
 
 При старте партии игра загружает JSON-файл выбранного словаря через защищённый asset-fetch:
 
 - `fetch(dict.file)`
 
-Для premium-словарей Worker проверяет сессию и наличие доступа в `user_dictionary_access`.
+Для `geo` Worker требует авторизацию, но не требует покупку. Для premium-словарей Worker проверяет сессию и наличие доступа в `user_dictionary_access`.
 
 После загрузки вызывается `initPools(data)`, которая создаёт перемешанные пулы слов для:
 

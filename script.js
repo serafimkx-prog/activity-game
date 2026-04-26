@@ -1394,9 +1394,16 @@ async function loadDictionaries() {
     dictionaries = Array.isArray(staticCatalog) ? staticCatalog.map(dict => ({
       ...dict,
       access: dict.access === 'premium' ? 'premium' : 'free',
-      canPlay: dict.available !== false && dict.access !== 'premium',
+      authAccess: dict.authAccess === 'login' ? 'login' : 'none',
+      canPlay: dict.available !== false && dict.access !== 'premium' && (dict.authAccess !== 'login' || Boolean(auth.user)),
       requiresPurchase: dict.access === 'premium',
-      lockedReason: dict.available === false ? 'coming_soon' : dict.access === 'premium' ? 'login_required' : null,
+      lockedReason: dict.available === false
+        ? 'coming_soon'
+        : dict.authAccess === 'login' && !auth.user
+          ? 'login_required'
+          : dict.access === 'premium'
+            ? 'login_required'
+            : null,
       priceLabel: dict.priceLabel || null,
     })) : [{
       id: 'classic',
@@ -1427,19 +1434,19 @@ function renderDictGrid() {
     const locked = !d.canPlay
     const badge = !d.available
       ? (d.badge || 'Скоро')
-      : locked && d.access === 'premium'
+      : locked && d.requiresPurchase
         ? (d.priceLabel || 'Премиум')
         : d.badge
     const footerText = !d.available
       ? 'Словарь ещё не открыт'
       : locked
         ? d.lockedReason === 'login_required'
-          ? 'Войди, чтобы увидеть доступ'
+          ? 'Войди, чтобы открыть словарь'
           : 'Нужна покупка словаря'
         : 'Количество слов: ' + d.wordCount
     const actionHtml = !d.available
       ? ''
-      : locked && d.access === 'premium'
+      : locked && d.requiresPurchase
         ? `<button class="dict-buy-btn" onclick="event.stopPropagation(); buyDictionaryAccess('${d.id}')">Купить за 149 ₽</button>`
         : ''
 
@@ -1500,7 +1507,7 @@ window.selectLockedDict = function(id) {
     return
   }
   if (dict.lockedReason === 'login_required') {
-    alert('Войди через Telegram, чтобы сохранить покупки и получить доступ к платным словарям.')
+    alert('Войди через Telegram, чтобы открыть этот словарь.')
     return
   }
   alert(`Словарь "${dict.name}" можно купить отдельно за 149 ₽.`)

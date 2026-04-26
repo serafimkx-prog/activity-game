@@ -159,7 +159,8 @@
 - Источник истины по backend и auth — `src/worker.js` и `src/lib/*`.
 - Источник истины по runtime-конфигу Worker — `wrangler.jsonc`, включая `TELEGRAM_BOT_USERNAME`.
 - После изменения `db/schema.sql` схему нужно отдельно применять в `D1`.
-- Доступ к premium-словарям сейчас хранится в таблице `user_dictionary_access`.
+- `geo` открывается бесплатно после входа через Telegram.
+- Доступ к платным словарям сейчас хранится в таблице `user_dictionary_access`.
 - Заказы на покупку словарей сохраняются в таблице `purchase_orders`.
 - Для оплаты нужны Cloudflare secrets/vars: `YOOKASSA_SHOP_ID`, `YOOKASSA_SECRET_KEY`, `YOOKASSA_RETURN_URL`.
 - Фидбек по сложности слова для авторизованных пользователей сохраняется в backend и D1, а при недоступности сервера остаётся локальный fallback в `localStorage`.
