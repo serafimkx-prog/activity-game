@@ -20,7 +20,8 @@
     "wordCount": 800,
     "available": true,
     "access": "free",
-    "authAccess": "login"
+    "authAccess": "login",
+    "badge": "free"
   },
   {
     "id": "society",
