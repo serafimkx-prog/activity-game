@@ -1152,26 +1152,37 @@ function renderTelegramLoginWidget() {
   script.setAttribute('data-onauth', 'handleTelegramAuth(user)')
   stack.appendChild(script)
 
+  const helperButton = document.createElement('button')
+  helperButton.type = 'button'
+  helperButton.className = 'btn btn-sm btn-secondary telegram-switch-btn'
+  helperButton.textContent = 'Войти в другой аккаунт'
+  helperButton.hidden = true
+
+  const helperNote = document.createElement('div')
+  helperNote.className = 'account-note telegram-switch-note'
+  helperNote.hidden = true
+  helperNote.innerHTML = [
+    'Telegram сам подставляет последний аккаунт из своей сессии.',
+    'Чтобы войти другим аккаунтом, открой сайт в режиме инкогнито или в другом браузере, либо сначала переключи аккаунт в Telegram и вернись сюда.',
+  ].join(' ')
+
+  helperButton.addEventListener('click', () => {
+    helperNote.hidden = !helperNote.hidden
+  })
+
+  stack.appendChild(helperButton)
+  stack.appendChild(helperNote)
+
   const shouldShowAlternateLoginHelp = safeReadLocalStorage(TELEGRAM_LOGIN_HISTORY_STORAGE_KEY, false) === true
   if (shouldShowAlternateLoginHelp) {
-    const helperButton = document.createElement('button')
-    helperButton.type = 'button'
-    helperButton.className = 'btn btn-sm btn-secondary telegram-switch-btn'
-    helperButton.textContent = 'Войти в другой аккаунт'
-
-    const helperNote = document.createElement('div')
-    helperNote.className = 'account-note telegram-switch-note'
-    helperNote.hidden = true
-    helperNote.innerHTML = [
-      'Telegram сам подставляет последний аккаунт из своей сессии.',
-      'Чтобы войти другим аккаунтом, открой сайт в режиме инкогнито или в другом браузере, либо сначала переключи аккаунт в Telegram и вернись сюда.',
-    ].join(' ')
-
-    helperButton.addEventListener('click', () => {
-      helperNote.hidden = !helperNote.hidden
-    })
-    stack.appendChild(helperButton)
-    stack.appendChild(helperNote)
+    helperButton.hidden = false
+  } else {
+    window.setTimeout(() => {
+      const widgetLooksAccountBound = stack.textContent.includes('Войти как')
+      if (widgetLooksAccountBound) {
+        helperButton.hidden = false
+      }
+    }, 500)
   }
 
   slot.appendChild(stack)
