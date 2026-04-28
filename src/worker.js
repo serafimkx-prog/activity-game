@@ -909,6 +909,13 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
+    if (url.pathname === "/google75feaf05e1429f76.html") {
+      return new Response(
+        "google-site-verification: google75feaf05e1429f76.html",
+        { headers: { "Content-Type": "text/html; charset=UTF-8", "Cache-Control": "no-transform" } }
+      );
+    }
+
     if (url.pathname === "/yandex_a94edf4eee889378.html") {
       return new Response(
         '<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"></head><body>Verification: a94edf4eee889378</body></html>',

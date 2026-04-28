@@ -11,7 +11,8 @@
     "binding": "ASSETS",
     "run_worker_first": [
       "/api/*",
-      "/yandex_a94edf4eee889378.html"
+      "/yandex_a94edf4eee889378.html",
+      "/google75feaf05e1429f76.html"
     ]
   },
   "d1_databases": [
