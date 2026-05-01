@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS dictionary_feedback (
   mode TEXT NOT NULL,
   original_level INTEGER NOT NULL,
   rated_level INTEGER NOT NULL,
+  mark_for_removal INTEGER NOT NULL DEFAULT 0,
   was_successful INTEGER NOT NULL DEFAULT 0,
   was_open_round INTEGER NOT NULL DEFAULT 0,
   duration_seconds REAL,

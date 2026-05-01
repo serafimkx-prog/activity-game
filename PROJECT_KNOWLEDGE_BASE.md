@@ -163,13 +163,14 @@
   - `classic`
   - `geo`
   - `society`
+  - `around_us`
 - по модели доступа:
   - `classic` — free
   - `geo` — free after login
   - `society` — premium
+  - `around_us` — premium
 - недоступные словари с `available: false`:
   - `cinema`
-  - `sport`
   - `science`
 
 При старте игры фронтенд загружает `dict.file` через `fetch()`, но Worker отдельно защищает словари с ограниченным доступом: `geo` требует авторизацию, а premium-файлы дополнительно проверяют доступ в таблице `user_dictionary_access`.

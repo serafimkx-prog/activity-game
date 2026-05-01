@@ -20,6 +20,13 @@ const PREMIUM_DICTIONARY_PRODUCTS = {
     amountCurrency: "RUB",
     description: "Платный словарь Общество",
   },
+  around_us: {
+    productCode: "dictionary_around_us",
+    dictionaryId: "around_us",
+    amountValue: "149.00",
+    amountCurrency: "RUB",
+    description: "Платный словарь Вокруг нас",
+  },
 };
 
 function normalizeDictionaryMeta(dictionary) {
@@ -687,6 +694,8 @@ async function handleDictionaryFeedback(request, env) {
       ? null
       : Number(payload.turnNumber);
 
+  const markForRemoval = payload.markForRemoval ? 1 : 0;
+
   await env.DB
     .prepare(
       `INSERT INTO dictionary_feedback (
@@ -698,12 +707,13 @@ async function handleDictionaryFeedback(request, env) {
          mode,
          original_level,
          rated_level,
+         mark_for_removal,
          was_successful,
          was_open_round,
          duration_seconds,
          turn_number,
          game_started_at
-       ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
+       ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)
        ON CONFLICT(user_id, feedback_id) DO UPDATE SET
          dictionary_id = excluded.dictionary_id,
          dictionary_name = excluded.dictionary_name,
@@ -711,6 +721,7 @@ async function handleDictionaryFeedback(request, env) {
          mode = excluded.mode,
          original_level = excluded.original_level,
          rated_level = excluded.rated_level,
+         mark_for_removal = excluded.mark_for_removal,
          was_successful = excluded.was_successful,
          was_open_round = excluded.was_open_round,
          duration_seconds = excluded.duration_seconds,
@@ -727,6 +738,7 @@ async function handleDictionaryFeedback(request, env) {
       payload.mode,
       originalLevel,
       ratedLevel,
+      markForRemoval,
       payload.wasSuccessful ? 1 : 0,
       payload.wasOpenRound ? 1 : 0,
       Number.isFinite(durationSeconds) ? durationSeconds : null,

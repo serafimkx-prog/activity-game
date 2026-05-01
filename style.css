@@ -291,6 +291,8 @@ input:checked+.slider:before{transform:translateX(20px)}
 .feedback-rating-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:10px}
 .feedback-rating-btn{margin-bottom:0}
 .feedback-rating-btn.is-selected{background:#6c63ff;color:#fff;border:1px solid rgba(255,255,255,.18)}
+.feedback-flag-btn{width:100%;margin:0 0 10px;background:rgba(255,255,255,.04)}
+.feedback-flag-btn.is-selected{background:#7a1f2e;color:#fff;border:1px solid rgba(255,255,255,.18)}
 .feedback-status{min-height:1.2em;font-size:.84rem;color:#9aa3b8}
 
 /* Game over */

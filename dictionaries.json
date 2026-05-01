@@ -37,6 +37,19 @@
     "badge": "Новый"
   },
   {
+    "id": "around_us",
+    "name": "Вокруг нас",
+    "subtitle": "Большой универсальный словарь",
+    "description": "Предметы, места, бытовые сцены, привычные действия и знакомые понятия без перегруза редкими темами",
+    "icon": "🧭",
+    "file": "words_around_us.json",
+    "wordCount": 1142,
+    "available": true,
+    "access": "premium",
+    "priceLabel": "149 руб.",
+    "badge": "Новый"
+  },
+  {
     "id": "cinema",
     "name": "Мир кино",
     "subtitle": "Фильмы и сериалы",
@@ -44,17 +57,6 @@
     "icon": "🎬",
     "file": "words_cinema.json",
     "wordCount": 800,
-    "available": false,
-    "badge": "Скоро"
-  },
-  {
-    "id": "sport",
-    "name": "Спорт и игры",
-    "subtitle": "Матчи и рекорды",
-    "description": "Виды спорта, правила, спортсмены, соревнования и игры",
-    "icon": "⚽",
-    "file": "words_sport.json",
-    "wordCount": 750,
     "available": false,
     "badge": "Скоро"
   },

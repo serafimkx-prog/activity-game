@@ -90,12 +90,14 @@
 - `classic` → `words.json`
 - `geo` → `words_geo.json`
 - `society` → `words_society.json`
+- `around_us` → `words_around_us.json`
 
 По текущей модели доступа:
 
 - `classic` — бесплатный словарь;
 - `geo` — бесплатный словарь после входа через Telegram;
 - `society` — платный словарь;
+- `around_us` — платный словарь;
 - доступ к ограниченным словарям проверяется на backend, а не только через UI.
 
 Также в списке есть словари со статусом `available: false`, которые отображаются как недоступные.
@@ -161,6 +163,7 @@
 - Источник истины по runtime-конфигу Worker — `wrangler.jsonc`, включая `TELEGRAM_BOT_USERNAME`.
 - После изменения `db/schema.sql` схему нужно отдельно применять в `D1`.
 - `geo` открывается бесплатно после входа через Telegram.
+- `society` и `around_us` сейчас работают как платные словари.
 - Доступ к платным словарям сейчас хранится в таблице `user_dictionary_access`.
 - Заказы на покупку словарей сохраняются в таблице `purchase_orders`.
 - Для оплаты нужны Cloudflare secrets/vars: `YOOKASSA_SHOP_ID`, `YOOKASSA_SECRET_KEY`, `YOOKASSA_RETURN_URL`.

@@ -5,8 +5,16 @@
 ## 1. Словари
 
 - Добавлен новый словарь [words_society.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/words_society.json) с темой `Общество`.
+- Добавлен новый словарь [words_around_us.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/words_around_us.json) с темой `Вокруг нас`.
 - Словарь `society` зарегистрирован в [dictionaries.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/dictionaries.json) и доступен в UI.
+- Словарь `around_us` зарегистрирован в [dictionaries.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/dictionaries.json) и доступен в UI.
+- Словарь `sport` убран из публичного каталога, а `around_us` используется как опубликованный релизный словарь вместо него.
+- Словарь `around_us` переведён в premium-модель: он продаётся через тот же механизм покупок и серверной защиты, что и `society`.
+- Словарь `around_us` пересобран как самостоятельный набор без заимствования карточек из других словарей.
+- В `around_us` отдельно усилены блоки про хобби, спорт, активный отдых, творчество и походные сцены.
 - Для составления новых словарей добавлен документ [DICTIONARY_RULES.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/DICTIONARY_RULES.md).
+- В [DICTIONARY_RULES.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/DICTIONARY_RULES.md) дополнительно зафиксированы правила кластерного расширения словарей, непересечения с другими словарями, снижения повторяемости формулировок и отдельный фильтр для `DRAW`.
+- В [DICTIONARY_RULES.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/DICTIONARY_RULES.md) отдельно сохранён рабочий пайплайн сборки нового словаря: от роли и кластеров до раскладки по 9 корзинам, редакторских проходов, проверок и публикации.
 - В `society` были:
   - собраны базовые корзины;
   - расширены уровни `5`;
@@ -20,6 +28,7 @@
   - `Скорее 3`
   - `Скорее 4`
   - `Скорее 5`
+- В этот же блок добавлена отдельная пометка `Слишком сложная карточка`, чтобы отмечать слова на возможное удаление или пересмотр.
 - Фидбек привязан к конкретному слову, режиму и исходному уровню карточки.
 - Сохраняются:
   - `feedbackId`
@@ -29,6 +38,7 @@
   - `mode`
   - `originalLevel`
   - `ratedLevel`
+  - `markForRemoval`
   - `wasSuccessful`
   - `wasOpenRound`
   - `durationSeconds`
@@ -44,6 +54,7 @@
   - `POST /api/dictionary-feedback`
 - В D1 добавлена таблица:
   - `dictionary_feedback`
+- Для `dictionary_feedback` добавлено поле `mark_for_removal` для явной пометки слишком сложных карточек.
 - Схема добавлена в [db/schema.sql](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/db/schema.sql).
 - Таблица `dictionary_feedback` уже создана в удалённой Cloudflare D1 и была проверена через `PRAGMA table_info(dictionary_feedback)`.
 
@@ -103,7 +114,7 @@
 
 ## 9. Что Нужно Помнить Дальше
 
-- `classic` остаётся бесплатным, `geo` открывается после входа через Telegram, а `society` остаётся платным словарём.
+- `classic` остаётся бесплатным, `geo` открывается после входа через Telegram, а `society` и `around_us` остаются платными словарями.
 - Каталог словарей теперь приходит через `GET /api/dictionaries`, а не только из статического `dictionaries.json`.
 - Premium-словари нельзя считать защищёнными только через UI:
   Worker отдельно проверяет доступ к их JSON-файлам.

@@ -716,6 +716,7 @@ function buildPendingTurnFeedback() {
     wasOpenRound: turn.wasOpenRound,
     durationSeconds: turn.durationSeconds,
     ratedLevel: null,
+    markForRemoval: false,
     saveError: false,
     saveStorage: null,
   }
@@ -738,21 +739,30 @@ function renderTurnFeedbackPrompt() {
   copy.textContent = `Насколько слово "${feedback.word}" ощущалось по сложности для режима "${getModeDisplayName(feedback.mode)}"? Сейчас оно лежит в уровне ${feedback.originalLevel}.`
   status.textContent = feedback.saveError
     ? 'Не удалось сохранить оценку на этом устройстве.'
-    : feedback.ratedLevel
-    ? 'Спасибо за вашу оценку сложности!'
-    : ''
+    : feedback.markForRemoval && feedback.ratedLevel
+      ? 'Спасибо! Карточка отмечена на пересмотр, а уровень сохранён.'
+      : feedback.markForRemoval
+        ? 'Спасибо! Карточка отмечена как слишком сложная для пересмотра.'
+        : feedback.ratedLevel
+          ? 'Спасибо за вашу оценку сложности!'
+          : ''
 
   document.querySelectorAll('.feedback-rating-btn').forEach(btn => {
     btn.classList.toggle('is-selected', Number(btn.dataset.ratedLevel) === feedback.ratedLevel)
   })
+
+  const flagBtn = q('turn-feedback-flag-btn')
+  if (flagBtn) {
+    flagBtn.classList.toggle('is-selected', Boolean(feedback.markForRemoval))
+  }
 }
 
-async function saveTurnFeedback(ratedLevel) {
+async function saveTurnFeedback(nextPatch = {}) {
   if (!state.pendingTurnFeedback || !state.currentDictionary) return
 
   const nextFeedback = {
     ...state.pendingTurnFeedback,
-    ratedLevel,
+    ...nextPatch,
   }
 
   const payload = {
@@ -762,7 +772,8 @@ async function saveTurnFeedback(ratedLevel) {
     word: nextFeedback.word,
     mode: nextFeedback.mode,
     originalLevel: nextFeedback.originalLevel,
-    ratedLevel: nextFeedback.ratedLevel,
+    ratedLevel: Number.isFinite(nextFeedback.ratedLevel) ? nextFeedback.ratedLevel : nextFeedback.originalLevel,
+    markForRemoval: Boolean(nextFeedback.markForRemoval),
     wasSuccessful: nextFeedback.wasSuccessful,
     wasOpenRound: nextFeedback.wasOpenRound,
     durationSeconds: nextFeedback.durationSeconds,
@@ -774,7 +785,8 @@ async function saveTurnFeedback(ratedLevel) {
 
   state.pendingTurnFeedback = {
     ...nextFeedback,
-    ratedLevel: result.ok ? ratedLevel : null,
+    ratedLevel: result.ok ? nextFeedback.ratedLevel : state.pendingTurnFeedback.ratedLevel,
+    markForRemoval: result.ok ? Boolean(nextFeedback.markForRemoval) : Boolean(state.pendingTurnFeedback.markForRemoval),
     saveError: !result.ok,
     saveStorage: result.ok ? result.storage : null,
   }
@@ -1869,8 +1881,13 @@ window.endOpenRound = function(winnerIdx) {
 q('open-fail-btn').addEventListener('click', () => { clearInterval(state.timer); endTurn(false); })
 document.querySelectorAll('.feedback-rating-btn').forEach(btn => {
   btn.addEventListener('click', () => {
-    saveTurnFeedback(Number(btn.dataset.ratedLevel))
+    saveTurnFeedback({ ratedLevel: Number(btn.dataset.ratedLevel) })
   })
+})
+
+q('turn-feedback-flag-btn')?.addEventListener('click', () => {
+  if (!state.pendingTurnFeedback) return
+  saveTurnFeedback({ markForRemoval: !state.pendingTurnFeedback.markForRemoval })
 })
 
 function updateTimer() {
