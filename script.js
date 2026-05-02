@@ -1434,7 +1434,7 @@ function renderDictGrid() {
     const footerText = !d.available
       ? 'Словарь ещё не открыт'
       : locked
-        ? d.lockedReason === 'login_required'
+        ? d.lockedReason === 'login_required' || d.requiresPurchase
           ? 'Карточек: ' + d.wordCount
           : 'Нужна покупка словаря'
         : 'Карточек: ' + d.wordCount
@@ -1443,7 +1443,9 @@ function renderDictGrid() {
       : locked && d.lockedReason === 'login_required' && !d.requiresPurchase
         ? `<button class="dict-buy-btn" onclick="event.stopPropagation(); showScreen('profile')">Войти</button>`
       : locked && d.requiresPurchase
-        ? `<button class="dict-buy-btn" onclick="event.stopPropagation(); buyDictionaryAccess('${d.id}')">${auth.user ? 'Купить за 149 ₽' : 'Войти, чтобы купить'}</button>`
+        ? d.lockedReason === 'login_required'
+          ? `<button class="dict-buy-btn" onclick="event.stopPropagation(); showScreen('profile')">Войти, чтобы купить</button>`
+          : `<button class="dict-buy-btn" onclick="event.stopPropagation(); buyDictionaryAccess('${d.id}')">Купить за 149 ₽</button>`
       : isSel
         ? `<div class="dict-state-pill">Выбран</div>`
         : `<button class="dict-select-btn" onclick="event.stopPropagation(); selectDict('${d.id}')">Выбрать</button>`
@@ -2052,7 +2054,10 @@ loadDictionaries().then(() => {
   restoreActiveGameFromSnapshot()
   updateSetupMenuButtons()
 })
-loadAuthConfig().then(refreshCurrentUser).then(renderAuthCard)
+loadAuthConfig()
+  .then(refreshCurrentUser)
+  .then(loadDictionaries)
+  .then(renderAuthCard)
 renderProfileStatsLocked()
 
 q('ts-back-to-menu-btn').addEventListener('click', goSetupMenu); // <-- New event listener
