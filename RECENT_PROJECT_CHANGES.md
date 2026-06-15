@@ -148,3 +148,76 @@
 - На setup-экране убран блок с юридическим и платёжным описанием.
   Теперь он живёт в профиле, в разделе `Покупки и доступ`.
 - В профиле `Любимый словарь` перенесён внутрь основной сетки статистики и больше не дублируется отдельной строкой под блоками.
+
+## 11. SEO И Поисковые Страницы
+
+- Главная страница усилена под запросы `активити онлайн`, `Activity онлайн`, `играть в Activity онлайн`:
+  - H1 изменён на `Активити Онлайн`;
+  - SEO-intro сначала был добавлен над настройками игры, затем убран из первого экрана, чтобы главная оставалась game-first;
+  - внутренние ссылки на поисковые посадочные страницы перенесены в тихий нижний блок `Об Activity онлайн` ниже игровых настроек;
+  - добавлен JSON-LD `WebApplication`.
+- Добавлены статические страницы:
+  - `/activity-online/`
+  - `/rules/`
+  - `/words/`
+  - `/dictionaries/`
+  - `/games-for-company/`
+  - `/crocodile-alias-activity/`
+- [sitemap.xml](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/sitemap.xml) расширен: теперь включает главную, SEO-страницы и юридические страницы.
+- В корень сайта добавлен IndexNow key-файл `7f3a9c1e4b8d43f6916a2c0e5d9b7a84.txt`, чтобы отправлять новые и обновлённые URL в поисковые системы, поддерживающие IndexNow.
+- После UX/SEO/QA-аудита верхняя SEO-карточка убрана с первого экрана, subtitle укорочен, нижние SEO-ссылки сделаны менее навязчивыми, а mobile-стили уплотнены для игрового setup.
+- На юридические страницы добавлены `description` и `canonical`.
+- В [offer/index.html](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/offer/index.html) и [access/index.html](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/access/index.html) синхронизированы словари: `geo` бесплатен после входа, `society` и `around_us` платные.
+
+## 12. ИИ-Конвейер Разработки
+
+- В корень проекта добавлен [AGENTS.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/AGENTS.md) — стартовый файл для ИИ-модели или coding agent с картой проекта, источниками истины, правилами изменений, обязательным pipeline, проверками и release handoff. Зафиксирована триггерная фраза: `посмотри стартовый файл`.
+- Добавлена папка [.agent-pipeline](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/.agent-pipeline) с регламентом прохождения нетривиальных изменений через роли и quality gates.
+- В [.agent-pipeline/AGENT_PIPELINE.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/.agent-pipeline/AGENT_PIPELINE.md) описаны отдельные цепочки для:
+  - UI/frontend-изменений;
+  - игровой логики;
+  - backend/auth/payment;
+  - словарей;
+  - SEO/static pages.
+- В [.agent-pipeline/QUALITY_GATES.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/.agent-pipeline/QUALITY_GATES.md) зафиксированы стоп-гейты для frontend implementation, design adequacy, gameplay logic, backend/auth/payment, dictionary quality, docs sync и release.
+- В [.agent-pipeline/TASK_TEMPLATE.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/.agent-pipeline/TASK_TEMPLATE.md) добавлен шаблон task-журнала, который должен заполняться по этапам.
+- В [.agent-pipeline/agents](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/.agent-pipeline/agents) добавлены инструкции для ролей:
+  - Intake;
+  - Project Context Reader;
+  - UX Planner;
+  - Frontend Developer;
+  - Backend Developer;
+  - Game Logic Reviewer;
+  - Design Adequacy Reviewer;
+  - Security and Data Reviewer;
+  - Functional QA;
+  - Docs Sync;
+  - Release Manager.
+
+## 13. План Переработки Словарей
+
+- Добавлен [DICTIONARY_REWORK_PLAN.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/DICTIONARY_REWORK_PLAN.md) — ТЗ и план глубокой работы над текущими словарями и новыми словарями `Мир кино` / `Наука и природа`.
+- Добавлен [tools/dictionary_audit.mjs](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/tools/dictionary_audit.mjs) — воспроизводимый скрипт технического аудита словарей.
+- Сгенерирован [DICTIONARY_AUDIT_REPORT.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/DICTIONARY_AUDIT_REPORT.md) с размерами корзин, mismatch `wordCount`, дублями, пересечениями и повторяющимися паттернами.
+- Добавлен [DICTIONARY_EDITORIAL_REVIEW.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/DICTIONARY_EDITORIAL_REVIEW.md) с приоритетами чистки текущих словарей.
+- Добавлен [DICTIONARY_INTERSECTION_DECISIONS.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/DICTIONARY_INTERSECTION_DECISIONS.md) с классификацией оставшихся пересечений после cleanup-проходов.
+- Добавлен [DICTIONARY_BLUEPRINT_CINEMA_SCIENCE.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/DICTIONARY_BLUEPRINT_CINEMA_SCIENCE.md) с кластерами и примерами для будущих словарей.
+- Выполнен первый высокоуверенный cleanup-проход по `classic`:
+  - `wordCount` в [dictionaries.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/dictionaries.json) исправлен с `922` на фактические `900`;
+  - в [words.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/words.json) убраны внутренние точные дубли;
+  - фраза длиннее `4` слов `рубить сук на котором сидишь` заменена на `рубить сук`;
+  - после повторного аудита у `classic` нет mismatch `wordCount`, длинных фраз и internal duplicate groups.
+- Выполнены high-confidence cleanup-проходы пересечений `classic` с `geo` и `society`; количество точных duplicate/intersection groups снижено с `72` до `9`.
+- Выполнен targeted cleanup однотипных серий в [words_society.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/words_society.json):
+  - снижены серии `у входа`, `у сцены`, `во дворе`, `в чате`;
+  - после проверки у `society` нет внутренних дублей, длинных фраз и mismatch `wordCount`.
+- Созданы подготовленные hidden-словари:
+  - [words_cinema.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/words_cinema.json) — `Мир кино`, `800` карточек;
+  - [words_science.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/words_science.json) — `Наука и природа`, `700` карточек.
+- Добавлен [tools/build_new_dictionaries.mjs](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/tools/build_new_dictionaries.mjs) — генератор текущих черновиков `Мир кино` и `Наука и природа`.
+- После финального аудита 6 словарей:
+  - все `wordCount` совпадают;
+  - фраз длиннее `4` слов нет;
+  - внутренних duplicate groups нет;
+  - `cinema` и `science` не добавили новых точных пересечений;
+  - `cinema` и `science` остаются `available: false`, публикация и модель доступа не менялись.

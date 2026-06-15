@@ -21,7 +21,8 @@
 - экран истории и базовой статистики;
 - восстановление активной игры после обновления страницы;
 - сбор фидбэка от исполнителей по реальной сложности слов;
-- дополнительный словарь `Общество`.
+- дополнительные словари `География`, `Общество` и `Вокруг нас`;
+- подготовленные будущие словари `Мир кино` и `Наука и природа`.
 
 ## Стек
 
@@ -91,6 +92,8 @@
 - `geo` → `words_geo.json`
 - `society` → `words_society.json`
 - `around_us` → `words_around_us.json`
+- `cinema` → `words_cinema.json` (`available: false`)
+- `science` → `words_science.json` (`available: false`)
 
 По текущей модели доступа:
 
@@ -100,7 +103,7 @@
 - `around_us` — платный словарь;
 - доступ к ограниченным словарям проверяется на backend, а не только через UI.
 
-Также в списке есть словари со статусом `available: false`, которые отображаются как недоступные.
+Словари `cinema` и `science` уже есть как JSON-файлы, но в каталоге остаются со статусом `available: false`, поэтому отображаются как недоступные и не считаются опубликованными.
 
 Редакторские правила составления новых словарей зафиксированы в [DICTIONARY_RULES.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/DICTIONARY_RULES.md).
 
@@ -129,6 +132,7 @@
 ## Структура проекта
 
 - `index.html` — экраны приложения и базовая разметка.
+- `activity-online/`, `rules/`, `words/`, `dictionaries/`, `games-for-company/`, `crocodile-alias-activity/` — статические SEO-страницы для поисковых входов.
 - `style.css` — все стили интерфейса.
 - `script.js` — игровой runtime, UI, auth-клиент и статистика.
 - `src/worker.js` — backend Worker.
@@ -137,10 +141,48 @@
 - `src/lib/telegram.js` — валидация Telegram auth payload.
 - `db/schema.sql` — схема D1.
 - `dictionaries.json` — метаданные словарей.
-- `words.json`, `words_geo.json`, `words_society.json` — словари.
+- `words.json`, `words_geo.json`, `words_society.json`, `words_around_us.json`, `words_cinema.json`, `words_science.json` — словари.
+- `sitemap.xml` — карта сайта, включая главную, SEO-страницы и юридические страницы.
+- `7f3a9c1e4b8d43f6916a2c0e5d9b7a84.txt` — key-файл для IndexNow.
+- `AGENTS.md` — стартовый файл для ИИ-модели или coding agent с правилами работы в проекте. Если чат начинается с фразы `посмотри стартовый файл`, нужно читать именно этот файл.
 - `DICTIONARY_RULES.md` — правила составления новых словарей.
+- `DICTIONARY_REWORK_PLAN.md` — ТЗ и план аудита текущих словарей и сборки `Мир кино` / `Наука и природа`.
+- `DICTIONARY_AUDIT_REPORT.md` — технический отчёт по размерам, дублям, пересечениям и повторяющимся паттернам словарей.
+- `DICTIONARY_EDITORIAL_REVIEW.md` — редакторские выводы и приоритеты чистки текущих словарей.
+- `DICTIONARY_INTERSECTION_DECISIONS.md` — decision-list по оставшимся пересечениям между словарями.
+- `DICTIONARY_BLUEPRINT_CINEMA_SCIENCE.md` — содержательная рамка и кластеры для новых словарей.
+- `.agent-pipeline/` — регламент ИИ-конвейера ролей, quality gates и шаблон task-журнала.
+- `tools/dictionary_audit.mjs` — воспроизводимый скрипт технического аудита словарей.
+- `tools/build_new_dictionaries.mjs` — генератор текущих черновиков `Мир кино` и `Наука и природа`.
 - `RECENT_PROJECT_CHANGES.md` — зафиксированные недавние изменения проекта.
 - `wrangler.jsonc` — конфиг Worker.
+
+## ИИ-конвейер разработки
+
+Для нетривиальных изменений в проекте добавлен процесс в `.agent-pipeline/`.
+
+Основные файлы:
+
+- `AGENTS.md` — стартовая инструкция для модели: архитектура, источники истины, правила изменений, проверки и release handoff. Триггерная фраза: `посмотри стартовый файл`.
+- `.agent-pipeline/AGENT_PIPELINE.md` — какие роли участвуют в разных типах задач и как задача проходит между ними.
+- `.agent-pipeline/QUALITY_GATES.md` — обязательные проверки для frontend, дизайна, gameplay, backend/auth/payment, словарей, документации и релиза.
+- `.agent-pipeline/TASK_TEMPLATE.md` — шаблон журнала задачи.
+- `.agent-pipeline/agents/` — инструкции для отдельных ролей: intake, project context reader, UX planner, frontend developer, backend developer, design reviewer, QA, docs sync и release manager.
+
+Для UI-изменений используется цепочка:
+
+```text
+Intake
+→ Project Context Reader
+→ UX Planner
+→ Frontend Developer
+→ Design Adequacy Reviewer
+→ Functional QA
+→ Docs Sync
+→ Release Manager
+```
+
+Если reviewer находит блокирующие проблемы, задача возвращается к соответствующему developer-агенту, а не проходит дальше автоматически.
 
 ## API, которое есть в коде
 
