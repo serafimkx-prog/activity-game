@@ -20,7 +20,6 @@
     "wordCount": 800,
     "available": true,
     "access": "free",
-    "authAccess": "login",
     "badge": "free"
   },
   {
@@ -32,8 +31,7 @@
     "file": "words_society.json",
     "wordCount": 1290,
     "available": true,
-    "access": "premium",
-    "priceLabel": "149 руб.",
+    "access": "free",
     "badge": "Новый"
   },
   {
@@ -45,8 +43,8 @@
     "file": "words_around_us.json",
     "wordCount": 1142,
     "available": true,
-    "access": "premium",
-    "priceLabel": "149 руб.",
+    "access": "free",
+    "authAccess": "login",
     "badge": "Новый"
   },
   {
@@ -58,7 +56,8 @@
     "file": "words_cinema.json",
     "wordCount": 800,
     "available": true,
-    "access": "free"
+    "access": "free",
+    "authAccess": "login"
   },
   {
     "id": "science",
@@ -69,6 +68,7 @@
     "file": "words_science.json",
     "wordCount": 700,
     "available": true,
-    "access": "free"
+    "access": "free",
+    "authAccess": "login"
   }
 ]

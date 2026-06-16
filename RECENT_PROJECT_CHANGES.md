@@ -9,7 +9,7 @@
 - Словарь `society` зарегистрирован в [dictionaries.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/dictionaries.json) и доступен в UI.
 - Словарь `around_us` зарегистрирован в [dictionaries.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/dictionaries.json) и доступен в UI.
 - Словарь `sport` убран из публичного каталога, а `around_us` используется как опубликованный релизный словарь вместо него.
-- Словарь `around_us` переведён в premium-модель: он продаётся через тот же механизм покупок и серверной защиты, что и `society`.
+- Ранее словарь `around_us` переводился в premium-модель через тот же механизм покупок и серверной защиты, что и `society`; сейчас все словари временно бесплатные.
 - Словарь `around_us` пересобран как самостоятельный набор без заимствования карточек из других словарей.
 - В `around_us` отдельно усилены блоки про хобби, спорт, активный отдых, творчество и походные сцены.
 - Для составления новых словарей добавлен документ [DICTIONARY_RULES.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/DICTIONARY_RULES.md).
@@ -114,7 +114,7 @@
 
 ## 9. Что Нужно Помнить Дальше
 
-- `classic` остаётся бесплатным, `geo` открывается после входа через Telegram, а `society` и `around_us` остаются платными словарями.
+- Все словари сейчас бесплатные: верхний ряд открыт сразу, нижний ряд открывается после входа через Telegram.
 - Каталог словарей теперь приходит через `GET /api/dictionaries`, а не только из статического `dictionaries.json`.
 - Premium-словари нельзя считать защищёнными только через UI:
   Worker отдельно проверяет доступ к их JSON-файлам.
@@ -142,7 +142,7 @@
   - шаг `10`.
 - Карточки словарей стали компактнее:
   - описание словаря вынесено в tooltip по значку `i`;
-  - `Общество` показывает бейдж `149 руб.`;
+  - актуальная цена больше не показывается, потому что активных premium-словарей сейчас нет;
   - у доступных словарей внизу показывается `Выбран` или `Выбрать`;
   - подпись количества везде унифицирована как `Карточек: N`.
 - На setup-экране убран блок с юридическим и платёжным описанием.
@@ -167,7 +167,7 @@
 - В корень сайта добавлен IndexNow key-файл `7f3a9c1e4b8d43f6916a2c0e5d9b7a84.txt`, чтобы отправлять новые и обновлённые URL в поисковые системы, поддерживающие IndexNow.
 - После UX/SEO/QA-аудита верхняя SEO-карточка убрана с первого экрана, subtitle укорочен, нижние SEO-ссылки сделаны менее навязчивыми, а mobile-стили уплотнены для игрового setup.
 - На юридические страницы добавлены `description` и `canonical`.
-- В [offer/index.html](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/offer/index.html) и [access/index.html](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/access/index.html) синхронизированы словари: `geo` бесплатен после входа, `society` и `around_us` платные.
+- В [offer/index.html](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/offer/index.html) и [access/index.html](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/access/index.html) синхронизирована временная бесплатная модель словарей.
 
 ## 12. ИИ-Конвейер Разработки
 
@@ -220,7 +220,7 @@
   - фраз длиннее `4` слов нет;
   - внутренних duplicate groups нет;
   - `cinema` и `science` не добавили новых точных пересечений.
-- `cinema` и `science` открыты в [dictionaries.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/dictionaries.json):
-  - `available: true`;
-  - `access: free`;
-  - покупка, D1-доступы и premium-продукты для них не требуются.
+- Текущая временная модель доступа в [dictionaries.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/dictionaries.json):
+  - верхние три словаря: `classic`, `geo`, `society` — открыты сразу;
+  - нижние три словаря: `around_us`, `cinema`, `science` — бесплатны после входа через Telegram;
+  - активных premium-словарей сейчас нет, покупка, D1-доступы и premium-продукты для текущего доступа не требуются.

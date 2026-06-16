@@ -497,3 +497,32 @@ Findings:
 Next step:
 
 - Validate JSON and audit report, then commit/push this follow-up change.
+
+## 16. Temporary Free Access Model For All Dictionaries
+
+Agent: Dictionary Editor
+Verdict: pass
+
+Input reviewed:
+
+- `dictionaries.json`
+- `script.js` dictionary card rendering
+- `src/worker.js` dictionary access checks
+- dictionary docs and access/offer pages
+
+Work performed:
+
+- Set all dictionaries to `access: free`.
+- Kept the top row open without auth: `classic`, `geo`, `society`.
+- Set the bottom row to free after login: `around_us`, `cinema`, `science` via `authAccess: "login"`.
+- Removed active price labels from dictionary metadata.
+- Updated user-facing and project docs to describe the temporary free model.
+
+Findings:
+
+- Worker already enforces `authAccess: "login"` before serving protected dictionary JSON.
+- The existing premium/payment code can remain dormant for the future paid model because no active dictionary has `access: "premium"`.
+
+Next step:
+
+- Validate catalog JSON, run dictionary audit, and push the access-model change.

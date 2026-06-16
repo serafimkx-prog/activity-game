@@ -1199,7 +1199,7 @@ function renderAuthCard() {
 
   setAccountView({
     name: 'Войти через Telegram',
-    meta: 'Подключи аккаунт, чтобы позже сохранить покупки и доступ к платным пакетам.',
+    meta: 'Подключи аккаунт, чтобы сохранять историю и открыть словари для авторизованных игроков.',
     loginHtml: '<div class="account-note">Загружаем кнопку входа…</div>',
   })
   renderProfileStatsLocked()

@@ -192,25 +192,23 @@
   - `science`
 - по модели доступа:
   - `classic` — free
-  - `geo` — free after login
-  - `society` — premium
-  - `around_us` — premium
-  - `cinema` — free
-  - `science` — free
+  - `geo` — free
+  - `society` — free
+  - `around_us` — free after login
+  - `cinema` — free after login
+  - `science` — free after login
 
-Файлы `words_cinema.json` и `words_science.json` открыты в каталоге: `available: true`, `access: free`.
+Верхние три словаря в сетке открыты без входа. Нижние три словаря открываются бесплатно после входа через Telegram.
 
-При старте игры фронтенд загружает `dict.file` через `fetch()`, но Worker отдельно защищает словари с ограниченным доступом: `geo` требует авторизацию, а premium-файлы дополнительно проверяют доступ в таблице `user_dictionary_access`.
+При старте игры фронтенд загружает `dict.file` через `fetch()`, но Worker отдельно защищает словари с ограниченным доступом: словари с `authAccess: "login"` требуют авторизацию. Premium-проверка через `user_dictionary_access` остаётся в коде для будущей платной модели, но сейчас активных premium-словарей в каталоге нет.
 
 После этого вызывается `initPools(data)`, которая создаёт перемешанные пулы слов по режимам и сложностям.
 
 Текущий вид карточек словарей на setup-экране:
 
 - описание словаря вынесено в tooltip по значку `i`;
-- `Общество` показывает бейдж `149 руб.`;
 - у доступных словарей внизу показывается `Выбран` или `Выбрать`;
-- для `geo` без входа показывается CTA `Войти`;
-- для `society` без входа показывается CTA `Войти, чтобы купить`;
+- для нижнего ряда без входа показывается CTA `Войти`;
 - подпись количества унифицирована как `Карточек: N`.
 
 Правила составления новых словарей зафиксированы в [DICTIONARY_RULES.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/DICTIONARY_RULES.md).
@@ -418,9 +416,11 @@ Backend находится в [src/worker.js](/Users/k-serafim/Yandex.Disk.local
 
 `POST /api/purchase/create`
 
-- создаёт платёж ЮKassa на один premium-словарь (`geo` или `society`);
+- создаёт платёж ЮKassa на один premium-словарь, когда в каталоге есть active premium-доступ;
 - сохраняет заказ в `purchase_orders`;
 - возвращает `confirmationUrl` для редиректа на оплату.
+
+Сейчас активных premium-словарей в `dictionaries.json` нет: все словари бесплатные, часть открывается после входа через Telegram.
 
 `POST /api/game-sessions`
 
