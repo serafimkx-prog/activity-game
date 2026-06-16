@@ -211,7 +211,7 @@
 - Выполнен targeted cleanup однотипных серий в [words_society.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/words_society.json):
   - снижены серии `у входа`, `у сцены`, `во дворе`, `в чате`;
   - после проверки у `society` нет внутренних дублей, длинных фраз и mismatch `wordCount`.
-- Созданы подготовленные hidden-словари:
+- Созданы и открыты бесплатные словари:
   - [words_cinema.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/words_cinema.json) — `Мир кино`, `800` карточек;
   - [words_science.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/words_science.json) — `Наука и природа`, `700` карточек.
 - Добавлен [tools/build_new_dictionaries.mjs](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/tools/build_new_dictionaries.mjs) — генератор текущих черновиков `Мир кино` и `Наука и природа`.
@@ -219,5 +219,8 @@
   - все `wordCount` совпадают;
   - фраз длиннее `4` слов нет;
   - внутренних duplicate groups нет;
-  - `cinema` и `science` не добавили новых точных пересечений;
-  - `cinema` и `science` остаются `available: false`, публикация и модель доступа не менялись.
+  - `cinema` и `science` не добавили новых точных пересечений.
+- `cinema` и `science` открыты в [dictionaries.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/dictionaries.json):
+  - `available: true`;
+  - `access: free`;
+  - покупка, D1-доступы и premium-продукты для них не требуются.

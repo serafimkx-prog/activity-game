@@ -300,7 +300,7 @@ Work performed:
 - Added `tools/build_new_dictionaries.mjs`.
 - Generated `words_cinema.json` with `800` cards.
 - Generated `words_science.json` with `700` cards.
-- Kept both new dictionaries hidden by preserving `available: false` in `dictionaries.json`.
+- Initially kept both new dictionaries hidden by preserving `available: false` in `dictionaries.json`; later changed in section 15.
 - Did not change UI, Worker access rules, payments, products, or D1 schema.
 
 Findings:
@@ -432,14 +432,14 @@ Input reviewed:
 Work performed:
 
 - Updated docs to say `words_cinema.json` and `words_science.json` now exist locally.
-- Documented that both new dictionaries remain `available: false`.
+- Initially documented that both new dictionaries remained `available: false`; later changed in section 15.
 - Documented final audit status and the new generator tool.
 - Kept deployment/access claims conservative.
 
 Findings:
 
 - No docs now claim the new dictionaries are published.
-- No D1, Worker, payment, or secret follow-up is required for this hidden-dictionary data pass.
+- At that stage, no D1, Worker, payment, or secret follow-up was required for the hidden-dictionary data pass.
 
 Next step:
 
@@ -459,7 +459,7 @@ Work performed:
 
 - Confirmed this task is data/docs/tooling only.
 - Confirmed no frontend runtime, Worker, D1 schema, or payment code was changed in this implementation pass.
-- Confirmed `cinema` and `science` remain hidden in catalog metadata.
+- Confirmed at that stage that `cinema` and `science` remained hidden in catalog metadata; later changed in section 15.
 
 Findings:
 
@@ -469,3 +469,31 @@ Findings:
 Next step:
 
 - Hand back summary to user.
+
+## 15. Open New Dictionaries As Free
+
+Agent: Dictionary Editor
+Verdict: pass
+
+Input reviewed:
+
+- `AGENTS.md`
+- `dictionaries.json`
+- `src/worker.js` access checks
+- `script.js` dictionary card rendering
+
+Work performed:
+
+- Changed `cinema` from hidden to open: `available: true`, `access: free`.
+- Changed `science` from hidden to open: `available: true`, `access: free`.
+- Updated documentation to stop describing these dictionaries as hidden or unavailable.
+
+Findings:
+
+- Worker blocks unavailable dictionaries and premium dictionaries without access.
+- Since both new dictionaries are now `access: free`, no D1 purchase/access rows or premium product config are needed.
+- This change does not touch UI layout, payment code, D1 schema, or dictionary word files.
+
+Next step:
+
+- Validate JSON and audit report, then commit/push this follow-up change.

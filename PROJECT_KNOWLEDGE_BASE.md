@@ -39,8 +39,8 @@
 - [words_geo.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/words_geo.json) — географический словарь.
 - [words_society.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/words_society.json) — словарь `Общество`.
 - [words_around_us.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/words_around_us.json) — словарь `Вокруг нас`.
-- [words_cinema.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/words_cinema.json) — подготовленный словарь `Мир кино`, сейчас `available: false`.
-- [words_science.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/words_science.json) — подготовленный словарь `Наука и природа`, сейчас `available: false`.
+- [words_cinema.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/words_cinema.json) — бесплатный словарь `Мир кино`.
+- [words_science.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/words_science.json) — бесплатный словарь `Наука и природа`.
 - [.assetsignore](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/.assetsignore) — исключения для публикации static assets.
 - [README.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/README.md) — краткое описание проекта.
 - [AGENTS.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/AGENTS.md) — стартовая инструкция для ИИ-модели или coding agent: карта проекта, источники истины, правила изменений, проверки и release handoff. Если пользователь начинает с фразы `посмотри стартовый файл`, нужно читать этот файл.
@@ -188,16 +188,17 @@
   - `geo`
   - `society`
   - `around_us`
+  - `cinema`
+  - `science`
 - по модели доступа:
   - `classic` — free
   - `geo` — free after login
   - `society` — premium
   - `around_us` — premium
-- недоступные словари с `available: false`:
-  - `cinema` -> `words_cinema.json`, `800` карточек
-  - `science` -> `words_science.json`, `700` карточек
+  - `cinema` — free
+  - `science` — free
 
-Файлы `words_cinema.json` и `words_science.json` уже созданы и проходят технический аудит, но не считаются опубликованными, пока в `dictionaries.json` стоит `available: false`.
+Файлы `words_cinema.json` и `words_science.json` открыты в каталоге: `available: true`, `access: free`.
 
 При старте игры фронтенд загружает `dict.file` через `fetch()`, но Worker отдельно защищает словари с ограниченным доступом: `geo` требует авторизацию, а premium-файлы дополнительно проверяют доступ в таблице `user_dictionary_access`.
 

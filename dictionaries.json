@@ -57,8 +57,8 @@
     "icon": "🎬",
     "file": "words_cinema.json",
     "wordCount": 800,
-    "available": false,
-    "badge": "Скоро"
+    "available": true,
+    "access": "free"
   },
   {
     "id": "science",
@@ -68,7 +68,7 @@
     "icon": "🔬",
     "file": "words_science.json",
     "wordCount": 700,
-    "available": false,
-    "badge": "Скоро"
+    "available": true,
+    "access": "free"
   }
 ]
