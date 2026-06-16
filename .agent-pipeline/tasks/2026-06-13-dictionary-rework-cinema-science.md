@@ -526,3 +526,65 @@ Findings:
 Next step:
 
 - Validate catalog JSON, run dictionary audit, and push the access-model change.
+
+## 17. Follow-up Validation, Cinema and Science Accessibility
+
+Agent: Dictionary Quality Reviewer
+Verdict: pass
+
+Input reviewed:
+
+- `DICTIONARY_RULES.md`
+- `dictionaries.json`
+- `words_cinema.json`
+- `words_science.json`
+- `.agent-pipeline/QUALITY_GATES.md`
+
+Work performed:
+
+- Rechecked the newly released cinema/science dictionaries for misleading metadata, excessive difficulty, AI-like abstract phrasing, repeated action tails, JSON validity, exact duplicates, phrase length, and `wordCount` consistency.
+- Removed the misleading `Мир кино` catalog promise about `режиссёры`: the dictionary contains the basic filmmaking role `режиссер`, but no broad set of famous director names.
+- Reworded several cinema `EXPLAIN` cards that were too abstract or trope-glued.
+- Replaced a repetitive cinema `ACT-5` tail built from `спасать/искать/терять/прятать`.
+- Reworded several science cards that were too specialist or artificial for broad play.
+- Replaced repetitive science `DRAW-5` and `ACT-5` tails with more visual and actable nature/science scenes.
+
+Findings:
+
+- `Мир кино` should stay focused on films, characters, genres, recognizable objects, and scenes, not director-name knowledge.
+- `Наука и природа` can keep some level-5 science concepts, but the cards should remain explainable through common school/life associations rather than niche terminology.
+- Remaining exact cross-dictionary intersections do not involve `words_cinema.json` or `words_science.json`.
+
+Next step:
+
+- If these changes are accepted, commit, push, and deploy from a clean worktree because Cloudflare assets are deployed from the whole repository directory.
+
+Agent: JSON Validation
+Verdict: pass
+
+Input reviewed:
+
+- `dictionaries.json`
+- `words_cinema.json`
+- `words_science.json`
+- `tools/dictionary_audit.mjs`
+
+Work performed:
+
+- Parsed changed JSON files with Node.
+- Checked all catalog `wordCount` values against real card counts.
+- Checked new dictionaries for internal exact duplicates.
+- Checked new dictionaries for phrases with `5+` words.
+- Ran `node tools/dictionary_audit.mjs`.
+
+Findings:
+
+- JSON parse: pass.
+- Catalog counts: pass for all six dictionaries.
+- `words_cinema.json`: `800` cards, `0` internal duplicates, `0` phrases with `5+` words.
+- `words_science.json`: `700` cards, `0` internal duplicates, `0` phrases with `5+` words.
+- Cross-dictionary intersections remain at `9`, all pre-existing among `classic`, `geo`, and `society`.
+
+Next step:
+
+- Release Manager should review the final scoped diff and decide whether to deploy.

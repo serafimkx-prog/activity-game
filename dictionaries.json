@@ -19,8 +19,7 @@
     "file": "words_geo.json",
     "wordCount": 800,
     "available": true,
-    "access": "free",
-    "badge": "free"
+    "access": "free"
   },
   {
     "id": "society",
@@ -51,7 +50,7 @@
     "id": "cinema",
     "name": "Мир кино",
     "subtitle": "Фильмы и сериалы",
-    "description": "Фильмы, режиссёры, персонажи, жанры и культовые сцены",
+    "description": "Фильмы, персонажи, жанры, узнаваемые предметы и культовые сцены",
     "icon": "🎬",
     "file": "words_cinema.json",
     "wordCount": 800,
@@ -64,7 +63,7 @@
     "id": "science",
     "name": "Наука и природа",
     "subtitle": "Знания и открытия",
-    "description": "Физика, биология, география, история и великие изобретения",
+    "description": "Физика, биология, природа, космос, опыты и знакомые открытия",
     "icon": "🔬",
     "file": "words_science.json",
     "wordCount": 700,
