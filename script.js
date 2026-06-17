@@ -1434,8 +1434,10 @@ function renderDictGrid() {
     const footerText = !d.available
       ? 'Словарь ещё не открыт'
       : locked
-        ? d.lockedReason === 'login_required' || d.requiresPurchase
-          ? 'Карточек: ' + d.wordCount
+        ? d.lockedReason === 'login_required' && !d.requiresPurchase
+          ? 'Бесплатно после входа'
+          : d.requiresPurchase
+            ? 'Карточек: ' + d.wordCount
           : 'Нужна покупка словаря'
         : 'Карточек: ' + d.wordCount
     const actionHtml = !d.available

@@ -24,7 +24,7 @@ Activity is a browser game implemented with:
 - backend: Cloudflare Workers in `src/worker.js`
 - database: Cloudflare D1 with schema in `db/schema.sql`
 - auth: Telegram Login Widget
-- payments: YooKassa for premium dictionaries
+- payments: YooKassa code for future premium dictionaries; the current catalog has no active premium dictionaries
 - data: JSON dictionaries and dictionary metadata
 
 There is no frontend build step. The app is intentionally plain HTML/CSS/vanilla JS.
@@ -97,6 +97,8 @@ Important functions:
 - `words_geo.json`
 - `words_society.json`
 - `words_around_us.json`
+- `words_cinema.json`
+- `words_science.json`
 
 ### SEO / Static Pages
 
@@ -284,10 +286,14 @@ When changing gameplay, also check:
 
 Current released dictionaries:
 
-- `classic` -> `words.json`, free
-- `geo` -> `words_geo.json`, free after Telegram login
-- `society` -> `words_society.json`, premium
-- `around_us` -> `words_around_us.json`, premium
+- `classic` -> `words.json`, free, open immediately
+- `geo` -> `words_geo.json`, free, open immediately
+- `society` -> `words_society.json`, free, open immediately
+- `around_us` -> `words_around_us.json`, free after Telegram login
+- `cinema` -> `words_cinema.json`, free after Telegram login
+- `science` -> `words_science.json`, free after Telegram login
+
+There are no active premium dictionaries in the current `dictionaries.json` catalog. YooKassa endpoints, `purchase_orders`, and `user_dictionary_access` remain in the code for a future premium model.
 
 Before changing dictionaries:
 

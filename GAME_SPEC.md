@@ -134,22 +134,25 @@
 
 Фронтенд:
 
-- показывает доступные, premium- и ещё неоткрытые словари;
+- показывает словари с учётом `canPlay`, `lockedReason` и `requiresPurchase`;
 - по умолчанию выбирает первый словарь с `canPlay: true`.
-- для `geo` без входа показывает CTA `Войти`;
-- для premium-словаря без доступа показывает CTA `Купить за 149 ₽` или `Войти, чтобы купить`.
+- для словарей с `authAccess: "login"` без входа показывает CTA `Войти`;
+- premium-ветка UI и покупок остаётся в коде для будущих premium-словарей, но в текущем каталоге активных premium-словарей нет.
 
 Текущие доступные словари по репозиторию:
 
-- `classic` — free
-- `geo` — free after login
-- `society` — premium
+- `classic` — free, открыт сразу
+- `geo` — free, открыт сразу
+- `society` — free, открыт сразу
+- `around_us` — free after login
+- `cinema` — free after login
+- `science` — free after login
 
 При старте партии игра загружает JSON-файл выбранного словаря через защищённый asset-fetch:
 
 - `fetch(dict.file)`
 
-Для `geo` Worker требует авторизацию, но не требует покупку. Для premium-словарей Worker проверяет сессию и наличие доступа в `user_dictionary_access`.
+Для словарей с `authAccess: "login"` Worker требует авторизацию, но не требует покупку. Для будущих premium-словарей Worker дополнительно проверяет сессию и наличие доступа в `user_dictionary_access`; сейчас в `dictionaries.json` таких словарей нет.
 
 После загрузки вызывается `initPools(data)`, которая создаёт перемешанные пулы слов для:
 
