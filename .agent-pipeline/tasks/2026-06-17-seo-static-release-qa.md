@@ -276,3 +276,69 @@ Open risks:
 
 Ready to hand back:
 - Yes.
+
+## 10. Post-Deploy Verification
+
+Agent: Release Manager
+Verdict: pass
+
+Input reviewed:
+- Commit `f5ed3fe Prepare SEO static pages`
+- Clean deploy worktree on `f5ed3fe`
+- Cloudflare Wrangler deploy output
+- Production `https://activity-game.ru` smoke results
+
+Work performed:
+- Deployed from a detached clean worktree, not from the main working directory.
+- Used Wrangler `4.101.0`.
+- Declined Wrangler's optional Cloudflare skills installation prompt because it was unrelated to this release.
+- Removed the temporary deploy worktree after verification.
+
+Findings:
+- Cloudflare deploy completed.
+- Worker URL reported by Wrangler: `https://activity.serafimkx.workers.dev`.
+- Current Cloudflare Version ID: `e991533b-fb32-4b0b-acba-73ee46209a6f`.
+- Production smoke passed for `/`, `/activity-online/`, `/rules/`, `/words/`, `/dictionaries/`, `/games-for-company/`, `/crocodile-alias-activity/`, `/offer/`, `/access/`, `/requisites/`, `/sitemap.xml`, and `/robots.txt`.
+- Legacy `/requisites.html` returns `307` to `/requisites`, which is acceptable canonical legacy behavior in production.
+- Content checks passed for the homepage SEO title, `/dictionaries/` containing `Мир кино`, `/words/` containing `Наука и природа`, and `sitemap.xml` containing `/activity-online/`.
+
+Verification gap:
+- Pixel-level browser screenshot QA is still not completed because Playwright browser binaries are not installed in the local runtime.
+
+Fallback:
+- Previous checked deploy baseline before this release was `fa4ae32 Validate new dictionaries`.
+- If this SEO/static release needs rollback, deploy `fa4ae32` from a clean worktree or revert `f5ed3fe`, push, and deploy the revert commit.
+
+Next step:
+- Monitor indexing/search behavior separately; no D1 migration or Worker secret follow-up is required for this release.
+
+## 11. Search Indexing Follow-Up
+
+Agent: SEO QA / Release Manager
+Verdict: pass
+
+Input reviewed:
+- Official IndexNow documentation
+- Production IndexNow key file
+- Production SEO URL list
+
+Work performed:
+- Verified `https://activity-game.ru/7f3a9c1e4b8d43f6916a2c0e5d9b7a84.txt` returns HTTP 200 and the expected key.
+- Submitted a batch IndexNow POST to `https://api.indexnow.org/indexnow` for:
+  - `https://activity-game.ru/`
+  - `https://activity-game.ru/activity-online/`
+  - `https://activity-game.ru/rules/`
+  - `https://activity-game.ru/words/`
+  - `https://activity-game.ru/dictionaries/`
+  - `https://activity-game.ru/games-for-company/`
+  - `https://activity-game.ru/crocodile-alias-activity/`
+  - `https://activity-game.ru/offer/`
+  - `https://activity-game.ru/access/`
+  - `https://activity-game.ru/requisites/`
+
+Findings:
+- IndexNow key file check passed.
+- IndexNow batch submission returned HTTP 200.
+
+Next step:
+- Search engine indexing still depends on external crawlers; monitor webmaster/search tools separately if needed.

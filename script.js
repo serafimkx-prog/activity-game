@@ -1415,6 +1415,7 @@ async function loadDictionaries() {
   const preserved = dictionaries.find(dict => dict.id === previousSelectedId && dict.canPlay)
   const firstPlayable = dictionaries.find(dict => dict.canPlay)
   selectedDictId = preserved?.id || firstPlayable?.id || null
+  clearDictionaryNotice()
   renderDictGrid()
 }
 
@@ -1468,6 +1469,21 @@ function renderDictGrid() {
   }).join('')
 }
 
+function setDictionaryNotice(message, variant = 'info') {
+  const el = q('dict-message')
+  if (!el) return
+  el.textContent = message
+  el.className = `dict-message${variant === 'warning' ? ' warning' : ''}${variant === 'success' ? ' success' : ''}`
+  el.hidden = false
+}
+
+function clearDictionaryNotice() {
+  const el = q('dict-message')
+  if (!el) return
+  el.textContent = ''
+  el.hidden = true
+}
+
 async function loadDictionaryEntries(dict) {
   const response = await fetch(dict.file, { credentials: 'same-origin' })
   if (!response.ok) {
@@ -1500,6 +1516,7 @@ window.selectDict = function(id) {
   const dict = dictionaries.find(d => d.id === id)
   if (!dict || !dict.canPlay) return
   selectedDictId = id
+  clearDictionaryNotice()
   renderDictGrid()
 }
 
@@ -1507,14 +1524,17 @@ window.selectLockedDict = function(id) {
   const dict = dictionaries.find(d => d.id === id)
   if (!dict) return
   if (dict.lockedReason === 'coming_soon') {
-    alert('Этот словарь ещё не открыт.')
+    setDictionaryNotice(`Словарь "${dict.name}" ещё готовится и пока недоступен для игры.`, 'warning')
     return
   }
   if (dict.lockedReason === 'login_required') {
-    alert('Войди через Telegram, чтобы открыть этот словарь.')
+    const message = dict.requiresPurchase
+      ? `Для покупки словаря "${dict.name}" сначала войди через Telegram в профиле.`
+      : `Словарь "${dict.name}" бесплатный, но открывается после входа через Telegram. Нажми "Войти" на карточке или перейди в профиль.`
+    setDictionaryNotice(message, 'warning')
     return
   }
-  alert(`Словарь "${dict.name}" можно купить отдельно за 149 ₽.`)
+  setDictionaryNotice(`Словарь "${dict.name}" пока закрыт. Используй кнопку на карточке, когда он станет доступен.`, 'warning')
 }
 
 window.buyDictionaryAccess = async function(id) {
@@ -1541,7 +1561,7 @@ window.buyDictionaryAccess = async function(id) {
 
     if (payload.alreadyOwned) {
       await loadDictionaries()
-      alert(`Словарь "${dict.name}" уже доступен на этом аккаунте.`)
+      setDictionaryNotice(`Словарь "${dict.name}" уже доступен на этом аккаунте.`, 'success')
       return
     }
 
@@ -1551,7 +1571,7 @@ window.buyDictionaryAccess = async function(id) {
 
     window.location.href = payload.confirmationUrl
   } catch (err) {
-    alert(err.message || 'Не удалось начать оплату.')
+    setDictionaryNotice(err.message || 'Не удалось начать оплату.', 'warning')
   }
 }
 
@@ -2062,7 +2082,6 @@ loadAuthConfig()
   .then(renderAuthCard)
 renderProfileStatsLocked()
 
-q('ts-back-to-menu-btn').addEventListener('click', goSetupMenu); // <-- New event listener
 q('gd-back-btn').addEventListener('click', () => {
   sfxNavBack()
   showScreen('profile')

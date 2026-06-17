@@ -186,6 +186,40 @@ Intake
 
 Если reviewer находит блокирующие проблемы, задача возвращается к соответствующему developer-агенту, а не проходит дальше автоматически.
 
+## Deploy и fallback
+
+Так как `wrangler.jsonc` публикует static assets из директории `"."`, деплой нужно делать только из чистого состояния:
+
+1. Закоммитить и запушить ровно связанный scope изменений.
+2. Создать чистый worktree на нужном SHA:
+
+```bash
+git worktree add --detach /tmp/activity-deploy-<sha> <sha>
+```
+
+3. В чистом worktree проверить:
+
+```bash
+git status --short
+node --check script.js
+node --check src/worker.js
+npx wrangler deploy --dry-run
+```
+
+4. Выполнить `npx wrangler deploy` только из этого worktree.
+5. После деплоя проверить production URL, ключевые страницы и изменённые фразы.
+6. Удалить временный worktree:
+
+```bash
+git worktree remove /tmp/activity-deploy-<sha>
+```
+
+Fallback:
+
+- быстрый откат — заново задеплоить предыдущий проверенный SHA из clean worktree;
+- git-откат — сделать `git revert <bad-sha>`, запушить revert-коммит и задеплоить его;
+- после отката проверить production тем же smoke-набором.
+
 ## API, которое есть в коде
 
 - `GET /api/config`

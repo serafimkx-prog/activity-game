@@ -224,3 +224,15 @@
   - первые три словаря: `classic`, `geo`, `society` — открыты сразу;
   - остальные три словаря: `around_us`, `cinema`, `science` — бесплатны после входа через Telegram;
   - активных premium-словарей сейчас нет, покупка, D1-доступы и premium-продукты для текущего доступа не требуются.
+
+## 14. Post-Release UX И Deploy Runbook
+
+- В [README.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/README.md) добавлен deploy/fallback runbook:
+  - деплоить только из clean worktree на конкретном SHA;
+  - перед деплоем запускать `node --check script.js`, `node --check src/worker.js` и `npx wrangler deploy --dry-run`;
+  - fallback делать через redeploy предыдущего проверенного SHA или через `git revert` + deploy.
+- На setup-экране для закрытых словарей добавлен inline-статус вместо disruptive `alert()`:
+  - словари после входа объясняют, что они бесплатные и открываются через Telegram;
+  - успешный выбор доступного словаря очищает сообщение;
+  - сообщение использует `aria-live="polite"`.
+- Удалён дублирующий обработчик `ts-back-to-menu-btn`, чтобы кнопка возврата в меню не имела двух listeners.
