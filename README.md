@@ -21,6 +21,7 @@
 - экран истории и базовой статистики;
 - восстановление активной игры после обновления страницы;
 - сбор фидбэка от исполнителей по реальной сложности слов;
+- страница приватности и cookies с описанием localStorage, Telegram-входа, сессий и аналитики;
 - дополнительные словари `География`, `Общество` и `Вокруг нас`;
 - бесплатные словари `Мир кино` и `Наука и природа`.
 
@@ -54,6 +55,18 @@
    ```
 
 Для локальной игры backend не обязателен. Авторизация, профиль и сохранение истории требуют Worker API и настроенных переменных Cloudflare.
+
+Базовую статическую проверку можно запустить отдельно:
+
+```bash
+node tools/smoke_check.mjs
+```
+
+Если локальный сервер уже поднят, можно проверить доступность статических страниц:
+
+```bash
+node tools/smoke_check.mjs --base http://127.0.0.1:8080
+```
 
 ## Как устроен игровой цикл
 
@@ -135,6 +148,7 @@
 
 - `index.html` — экраны приложения и базовая разметка.
 - `activity-online/`, `rules/`, `words/`, `dictionaries/`, `games-for-company/`, `crocodile-alias-activity/` — статические SEO-страницы для поисковых входов.
+- `privacy/`, `offer/`, `access/`, `requisites/` — юридические и справочные страницы.
 - `style.css` — все стили интерфейса.
 - `script.js` — игровой runtime, UI, auth-клиент и статистика.
 - `src/worker.js` — backend Worker.
@@ -156,6 +170,7 @@
 - `.agent-pipeline/` — регламент ИИ-конвейера ролей, quality gates и шаблон task-журнала.
 - `tools/dictionary_audit.mjs` — воспроизводимый скрипт технического аудита словарей.
 - `tools/build_new_dictionaries.mjs` — генератор текущих черновиков `Мир кино` и `Наука и природа`.
+- `tools/smoke_check.mjs` — воспроизводимый smoke-check для JS-синтаксиса, словарей, статических страниц, sitemap и важных DOM/source-контрактов.
 - `RECENT_PROJECT_CHANGES.md` — зафиксированные недавние изменения проекта.
 - `wrangler.jsonc` — конфиг Worker.
 
@@ -203,6 +218,7 @@ git worktree add --detach /tmp/activity-deploy-<sha> <sha>
 git status --short
 node --check script.js
 node --check src/worker.js
+node tools/smoke_check.mjs
 npx wrangler deploy --dry-run
 ```
 

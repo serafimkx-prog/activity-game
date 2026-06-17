@@ -53,16 +53,22 @@
 </script>
 </head>
 <body>
+<a class="skip-link" href="#screen-setup" onclick="showScreen('setup')">К настройке игры</a>
 <noscript><div><img src="https://mc.yandex.ru/watch/109002969" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
 
 <!-- SETUP -->
 <div class="screen active" id="screen-setup">
   <h1>Активити Онлайн</h1>
   <p class="subtitle">Настройте команды, выберите словарь и начните партию в браузере.</p>
-  <div class="nav-pill">
-    <div class="nav-item active" onclick="showScreen('setup')">Новая игра</div>
-    <div class="nav-item" onclick="showScreen('rules')">Правила</div>
-    <div class="nav-item" onclick="showScreen('profile')">Профиль</div>
+  <nav class="nav-pill" aria-label="Основная навигация">
+    <button type="button" class="nav-item active" aria-current="page" onclick="showScreen('setup')">Новая игра</button>
+    <button type="button" class="nav-item" onclick="showScreen('rules')">Правила</button>
+    <button type="button" class="nav-item" onclick="showScreen('profile')">Профиль</button>
+  </nav>
+  <div class="quick-start" aria-label="Быстрый старт">
+    <div class="quick-step"><strong>1</strong><span>Оставьте две команды или добавьте своих игроков.</span></div>
+    <div class="quick-step"><strong>2</strong><span>Выберите словарь и время хода.</span></div>
+    <div class="quick-step"><strong>3</strong><span>Передавайте телефон только объясняющему на просмотр слова.</span></div>
   </div>
   <div class="section">
     <h2>Словарь</h2>
@@ -119,11 +125,11 @@
 <!-- RULES -->
 <div class="screen" id="screen-rules">
   <div class="screen-title">🎭 Activity</div>
-  <div class="nav-pill">
-    <div class="nav-item" onclick="showScreen('setup')">Новая игра</div>
-    <div class="nav-item active" onclick="showScreen('rules')">Правила</div>
-    <div class="nav-item" onclick="showScreen('profile')">Профиль</div>
-  </div>
+  <nav class="nav-pill" aria-label="Основная навигация">
+    <button type="button" class="nav-item" onclick="showScreen('setup')">Новая игра</button>
+    <button type="button" class="nav-item active" aria-current="page" onclick="showScreen('rules')">Правила</button>
+    <button type="button" class="nav-item" onclick="showScreen('profile')">Профиль</button>
+  </nav>
   
   <div class="section">
     <h2>Суть игры</h2>
@@ -161,11 +167,11 @@
 <!-- PROFILE -->
 <div class="screen" id="screen-profile">
   <div class="screen-title">🎭 Activity</div>
-  <div class="nav-pill">
-    <div class="nav-item" onclick="showScreen('setup')">Новая игра</div>
-    <div class="nav-item" onclick="showScreen('rules')">Правила</div>
-    <div class="nav-item active" onclick="showScreen('profile')">Профиль</div>
-  </div>
+  <nav class="nav-pill" aria-label="Основная навигация">
+    <button type="button" class="nav-item" onclick="showScreen('setup')">Новая игра</button>
+    <button type="button" class="nav-item" onclick="showScreen('rules')">Правила</button>
+    <button type="button" class="nav-item active" aria-current="page" onclick="showScreen('profile')">Профиль</button>
+  </nav>
 
   <div class="section account-section">
     <h2>Профиль</h2>
@@ -199,6 +205,7 @@
         <a href="/offer/" target="_blank" rel="noopener">Оферта</a>
         <a href="/access/" target="_blank" rel="noopener">Как получить доступ</a>
         <a href="/requisites/" target="_blank" rel="noopener">Реквизиты</a>
+        <a href="/privacy/" target="_blank" rel="noopener">Приватность</a>
       </div>
     </div>
   </div>
@@ -216,6 +223,7 @@
     <div class="mode-name-big" id="ts-mode-name"></div>
     <p class="mode-hint" id="ts-hint"></p>
   </div>
+  <p class="turn-tip">Перед выбором карточки передайте телефон объясняющему. На экране просмотра слова остальные игроки отворачиваются.</p>
   <div class="board-wrap" id="ts-board"></div>
   <button class="btn btn-primary" id="ts-ready-btn">Выбрать карточку →</button>
   <button class="btn btn-secondary" id="ts-back-to-menu-btn">← В меню</button>
@@ -232,21 +240,21 @@
     <span class="mode-pill" id="cs-mode-pill"></span>
   </div>
   <div class="diff-grid">
-    <div class="diff-card" data-pts="3">
+    <button type="button" class="diff-card" data-pts="3" aria-label="Выбрать лёгкую карточку на 3 очка">
       <div class="diff-pts easy">3</div>
       <div class="diff-label">Лёгкая</div>
       <div class="diff-moves">фишка +3</div>
-    </div>
-    <div class="diff-card" data-pts="4">
+    </button>
+    <button type="button" class="diff-card" data-pts="4" aria-label="Выбрать среднюю карточку на 4 очка">
       <div class="diff-pts medium">4</div>
       <div class="diff-label">Средняя</div>
       <div class="diff-moves">фишка +4</div>
-    </div>
-    <div class="diff-card" data-pts="5">
+    </button>
+    <button type="button" class="diff-card" data-pts="5" aria-label="Выбрать сложную карточку на 5 очков">
       <div class="diff-pts hard">5</div>
       <div class="diff-label">Сложная</div>
       <div class="diff-moves">фишка +5</div>
-    </div>
+    </button>
   </div>
   <p style="color:#aaa;font-size:.85rem;text-align:center;margin-bottom:14px">Слово откроется после выбора</p>
   <button class="btn btn-secondary" id="cs-back-btn">← К полю</button>

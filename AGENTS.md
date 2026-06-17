@@ -111,6 +111,7 @@ Important functions:
 - `offer/index.html`
 - `access/index.html`
 - `requisites/index.html`
+- `privacy/index.html`
 - `sitemap.xml`
 - `robots.txt`
 
@@ -321,10 +322,17 @@ For Worker JS:
 node --check src/worker.js
 ```
 
+For source/static smoke checks:
+
+```bash
+node tools/smoke_check.mjs
+```
+
 For local frontend smoke test:
 
 ```bash
 python3 -m http.server 8080
+node tools/smoke_check.mjs --base http://127.0.0.1:8080
 ```
 
 Then inspect:

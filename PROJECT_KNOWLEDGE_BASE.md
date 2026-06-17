@@ -27,6 +27,7 @@
 
 - [index.html](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/index.html) — все экраны приложения.
 - [activity-online/index.html](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/activity-online/index.html), [rules/index.html](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/rules/index.html), [words/index.html](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/words/index.html), [dictionaries/index.html](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/dictionaries/index.html), [games-for-company/index.html](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/games-for-company/index.html), [crocodile-alias-activity/index.html](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/crocodile-alias-activity/index.html) — статические SEO-страницы.
+- [privacy/index.html](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/privacy/index.html), [offer/index.html](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/offer/index.html), [access/index.html](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/access/index.html), [requisites/index.html](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/requisites/index.html) — юридические и справочные страницы.
 - [style.css](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/style.css) — стили интерфейса.
 - [script.js](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/script.js) — игровой runtime, клиентская auth-логика и статистика.
 - [src/worker.js](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/src/worker.js) — основной Worker entrypoint.
@@ -50,6 +51,7 @@
 - [DICTIONARY_EDITORIAL_REVIEW.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/DICTIONARY_EDITORIAL_REVIEW.md) — редакторские выводы и приоритеты чистки текущих словарей.
 - [DICTIONARY_INTERSECTION_DECISIONS.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/DICTIONARY_INTERSECTION_DECISIONS.md) — decision-list по оставшимся пересечениям между словарями.
 - [DICTIONARY_BLUEPRINT_CINEMA_SCIENCE.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/DICTIONARY_BLUEPRINT_CINEMA_SCIENCE.md) — содержательная рамка и кластеры для новых словарей.
+- [tools/smoke_check.mjs](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/tools/smoke_check.mjs) — воспроизводимый smoke-check для синтаксиса, словарей, статических страниц, sitemap и ключевых DOM/source-контрактов.
 
 ### SEO-страницы
 
@@ -61,6 +63,7 @@
 - `/dictionaries/` — словари и наборы карточек.
 - `/games-for-company/` — игры для компании онлайн.
 - `/crocodile-alias-activity/` — сравнение Крокодила, Alias и Activity.
+- `/privacy/` — информация о localStorage, Telegram-входе, cookies, истории игр, фидбэке и Яндекс.Метрике.
 
 Эти страницы должны оставаться в [sitemap.xml](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/sitemap.xml) и иметь canonical URL на production-домене.
 
@@ -99,6 +102,8 @@
 - `Правила`
 - `Профиль`
 
+Навигация реализована нативными `button` внутри `nav.nav-pill`. Активный раздел помечается классом `active` и `aria-current="page"`.
+
 ### Визуальная модель
 
 По коду и стилям интерфейс:
@@ -108,6 +113,8 @@
 - mobile-friendly;
 - ограничен шириной `max-width: 600px`;
 - прижат к верхней части viewport, а не центрируется вертикально.
+
+Для доступности в главной SPA есть skip-link к настройке игры, видимые `:focus-visible` состояния и нативные кнопки для верхней навигации и выбора сложности карточки.
 
 ## 4. Игровое состояние
 
@@ -247,6 +254,12 @@
 
 После появления runtime-снимка в `localStorage` игра теперь может восстановиться и после полного обновления страницы.
 
+### Финальный экран и история
+
+`showGameOver()` строит `summary_json` через `buildGameSummary(winner)`, сохраняет его как durable-контракт завершённой партии и рендерит компактный post-game экран: победитель, финальный счёт, короткие highlights и раскрываемая подробная статистика.
+
+Экран деталей партии в профиле использует тот же `summary_json`, но рендерит полную статистику сразу. Это различие относится только к UI-режиму отображения и не меняет форму сохранённых данных.
+
 ## 8. Таймеры и правила
 
 ### Preview
@@ -342,6 +355,7 @@
 - слот под Telegram Login Widget;
 - кнопку logout;
 - блок `История и статистика`.
+- юридические ссылки на оферту, доступ, реквизиты и приватность.
 
 Ключевые функции в [script.js](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/script.js):
 

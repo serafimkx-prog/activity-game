@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Yandex.Metrika counter -->
+  <script type="text/javascript">
+      (function(m,e,t,r,i,k,a){
+          m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+          m[i].l=1*new Date();
+          for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
+          k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
+      })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=109002969', 'ym');
+
+      ym(109002969, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});
+  </script>
+  <!-- /Yandex.Metrika counter -->
+  <title>Приватность и cookies — Активити Онлайн</title>
+  <meta name="description" content="Какие данные использует Активити Онлайн: localStorage, Telegram-вход, cookies сессии, история игр, фидбек по словам и Яндекс.Метрика.">
+  <link rel="canonical" href="https://activity-game.ru/privacy/">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://activity-game.ru/privacy/">
+  <meta property="og:title" content="Приватность и cookies — Активити Онлайн">
+  <meta property="og:description" content="Информация о локальном хранении, Telegram-входе, сессиях, истории игр и аналитике в Активити Онлайн.">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <noscript><div><img src="https://mc.yandex.ru/watch/109002969" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+  <main class="screen active content-page">
+    <h1>Приватность и cookies</h1>
+    <p class="subtitle">Коротко о том, какие данные нужны сайту для игры, профиля и улучшения словарей.</p>
+
+    <section class="section">
+      <h2>Что хранится в браузере</h2>
+      <p class="stats-empty">Основная партия проходит прямо в браузере. Для устойчивой игры сайт использует <code>localStorage</code>:</p>
+      <ul class="rule-list">
+        <li>снимок активной партии, чтобы восстановить игру после обновления страницы;</li>
+        <li>очередь завершённых партий до отправки в профиль после входа;</li>
+        <li>локальный fallback фидбэка по сложности слов, если backend временно недоступен.</li>
+      </ul>
+      <p class="stats-empty">Эти данные можно удалить через настройки браузера для сайта <code>activity-game.ru</code>.</p>
+    </section>
+
+    <section class="section">
+      <h2>Telegram-вход и профиль</h2>
+      <p class="stats-empty">Вход через Telegram нужен для бесплатного открытия части словарей и сохранения истории игр. После входа backend получает и хранит данные, которые Telegram передаёт в Login Widget: идентификатор пользователя, имя, username и ссылку на аватар, если они доступны.</p>
+      <p class="stats-empty">Для авторизованного пользователя сохраняются завершённые партии и агрегированная статистика профиля. Имена игроков внутри партии вводятся вручную и не считаются отдельными аккаунтами.</p>
+    </section>
+
+    <section class="section">
+      <h2>Cookies и сессия</h2>
+      <p class="stats-empty">После Telegram-входа Worker создаёт cookie <code>activity_session</code>. Cookie используется только для авторизации запросов к API профиля, истории, словарей после входа и фидбэка по словам.</p>
+      <p class="stats-empty">Сессионная cookie выставляется с атрибутами <code>HttpOnly</code>, <code>Secure</code>, <code>SameSite=Lax</code> и <code>Path=/</code>.</p>
+    </section>
+
+    <section class="section">
+      <h2>Фидбек по словам</h2>
+      <p class="stats-empty">После хода можно отметить фактическую сложность карточки или пометить её как слишком сложную. Для авторизованных пользователей этот фидбек отправляется в backend. Если пользователь не вошёл или сеть недоступна, запись остаётся локально в браузере.</p>
+    </section>
+
+    <section class="section">
+      <h2>Аналитика</h2>
+      <p class="stats-empty">На страницах сайта подключена Яндекс.Метрика. Она помогает понимать посещаемость, ошибки навигации и качество страниц. Метрика может использовать cookies и технические данные браузера по своим правилам обработки данных.</p>
+    </section>
+
+    <section class="section">
+      <h2>Cloudflare и база данных</h2>
+      <p class="stats-empty">API сайта работает на Cloudflare Workers, а история игр, сессии, пользователи и фидбек хранятся в Cloudflare D1. Статические страницы и файлы словарей отдаются через Worker и static assets.</p>
+    </section>
+
+    <section class="section">
+      <h2>Как сбросить данные или задать вопрос</h2>
+      <ul class="rule-list">
+        <li>Локальные данные игры можно удалить в настройках браузера для <code>activity-game.ru</code>.</li>
+        <li>Из профиля можно выйти кнопкой <code>Выйти</code>, чтобы сбросить текущую сессию в браузере.</li>
+        <li>По вопросам доступа и данных можно написать на email: serafim.khromov@mail.ru.</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2>Ссылки</h2>
+      <div class="legal-links">
+        <a href="/" target="_self">На главную</a>
+        <a href="/dictionaries/" target="_self">Словари</a>
+        <a href="/offer/" target="_self">Оферта</a>
+        <a href="/access/" target="_self">Как получить доступ</a>
+        <a href="/requisites/" target="_self">Реквизиты</a>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

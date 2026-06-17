@@ -890,8 +890,12 @@ function renderModeStats(team, turns = []) {
   `
 }
 
-function renderSummaryMeta(summary) {
-  const metrics = [{ label: 'Длительность партии', value: formatDuration(summary.game.durationSeconds) }]
+function renderSummaryMeta(summary, options = {}) {
+  const compact = options.compact === true
+  const metrics = [
+    { label: 'Длительность партии', value: formatDuration(summary.game.durationSeconds) },
+    compact ? { label: 'Ходов сыграно', value: `${(summary.turns || []).length}` } : null,
+  ].filter(Boolean)
   const highlightEntries = [
     summary.highlights.topScorer
       ? { label: 'Самый результативный объясняющий', value: `${summary.highlights.topScorer.playerName} · ${summary.highlights.topScorer.teamName} · ${summary.highlights.topScorer.pointsEarned} очков` }
@@ -906,10 +910,11 @@ function renderSummaryMeta(summary) {
       ? { label: 'Больше всего времени на объяснения', value: `${summary.highlights.mostExplanationTime.playerName} · ${summary.highlights.mostExplanationTime.teamName} · ${formatPreciseDuration(summary.highlights.mostExplanationTime.durationSeconds)}` }
       : null,
   ].filter(Boolean)
+  const visibleHighlights = compact ? highlightEntries.slice(0, 2) : highlightEntries
 
   return `
-    <div class="summary-card">
-      <div class="section-title">Общее по партии</div>
+    <div class="summary-card${compact ? ' compact' : ''}">
+      <div class="section-title">${compact ? 'Коротко по партии' : 'Общее по партии'}</div>
       <div class="summary-grid">
         ${metrics.map(metric => `
         <div class="summary-metric">
@@ -918,9 +923,9 @@ function renderSummaryMeta(summary) {
           </div>
         `).join('')}
       </div>
-      ${highlightEntries.length ? `
+      ${visibleHighlights.length ? `
         <div class="highlights-list inline-highlights">
-          ${highlightEntries.map(item => `
+          ${visibleHighlights.map(item => `
             <div class="highlight-card">
               <div class="highlight-label">${escapeHtml(item.label)}</div>
               <div class="highlight-value">${escapeHtml(item.value)}</div>
@@ -982,14 +987,24 @@ function renderHighlights(summary) {
   return ''
 }
 
-function renderSummaryInto(summary, ids) {
-  q(ids.meta).innerHTML = renderSummaryMeta(summary)
-  q(ids.teams).innerHTML = `
-    <div class="summary-card">
-      <div class="section-title">Игроки по командам</div>
-      ${renderTeamStats(summary)}
-    </div>
-  `
+function renderSummaryInto(summary, ids, options = {}) {
+  const compact = options.compact === true
+  q(ids.meta).innerHTML = renderSummaryMeta(summary, options)
+  q(ids.teams).innerHTML = compact
+    ? `
+      <details class="summary-details">
+        <summary>Подробная статистика игроков</summary>
+        <div class="summary-details-body">
+          ${renderTeamStats(summary)}
+        </div>
+      </details>
+    `
+    : `
+      <div class="summary-card">
+        <div class="section-title">Игроки по командам</div>
+        ${renderTeamStats(summary)}
+      </div>
+    `
   q(ids.highlights).innerHTML = renderHighlights(summary)
 }
 
@@ -2020,7 +2035,7 @@ function showGameOver(winner) {
     meta: 'go-summary-meta',
     teams: 'go-team-stats',
     highlights: 'go-highlights',
-  })
+  }, { compact: true })
   showScreen('game-over')
   saveFinishedGame(winner, state.lastGameSummary)
   state.gameInProgress = false; // Game over, reset flag

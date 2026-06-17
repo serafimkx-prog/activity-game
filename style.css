@@ -1,5 +1,7 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',system-ui,sans-serif;background:#1a1a2e;color:#eee;min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:36px 0 56px}
+.skip-link{position:absolute;left:16px;top:12px;z-index:1000;transform:translateY(-160%);background:#fff;color:#10162b;border-radius:10px;padding:10px 14px;font-weight:900;text-decoration:none;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+.skip-link:focus{transform:translateY(0)}
 .screen{width:100%;max-width:600px;padding:24px 20px;display:none}
 .screen.active{display:block}
 h1{font-size:2.2rem;font-weight:800;text-align:center;margin-bottom:8px}
@@ -9,6 +11,7 @@ h2{font-size:1.3rem;font-weight:700;margin-bottom:14px}
 .seo-link-grid a,.keyword-cloud a,.text-link{color:#c8d3ff;text-decoration:none;font-weight:800}
 .seo-link-grid a:hover,.keyword-cloud a:hover,.text-link:hover{color:#fff;text-decoration:underline}
 .content-text{color:#c9d2e8;font-size:.95rem;line-height:1.65;margin-bottom:12px}
+code{background:rgba(142,167,255,.12);border:1px solid rgba(142,167,255,.18);border-radius:6px;color:#dbe3ff;padding:1px 5px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.9em}
 .seo-panel{border-top:1px solid rgba(255,255,255,.08);margin-top:28px;padding:18px 0 0}
 .seo-panel h2{font-size:1rem;color:#dbe3ff;margin-bottom:8px}
 .seo-panel p{font-size:.88rem;color:#8d96ad;line-height:1.55;margin-bottom:12px}
@@ -49,6 +52,9 @@ h2{font-size:1.3rem;font-weight:700;margin-bottom:14px}
   border: 1px solid rgba(255,255,255,0.05);
 }
 .nav-item {
+  border: 0;
+  font-family: inherit;
+  background: transparent;
   padding: 8px 24px;
   border-radius: 999px;
   cursor: pointer;
@@ -66,6 +72,22 @@ h2{font-size:1.3rem;font-weight:700;margin-bottom:14px}
   color: #eee;
   background: rgba(255,255,255,0.05);
 }
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+.dict-card:focus-visible,
+.diff-card:focus-visible,
+.dict-info-trigger:focus-visible {
+  outline: 3px solid rgba(142,167,255,.95);
+  outline-offset: 3px;
+}
+.nav-item:focus-visible {
+  outline-offset: 2px;
+}
+.quick-start{display:grid;gap:8px;margin:-10px 0 20px}
+.quick-step{display:flex;align-items:flex-start;gap:10px;background:rgba(15,52,96,.74);border:1px solid rgba(142,167,255,.12);border-radius:12px;padding:10px 12px;color:#c9d2e8;font-size:.88rem;line-height:1.35}
+.quick-step strong{display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#6c63ff;color:#fff;font-size:.78rem;flex:0 0 auto}
+.turn-tip{margin:-4px 0 12px;color:#b9c2da;font-size:.9rem;line-height:1.45;text-align:center}
 
 /* Rules Section Styles */
 .rule-list {list-style:none;margin-top:10px}
@@ -195,7 +217,7 @@ input:checked+.slider:before{transform:translateX(20px)}
 
 /* Card selection — difficulty only */
 .diff-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px}
-.diff-card{background:#16213e;border:2px solid #2a2a4a;border-radius:16px;padding:20px 10px;text-align:center;cursor:pointer;transition:border-color .15s,transform .1s}
+.diff-card{display:block;width:100%;font-family:inherit;color:inherit;background:#16213e;border:2px solid #2a2a4a;border-radius:16px;padding:20px 10px;text-align:center;cursor:pointer;transition:border-color .15s,transform .1s}
 .diff-card:hover{border-color:#6c63ff;transform:scale(1.03)}
 .diff-card:active{transform:scale(.97)}
 .diff-pts{font-size:2rem;font-weight:900;margin-bottom:4px}
@@ -339,6 +361,7 @@ input:checked+.slider:before{transform:translateX(20px)}
 .final-row:last-child{border-bottom:none}
 .final-row.winner-row{color:#22c55e;font-weight:700}
 .summary-card{background:#16213e;border-radius:16px;padding:18px;margin:16px 0;text-align:left}
+.summary-card.compact{margin:14px 0;padding:16px}
 .summary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .summary-metric{background:#0f3460;border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:12px}
 .summary-metric-label{font-size:.72rem;color:#9aa3b8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
@@ -373,8 +396,16 @@ input:checked+.slider:before{transform:translateX(20px)}
 .highlights-list{display:grid;gap:10px;margin:16px 0}
 .inline-highlights{margin-top:14px}
 .highlight-card{background:#16213e;border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:14px;text-align:left}
+.summary-card.compact .highlight-card{background:#0f3460}
 .highlight-label{font-size:.76rem;color:#9aa3b8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
 .highlight-value{font-size:.98rem;font-weight:800;color:#fff;line-height:1.35}
+.summary-details{margin:14px 0 18px;text-align:left}
+.summary-details summary{cursor:pointer;list-style:none;background:#16213e;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px 16px;color:#dbe3ff;font-weight:900}
+.summary-details summary::-webkit-details-marker{display:none}
+.summary-details summary::after{content:'+';float:right;color:#8ea7ff;font-weight:900}
+.summary-details[open] summary{border-radius:14px 14px 0 0}
+.summary-details[open] summary::after{content:'-'}
+.summary-details-body{background:#121b36;border:1px solid rgba(255,255,255,.08);border-top:0;border-radius:0 0 14px 14px;padding:2px 14px 14px}
 .game-details-winner{font-size:1.6rem;font-weight:900;color:#fff;text-align:center;margin-bottom:10px}
 .points-col,.player-points{font-weight:900;color:#fff}
 
