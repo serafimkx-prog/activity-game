@@ -13,7 +13,7 @@ A new visitor opens the site on a phone, understands how to start, can navigate 
 
 Acceptance criteria:
 - Primary in-app navigation uses native interactive controls and visible focus states.
-- Setup includes compact quick-start guidance without pushing the game out of the first flow.
+- Setup includes a compact table-play handoff hint without pushing the game out of the first flow.
 - Turn start makes the table-play handoff clear.
 - Game-over first view emphasizes winner/final score/highlights, with detailed stats lower/collapsible.
 - Privacy/cookie page exists and is linked from relevant legal/profile areas.
@@ -99,7 +99,7 @@ Affected files:
 
 Implementation plan:
 - Convert the three main nav pills from clickable `div` elements to native `button` elements inside `nav` landmarks.
-- Add a compact quick-start section under the main navigation.
+- Add a compact table-play handoff hint under the main navigation.
 - Add a short table-play tip on turn start.
 - Add privacy/cookie page and link it from profile/legal pages.
 - Update sitemap and project docs for the new page and smoke script.
@@ -134,7 +134,7 @@ Changed files:
 Implementation summary:
 - Converted top-level SPA navigation to native buttons inside `nav` landmarks.
 - Added a skip-link that opens the visible setup screen.
-- Added compact quick-start guidance on setup and a turn-start handoff tip.
+- Added compact handoff guidance on setup and a turn-start handoff tip.
 - Converted difficulty cards from clickable `div` elements to native buttons.
 - Added visible focus states for keyboard navigation.
 - Added compact game-over rendering while preserving full profile game-details rendering.

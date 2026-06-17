@@ -138,7 +138,7 @@ function validateSourceContracts() {
 
   assert(index.includes('class="skip-link"'), "index has skip link");
   assert(index.includes('onclick="showScreen(\'setup\')"'), "skip link opens visible setup screen");
-  assert(index.includes('class="quick-start"'), "index has quick-start");
+  assert(index.includes('class="quick-start"'), "index has setup handoff hint");
   assert(index.includes('class="turn-tip"'), "index has turn handoff tip");
   assert(index.includes('href="/privacy/"'), "index links privacy page");
   assert(countMatches(index, /<nav class="nav-pill"/g) === 3, "index has three nav landmarks");
@@ -150,7 +150,7 @@ function validateSourceContracts() {
 
   assert(style.includes(".skip-link"), "style has skip-link rules");
   assert(style.includes(":focus-visible"), "style has visible focus rules");
-  assert(style.includes(".quick-start"), "style has quick-start rules");
+  assert(style.includes(".quick-start"), "style has setup handoff hint rules");
   assert(style.includes(".summary-details"), "style has compact summary details rules");
   assert(style.includes(".player-stats-table{display:block;overflow-x:auto;white-space:nowrap}"), "mobile player stats table scrolls");
   assert(style.includes(".nav-pill{width:100%}"), "mobile nav expands to full width");
