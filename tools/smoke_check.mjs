@@ -134,6 +134,7 @@ function validateSourceContracts() {
   const style = read("style.css");
   const script = read("script.js");
   const sitemap = read("sitemap.xml");
+  const wrangler = read("wrangler.jsonc");
 
   assert(index.includes('class="skip-link"'), "index has skip link");
   assert(index.includes('onclick="showScreen(\'setup\')"'), "skip link opens visible setup screen");
@@ -169,6 +170,9 @@ function validateSourceContracts() {
   assert(!lockedBlock.includes("alert("), "selectLockedDict does not use alert");
 
   assert(sitemap.includes("<loc>https://activity-game.ru/privacy/</loc>"), "sitemap includes privacy");
+  for (const protectedDictionary of ["/words_around_us.json", "/words_cinema.json", "/words_science.json"]) {
+    assert(wrangler.includes(`"${protectedDictionary}"`), `wrangler runs Worker first for ${protectedDictionary}`);
+  }
 }
 
 async function fetchStatus(base, route) {

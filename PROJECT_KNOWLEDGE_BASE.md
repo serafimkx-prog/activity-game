@@ -209,6 +209,8 @@
 
 При старте игры фронтенд загружает `dict.file` через `fetch()`, но Worker отдельно защищает словари с ограниченным доступом: словари с `authAccess: "login"` требуют авторизацию. Premium-проверка через `user_dictionary_access` остаётся в коде для будущей платной модели, но сейчас активных premium-словарей в каталоге нет.
 
+Важно: прямые JSON-файлы ограниченных словарей должны быть перечислены в `assets.run_worker_first` в [wrangler.jsonc](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/wrangler.jsonc). Иначе Cloudflare static assets могут отдать файл напрямую, минуя `protectDictionaryAsset(...)`.
+
 После этого вызывается `initPools(data)`, которая создаёт перемешанные пулы слов по режимам и сложностям.
 
 Текущий вид карточек словарей на setup-экране:
@@ -606,7 +608,7 @@ Backend пишет:
 - `main: "src/worker.js"`
 - `assets.directory: "."`
 - `assets.binding: "ASSETS"`
-- `assets.run_worker_first: ["/api/*"]`
+- `assets.run_worker_first` включает `/api/*`, verification HTML и текущие JSON-файлы словарей, которые требуют Telegram-входа.
 - D1 binding `DB`
 - `vars.APP_NAME`
 - `vars.TELEGRAM_BOT_USERNAME`

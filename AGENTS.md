@@ -278,6 +278,7 @@ When changing gameplay, also check:
 - Session cookies must remain `HttpOnly`, `Secure`, `SameSite=Lax`, and `Path=/`.
 - Telegram auth verification happens server-side.
 - Premium dictionary files must be protected by Worker asset logic.
+- Protected dictionary JSON files must be listed in `wrangler.jsonc` `assets.run_worker_first`; otherwise Cloudflare static assets can bypass Worker checks.
 - YooKassa payment creation, sync, and webhook handling must not grant access from unverified or failed states.
 - Additive API payload changes are preferred.
 - If `db/schema.sql` changes, mention that remote D1 migration is a separate action.

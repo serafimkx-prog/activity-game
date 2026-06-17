@@ -80,6 +80,7 @@ Verdict: pass
 Affected layers:
 - Frontend/UI
 - SEO/static pages
+- Worker asset routing/config
 - Documentation and release process
 
 Affected files:
@@ -88,6 +89,7 @@ Affected files:
 - `script.js`
 - `privacy/index.html`
 - `sitemap.xml`
+- `wrangler.jsonc`
 - `AGENTS.md`
 - `README.md`
 - `PROJECT_KNOWLEDGE_BASE.md`
@@ -121,6 +123,7 @@ Changed files:
 - `access/index.html`
 - `requisites/index.html`
 - `sitemap.xml`
+- `wrangler.jsonc`
 - `AGENTS.md`
 - `README.md`
 - `PROJECT_KNOWLEDGE_BASE.md`
@@ -137,10 +140,12 @@ Implementation summary:
 - Added compact game-over rendering while preserving full profile game-details rendering.
 - Added privacy/cookies static page and linked it from profile/legal surfaces.
 - Added reproducible smoke checks for syntax, dictionaries, static pages, sitemap, source contracts, and optional HTTP checks.
+- Added login-gated dictionary JSON files to `wrangler.jsonc` `assets.run_worker_first` so direct asset requests go through `protectDictionaryAsset(...)`.
 
 Important decisions:
 - `summary_json` shape was not changed; only the display mode differs between game-over and profile details.
-- No Worker, D1 schema, dictionary metadata, auth, payment, or Cloudflare config behavior was changed.
+- No Worker code, D1 schema, dictionary metadata, auth, or payment behavior was changed.
+- Cloudflare asset routing was changed narrowly to make existing Worker dictionary protection effective for login-gated dictionary JSON files.
 - Privacy copy states only what is supported by the current repo and does not promise automated deletion flows.
 
 Known risks:
@@ -187,6 +192,7 @@ Results:
 
 Regressions found:
 - Initial smoke assertions were too strict for existing `window.endOpenRound = function` and `window.selectLockedDict = function` declarations; the smoke script was corrected to match actual repo patterns.
+- Production smoke initially found that `/words_around_us.json`, `/words_cinema.json`, and `/words_science.json` returned `200` anonymously because static assets bypassed Worker checks. Fixed by adding those paths to `wrangler.jsonc` `assets.run_worker_first`.
 
 Unverified scenarios:
 - Browser screenshot/visual automation was not available in this tool environment.

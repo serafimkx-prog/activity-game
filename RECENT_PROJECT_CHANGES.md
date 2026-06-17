@@ -249,3 +249,4 @@
 - Добавлена статическая страница [privacy/index.html](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/privacy/index.html) про localStorage, Telegram-вход, сессии, историю игр, фидбек и Яндекс.Метрику.
 - `privacy` добавлена в профильные и юридические ссылки, а также в [sitemap.xml](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/sitemap.xml).
 - Добавлен [tools/smoke_check.mjs](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/tools/smoke_check.mjs): проверяет JS-синтаксис, структуру словарей, static pages, sitemap, DOM/source-контракты и при необходимости HTTP-доступность локального или production URL.
+- В [wrangler.jsonc](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/wrangler.jsonc) добавлены JSON-файлы словарей после входа в `assets.run_worker_first`, чтобы прямой запрос к asset не обходил `protectDictionaryAsset(...)`.

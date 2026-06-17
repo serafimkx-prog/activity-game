@@ -258,6 +258,7 @@ Fallback:
 - После изменения `db/schema.sql` схему нужно отдельно применять в `D1`.
 - Первые три словаря открыты без входа.
 - Остальные три словаря открываются бесплатно после входа через Telegram.
+- JSON-файлы словарей после входа должны быть перечислены в `wrangler.jsonc` в `assets.run_worker_first`, иначе прямой asset-запрос обойдёт Worker-защиту.
 - Таблицы `user_dictionary_access` и `purchase_orders` остаются в проекте для будущего возврата платной модели.
 - Для оплаты нужны Cloudflare secrets/vars: `YOOKASSA_SHOP_ID`, `YOOKASSA_SECRET_KEY`, `YOOKASSA_RETURN_URL`.
 - Фидбек по сложности слова для авторизованных пользователей сохраняется в backend и D1, а при недоступности сервера остаётся локальный fallback в `localStorage`.

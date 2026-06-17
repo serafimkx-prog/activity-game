@@ -11,6 +11,9 @@
     "binding": "ASSETS",
     "run_worker_first": [
       "/api/*",
+      "/words_around_us.json",
+      "/words_cinema.json",
+      "/words_science.json",
       "/yandex_a94edf4eee889378.html",
       "/google75feaf05e1429f76.html"
     ]
