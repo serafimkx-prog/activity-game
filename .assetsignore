@@ -3,6 +3,9 @@
 .wrangler
 .wrangler/**
 .DS_Store
+*.md
+.agent-pipeline
+.agent-pipeline/**
 README.md
 GAME_SPEC.md
 _routes.json
@@ -10,6 +13,8 @@ db
 db/**
 src
 src/**
+tools
+tools/**
 wrangler.toml
 wrangler.json
 wrangler.jsonc

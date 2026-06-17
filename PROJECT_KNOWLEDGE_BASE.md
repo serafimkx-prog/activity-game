@@ -607,10 +607,11 @@ Backend пишет:
 
 - `.git`
 - `.wrangler`
+- все markdown-документы `*.md`
+- `.agent-pipeline`
 - `db`
 - `src`
-- `README.md`
-- `GAME_SPEC.md`
+- `tools`
 - `wrangler.toml`
 - `wrangler.json`
 - `wrangler.jsonc`

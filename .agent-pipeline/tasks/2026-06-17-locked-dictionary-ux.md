@@ -59,9 +59,12 @@ Agent: UX Planner
 Verdict: pass
 
 Affected files:
+- `.assetsignore`
 - `index.html`
 - `style.css`
 - `script.js`
+- `PROJECT_KNOWLEDGE_BASE.md`
+- `RECENT_PROJECT_CHANGES.md`
 - `.agent-pipeline/tasks/2026-06-17-locked-dictionary-ux.md`
 
 Implementation plan:
@@ -87,9 +90,12 @@ Work performed:
 - Replaced future purchase-flow success/error alerts with inline notices where they relate to dictionary access.
 - Cleared dictionary notice on catalog reload and successful dictionary selection.
 - Removed duplicate `ts-back-to-menu-btn` event listener so the button no longer has two handlers.
+- After production deploy, Wrangler output and production checks showed that internal markdown/task journal files were being served as static assets because `assets.directory` is `"."`.
+- Hardened `.assetsignore` so `*.md`, `.agent-pipeline/`, and `tools/` are excluded from future static asset deploys.
 
 Findings:
 - No backend, D1, dictionary metadata, or gameplay state changes were needed.
+- Static asset ignore hardening is required before considering this deploy fully clean.
 
 Next step:
 - Run syntax checks, local smoke, and design/functional review.
@@ -150,6 +156,7 @@ Verdict: pass
 
 Docs changed:
 - `README.md` gained a clean-worktree deploy and fallback runbook.
+- `PROJECT_KNOWLEDGE_BASE.md` documents the stronger `.assetsignore` coverage.
 - `RECENT_PROJECT_CHANGES.md` records the inline locked-dictionary UX and duplicate listener cleanup.
 - This task journal records pipeline decisions and verification.
 
@@ -167,7 +174,7 @@ Diff reviewed:
 
 Open risks:
 - Visual screenshot QA remains unavailable in this local runtime.
-- Production still has the previous deploy until this UX cleanup is committed and deployed.
+- Production must be redeployed after `.assetsignore` hardening to remove internal markdown/task assets from static serving.
 
 Deploy follow-up:
-- If this UX cleanup should be visible to users immediately, commit, push, and deploy from a clean worktree. No D1 migration or Worker secret change is required.
+- Commit, push, and deploy from a clean worktree. After deploy, verify that user-facing assets still return 200 and internal markdown/task assets no longer return 200. No D1 migration or Worker secret change is required.

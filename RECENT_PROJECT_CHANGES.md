@@ -236,3 +236,4 @@
   - успешный выбор доступного словаря очищает сообщение;
   - сообщение использует `aria-live="polite"`.
 - Удалён дублирующий обработчик `ts-back-to-menu-btn`, чтобы кнопка возврата в меню не имела двух listeners.
+- После deploy-проверки `.assetsignore` усилен: markdown-документы, `.agent-pipeline/` и `tools/` больше не должны публиковаться как Cloudflare static assets.
