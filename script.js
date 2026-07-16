@@ -1332,35 +1332,36 @@ function renderBoard(containerId) {
       const here = state.teams.filter(t => t.position >= FINISH)
       return `<div class="board-cell fin-cell">
         <span class="cn">41</span>
+        <span class="cell-caption">Финиш</span>
         <div class="tokens">${here.map(t => `<span class="tok" style="background:${t.color}"></span>`).join('')}</div>
       </div>`
     }
     const mKey = BOARD[slot]
     const isCurrent = team && team.position === slot
     const here = state.teams.filter(t => t.position === slot)
-    return `<div class="board-cell mode-${mKey.toLowerCase()}${isCurrent ? ' current' : ''}">
+    const startClass = slot === 0 ? ' start-cell' : ''
+    return `<div class="board-cell mode-${mKey.toLowerCase()}${isCurrent ? ' current' : ''}${startClass}">
       <span class="cn">${slot}</span>
+      ${slot === 0 ? '<span class="cell-caption">Старт</span>' : ''}
       <div class="tokens">${here.map(t => `<span class="tok" style="background:${t.color}"></span>`).join('')}</div>
     </div>`
   }
 
   let rows = '<div class="board-rows">'
   for (let r = 0; r < GRID_ROWS; r++) {
-    // Ряд ячеек
+    const isLeftToRight = r % 2 === 0
+
     rows += '<div class="board-row">'
     for (let c = 0; c < GRID_COLS; c++) rows += cellHTML(grid[r][c], r, c)
     rows += '</div>'
 
     // Разделитель между рядами (кроме последнего)
-    // Открытый сегмент — там, куда уходит змейка:
-    //   чётный ряд → выход справа (col 6), нечётный → выход слева (col 0)
+    // Переход змейки вниз на стороне, где закончился текущий ряд.
     if (r < GRID_ROWS - 1) {
-      const openCol = (r % 2 === 0) ? GRID_COLS - 1 : 0
-      rows += '<div class="board-sep">'
-      for (let c = 0; c < GRID_COLS; c++) {
-        rows += `<div class="sep-seg${c === openCol ? ' open' : ''}"></div>`
-      }
-      rows += '</div>'
+      rows += `<div class="board-turn ${isLeftToRight ? 'turn-right' : 'turn-left'}" aria-hidden="true">
+        <span class="turn-arrow">${isLeftToRight ? '→' : '←'}</span>
+        <span class="turn-down">↓</span>
+      </div>`
     }
   }
   rows += '</div>'
@@ -1730,7 +1731,11 @@ function goTurnStart() {
   state.cellMode = getCellMode(team.position)
 
   setBadge('ts-badge', team)
-  q('ts-cell-label').textContent = `Клетка ${team.position} из 40`
+  q('ts-cell-label').textContent = team.position >= FINISH
+    ? 'Финиш'
+    : team.position === 0
+      ? `Старт · финиш ${FINISH}`
+      : `Клетка ${team.position} · финиш ${FINISH}`
   const explainer = getExplainer(team)
   q('ts-explainer').innerHTML = team.players.length > 1
     ? `Загадывает: <strong>${explainer}</strong>`
