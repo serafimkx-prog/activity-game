@@ -16,37 +16,64 @@
     ym(109002969, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});
 </script>
 <!-- /Yandex.Metrika counter -->
-<title>Активити Онлайн — онлайн версия настольной игры</title>
-<meta name="description" content="Активити Онлайн — браузерная версия настольной игры Активити. Объясняйте слова словами, жестами и рисунками. До 6 команд, таймер, три режима объяснения — играйте без установки приложений.">
-<meta name="keywords" content="активити онлайн, activity игра, настольная игра активити, активити играть онлайн, игра для компании онлайн, объясни слово игра">
+<title>Активити Онлайн — играть в Activity онлайн с друзьями</title>
+<meta name="description" content="Активити Онлайн — браузерная версия настольной игры Activity. Объясняйте слова словами, жестами и рисунками, запускайте партии до 6 команд и играйте без установки приложений.">
+<meta name="keywords" content="активити онлайн, activity онлайн, играть в активити онлайн, activity игра, настольная игра активити, игра для компании онлайн">
 <meta name="yandex-verification" content="a94edf4eee889378">
 <link rel="canonical" href="https://activity-game.ru/">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://activity-game.ru/">
-<meta property="og:title" content="Активити Онлайн — онлайн версия настольной игры">
-<meta property="og:description" content="Активити Онлайн — браузерная версия настольной игры Активити. Объясняйте слова словами, жестами и рисунками. До 6 команд, три режима объяснения.">
+<meta property="og:site_name" content="Активити Онлайн">
+<meta property="og:title" content="Активити Онлайн — играть в Activity онлайн с друзьями">
+<meta property="og:description" content="Активити Онлайн — браузерная версия настольной игры Activity. Объясняйте слова словами, жестами и рисунками. До 6 команд, три режима объяснения и игра без установки.">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Активити Онлайн — онлайн версия настольной игры">
-<meta name="twitter:description" content="Активити Онлайн — браузерная версия настольной игры Активити. Объясняйте слова словами, жестами и рисунками.">
+<meta name="twitter:title" content="Активити Онлайн — играть в Activity онлайн с друзьями">
+<meta name="twitter:description" content="Активити Онлайн — браузерная версия настольной игры Activity. Объясняйте слова словами, жестами и рисунками прямо в браузере.">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="stylesheet" href="style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Активити Онлайн",
+  "alternateName": "Activity Online",
+  "url": "https://activity-game.ru/",
+  "applicationCategory": "GameApplication",
+  "operatingSystem": "Any",
+  "inLanguage": "ru",
+  "description": "Браузерная игра по мотивам настольной игры Activity: объясняйте слова словами, жестами и рисунками, играйте до 6 команд без установки приложения.",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "RUB"
+  },
+  "genre": ["party game", "word game", "board game"],
+  "isAccessibleForFree": true
+}
+</script>
 </head>
 <body>
+<a class="skip-link" href="#screen-setup" onclick="showScreen('setup')">К настройке игры</a>
 <noscript><div><img src="https://mc.yandex.ru/watch/109002969" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
 
 <!-- SETUP -->
 <div class="screen active" id="screen-setup">
-  <h1>🎭 Activity</h1>
-  <div class="nav-pill">
-    <div class="nav-item active" onclick="showScreen('setup')">Новая игра</div>
-    <div class="nav-item" onclick="showScreen('rules')">Правила</div>
-    <div class="nav-item" onclick="showScreen('profile')">Профиль</div>
+  <h1>Активити Онлайн</h1>
+  <p class="subtitle">Настройте команды, выберите словарь и начните партию в браузере.</p>
+  <nav class="nav-pill" aria-label="Основная навигация">
+    <button type="button" class="nav-item active" aria-current="page" onclick="showScreen('setup')">Новая игра</button>
+    <button type="button" class="nav-item" onclick="showScreen('rules')">Правила</button>
+    <button type="button" class="nav-item" onclick="showScreen('profile')">Профиль</button>
+  </nav>
+  <div class="quick-start" aria-label="Важная подсказка">
+    <div class="quick-step"><strong aria-hidden="true">!</strong><span>На просмотр слова телефон берёт только объясняющий. Остальные игроки отворачиваются.</span></div>
   </div>
   <div class="section">
     <h2>Словарь</h2>
     <div class="dict-grid" id="dict-grid">
       <div style="color:#aaa;font-size:.9rem;grid-column:span 2">Загрузка словарей…</div>
     </div>
+    <div class="dict-message" id="dict-message" role="status" aria-live="polite" hidden></div>
   </div>
 
   <div class="section">
@@ -78,16 +105,29 @@
   </div>
   <button class="btn btn-primary" id="start-btn">Начать игру</button>
   <button class="btn btn-secondary" id="continue-game-btn" style="display: none;">Продолжить игру</button>
+  <div class="seo-panel">
+    <h2>Об Activity онлайн</h2>
+    <p>Активити Онлайн — браузерная игра по мотивам настольной игры Activity для друзей и компаний: слова, жесты, рисунки, команды, таймер и словари уже внутри.</p>
+    <nav class="seo-links" aria-label="Полезные страницы">
+      <a href="/activity-online/">Что такое Активити Онлайн</a>
+      <a href="/rules/">Правила за 2 минуты</a>
+      <a href="/words/">Примеры слов</a>
+      <a href="/dictionaries/">Словари и карточки</a>
+      <a href="/games-for-company/">Игра для компании</a>
+      <a href="/crocodile-alias-activity/">Отличия от Крокодила и Alias</a>
+    </nav>
+    <p class="brand-note">Неофициальный проект. Activity может являться товарным знаком правообладателя.</p>
+  </div>
 </div>
 
 <!-- RULES -->
 <div class="screen" id="screen-rules">
-  <h1>🎭 Activity</h1>
-  <div class="nav-pill">
-    <div class="nav-item" onclick="showScreen('setup')">Новая игра</div>
-    <div class="nav-item active" onclick="showScreen('rules')">Правила</div>
-    <div class="nav-item" onclick="showScreen('profile')">Профиль</div>
-  </div>
+  <div class="screen-title">🎭 Activity</div>
+  <nav class="nav-pill" aria-label="Основная навигация">
+    <button type="button" class="nav-item" onclick="showScreen('setup')">Новая игра</button>
+    <button type="button" class="nav-item active" aria-current="page" onclick="showScreen('rules')">Правила</button>
+    <button type="button" class="nav-item" onclick="showScreen('profile')">Профиль</button>
+  </nav>
   
   <div class="section">
     <h2>Суть игры</h2>
@@ -99,7 +139,7 @@
     <ul class="rule-list">
       <li>На каждой клетке поля фишка команды определяет тип задания.</li>
       <li>Игрок выбирает сложность (3, 4 или 5 очков), слово открывается только ему (7 секунд на просмотр).</li>
-      <li>На объяснение дается 60 секунд. Если команда угадала — фишка перемещается вперед на количество очков.</li>
+      <li>На объяснение даётся выбранное в настройках время (по умолчанию 60 секунд). Если команда угадала — фишка перемещается вперёд на количество очков.</li>
     </ul>
   </div>
 
@@ -124,16 +164,16 @@
 
 <!-- PROFILE -->
 <div class="screen" id="screen-profile">
-  <h1>🎭 Activity</h1>
-  <div class="nav-pill">
-    <div class="nav-item" onclick="showScreen('setup')">Новая игра</div>
-    <div class="nav-item" onclick="showScreen('rules')">Правила</div>
-    <div class="nav-item active" onclick="showScreen('profile')">Профиль</div>
-  </div>
+  <div class="screen-title">🎭 Activity</div>
+  <nav class="nav-pill" aria-label="Основная навигация">
+    <button type="button" class="nav-item" onclick="showScreen('setup')">Новая игра</button>
+    <button type="button" class="nav-item" onclick="showScreen('rules')">Правила</button>
+    <button type="button" class="nav-item active" aria-current="page" onclick="showScreen('profile')">Профиль</button>
+  </nav>
 
   <div class="section account-section">
     <h2>Профиль</h2>
-    <p class="account-subtitle">Вход через Telegram пригодится для покупок, доступа к платным словарям и будущего личного кабинета.</p>
+    <p class="account-subtitle">Вход через Telegram открывает дополнительные бесплатные словари, историю партий и будущие функции профиля.</p>
     <div class="account-card" id="account-card">
       <div class="account-state">
         <div class="account-avatar placeholder" id="account-avatar">TG</div>
@@ -155,14 +195,15 @@
     </div>
   </div>
   <div class="section">
-    <h2>Покупки и доступ</h2>
+    <h2>Доступ к словарям</h2>
     <div class="product-note">
-      <p>Платные словари продаются как цифровой доступ к дополнительным наборам карточек.</p>
-      <p>После успешной оплаты словарь открывается на аккаунте, с которым пользователь вошёл через Telegram.</p>
+      <p>Сейчас все опубликованные словари бесплатные: первые три открыты сразу, остальные три открываются после входа через Telegram.</p>
+      <p>Платная модель может вернуться позже для новых наборов, но активных premium-словарей в текущем каталоге нет.</p>
       <div class="legal-links">
-        <a href="/offer" target="_blank" rel="noopener">Оферта</a>
-        <a href="/access" target="_blank" rel="noopener">Как получить доступ</a>
-        <a href="/requisites" target="_blank" rel="noopener">Реквизиты</a>
+        <a href="/offer/" target="_blank" rel="noopener">Оферта</a>
+        <a href="/access/" target="_blank" rel="noopener">Как получить доступ</a>
+        <a href="/requisites/" target="_blank" rel="noopener">Реквизиты</a>
+        <a href="/privacy/" target="_blank" rel="noopener">Приватность</a>
       </div>
     </div>
   </div>
@@ -180,6 +221,7 @@
     <div class="mode-name-big" id="ts-mode-name"></div>
     <p class="mode-hint" id="ts-hint"></p>
   </div>
+  <p class="turn-tip">Перед выбором карточки передайте телефон объясняющему.</p>
   <div class="board-wrap" id="ts-board"></div>
   <button class="btn btn-primary" id="ts-ready-btn">Выбрать карточку →</button>
   <button class="btn btn-secondary" id="ts-back-to-menu-btn">← В меню</button>
@@ -196,21 +238,21 @@
     <span class="mode-pill" id="cs-mode-pill"></span>
   </div>
   <div class="diff-grid">
-    <div class="diff-card" data-pts="3">
+    <button type="button" class="diff-card" data-pts="3" aria-label="Выбрать лёгкую карточку на 3 очка">
       <div class="diff-pts easy">3</div>
       <div class="diff-label">Лёгкая</div>
       <div class="diff-moves">фишка +3</div>
-    </div>
-    <div class="diff-card" data-pts="4">
+    </button>
+    <button type="button" class="diff-card" data-pts="4" aria-label="Выбрать среднюю карточку на 4 очка">
       <div class="diff-pts medium">4</div>
       <div class="diff-label">Средняя</div>
       <div class="diff-moves">фишка +4</div>
-    </div>
-    <div class="diff-card" data-pts="5">
+    </button>
+    <button type="button" class="diff-card" data-pts="5" aria-label="Выбрать сложную карточку на 5 очков">
       <div class="diff-pts hard">5</div>
       <div class="diff-label">Сложная</div>
       <div class="diff-moves">фишка +5</div>
-    </div>
+    </button>
   </div>
   <p style="color:#aaa;font-size:.85rem;text-align:center;margin-bottom:14px">Слово откроется после выбора</p>
   <button class="btn btn-secondary" id="cs-back-btn">← К полю</button>
@@ -283,7 +325,7 @@
 <div class="screen" id="screen-game-over">
   <div class="winner-screen">
     <span class="winner-emoji">🏆</span>
-    <h1 id="go-winner"></h1>
+    <div class="winner-title" id="go-winner"></div>
     <p style="color:#aaa;font-size:1.1rem;margin-bottom:0">побеждает!</p>
     <div class="final-list" id="go-scores"></div>
     <div id="go-summary-meta"></div>

@@ -6,7 +6,7 @@
     "description": "Предметы, действия, понятия — универсальный набор на любую компанию",
     "icon": "🎭",
     "file": "words.json",
-    "wordCount": 922,
+    "wordCount": 900,
     "available": true,
     "access": "free"
   },
@@ -19,9 +19,7 @@
     "file": "words_geo.json",
     "wordCount": 800,
     "available": true,
-    "access": "free",
-    "authAccess": "login",
-    "badge": "free"
+    "access": "free"
   },
   {
     "id": "society",
@@ -32,9 +30,8 @@
     "file": "words_society.json",
     "wordCount": 1290,
     "available": true,
-    "access": "premium",
-    "priceLabel": "149 руб.",
-    "badge": "Новый"
+    "access": "free",
+    "badge": "Сложный"
   },
   {
     "id": "around_us",
@@ -45,30 +42,34 @@
     "file": "words_around_us.json",
     "wordCount": 1142,
     "available": true,
-    "access": "premium",
-    "priceLabel": "149 руб.",
-    "badge": "Новый"
+    "access": "free",
+    "authAccess": "login",
+    "badge": "Хит"
   },
   {
     "id": "cinema",
     "name": "Мир кино",
     "subtitle": "Фильмы и сериалы",
-    "description": "Фильмы, режиссёры, персонажи, жанры и культовые сцены",
+    "description": "Фильмы, персонажи, жанры, узнаваемые предметы и культовые сцены",
     "icon": "🎬",
     "file": "words_cinema.json",
     "wordCount": 800,
-    "available": false,
-    "badge": "Скоро"
+    "available": true,
+    "access": "free",
+    "authAccess": "login",
+    "badge": "Новый"
   },
   {
     "id": "science",
     "name": "Наука и природа",
     "subtitle": "Знания и открытия",
-    "description": "Физика, биология, география, история и великие изобретения",
+    "description": "Физика, биология, природа, космос, опыты и знакомые открытия",
     "icon": "🔬",
     "file": "words_science.json",
     "wordCount": 700,
-    "available": false,
-    "badge": "Скоро"
+    "available": true,
+    "access": "free",
+    "authAccess": "login",
+    "badge": "Новый"
   }
 ]

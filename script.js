@@ -890,8 +890,12 @@ function renderModeStats(team, turns = []) {
   `
 }
 
-function renderSummaryMeta(summary) {
-  const metrics = [{ label: 'Длительность партии', value: formatDuration(summary.game.durationSeconds) }]
+function renderSummaryMeta(summary, options = {}) {
+  const compact = options.compact === true
+  const metrics = [
+    { label: 'Длительность партии', value: formatDuration(summary.game.durationSeconds) },
+    compact ? { label: 'Ходов сыграно', value: `${(summary.turns || []).length}` } : null,
+  ].filter(Boolean)
   const highlightEntries = [
     summary.highlights.topScorer
       ? { label: 'Самый результативный объясняющий', value: `${summary.highlights.topScorer.playerName} · ${summary.highlights.topScorer.teamName} · ${summary.highlights.topScorer.pointsEarned} очков` }
@@ -906,10 +910,11 @@ function renderSummaryMeta(summary) {
       ? { label: 'Больше всего времени на объяснения', value: `${summary.highlights.mostExplanationTime.playerName} · ${summary.highlights.mostExplanationTime.teamName} · ${formatPreciseDuration(summary.highlights.mostExplanationTime.durationSeconds)}` }
       : null,
   ].filter(Boolean)
+  const visibleHighlights = compact ? highlightEntries.slice(0, 2) : highlightEntries
 
   return `
-    <div class="summary-card">
-      <div class="section-title">Общее по партии</div>
+    <div class="summary-card${compact ? ' compact' : ''}">
+      <div class="section-title">${compact ? 'Коротко по партии' : 'Общее по партии'}</div>
       <div class="summary-grid">
         ${metrics.map(metric => `
         <div class="summary-metric">
@@ -918,9 +923,9 @@ function renderSummaryMeta(summary) {
           </div>
         `).join('')}
       </div>
-      ${highlightEntries.length ? `
+      ${visibleHighlights.length ? `
         <div class="highlights-list inline-highlights">
-          ${highlightEntries.map(item => `
+          ${visibleHighlights.map(item => `
             <div class="highlight-card">
               <div class="highlight-label">${escapeHtml(item.label)}</div>
               <div class="highlight-value">${escapeHtml(item.value)}</div>
@@ -982,14 +987,24 @@ function renderHighlights(summary) {
   return ''
 }
 
-function renderSummaryInto(summary, ids) {
-  q(ids.meta).innerHTML = renderSummaryMeta(summary)
-  q(ids.teams).innerHTML = `
-    <div class="summary-card">
-      <div class="section-title">Игроки по командам</div>
-      ${renderTeamStats(summary)}
-    </div>
-  `
+function renderSummaryInto(summary, ids, options = {}) {
+  const compact = options.compact === true
+  q(ids.meta).innerHTML = renderSummaryMeta(summary, options)
+  q(ids.teams).innerHTML = compact
+    ? `
+      <details class="summary-details">
+        <summary>Подробная статистика игроков</summary>
+        <div class="summary-details-body">
+          ${renderTeamStats(summary)}
+        </div>
+      </details>
+    `
+    : `
+      <div class="summary-card">
+        <div class="section-title">Игроки по командам</div>
+        ${renderTeamStats(summary)}
+      </div>
+    `
   q(ids.highlights).innerHTML = renderHighlights(summary)
 }
 
@@ -1199,7 +1214,7 @@ function renderAuthCard() {
 
   setAccountView({
     name: 'Войти через Telegram',
-    meta: 'Подключи аккаунт, чтобы позже сохранить покупки и доступ к платным пакетам.',
+    meta: 'Подключи аккаунт, чтобы сохранять историю и открыть словари для авторизованных игроков.',
     loginHtml: '<div class="account-note">Загружаем кнопку входа…</div>',
   })
   renderProfileStatsLocked()
@@ -1311,41 +1326,69 @@ function renderBoard(containerId) {
     if (row < GRID_ROWS) grid[row][col] = slot
   }
 
+  function tokenOffset(count, index) {
+    const safeCount = Math.min(Math.max(count, 2), 6)
+    const arcAngles = {
+      2: [40, 140],
+      3: [35, 90, 145],
+      4: [25, 68, 112, 155],
+      5: [20, 55, 90, 125, 160],
+      6: [18, 48, 78, 102, 132, 162],
+    }
+    const radius = safeCount <= 2 ? 10.5 : 12
+    const angle = arcAngles[safeCount][index] * Math.PI / 180
+
+    return {
+      x: Number((Math.cos(angle) * radius).toFixed(2)),
+      y: Number((Math.sin(angle) * radius).toFixed(2)),
+    }
+  }
+
+  function tokensHTML(teamsOnCell) {
+    const count = teamsOnCell.length
+    const clusterClass = count >= 2 ? ` tokens-cluster tokens-count-${Math.min(count, 6)}` : ''
+    return `<div class="tokens${clusterClass}">${teamsOnCell.map((t, i) => {
+      const offset = count >= 2 ? tokenOffset(count, i) : null
+      const positionStyle = offset ? `;--tx:${offset.x}px;--ty:${offset.y}px` : ''
+      return `<span class="tok" style="background:${t.color}${positionStyle}"></span>`
+    }).join('')}</div>`
+  }
+
   function cellHTML(slot, r, c) {
     if (slot === -1) return '<div class="board-cell empty"></div>'
     if (slot === FINISH) {
       const here = state.teams.filter(t => t.position >= FINISH)
       return `<div class="board-cell fin-cell">
         <span class="cn">41</span>
-        <div class="tokens">${here.map(t => `<span class="tok" style="background:${t.color}"></span>`).join('')}</div>
+        <span class="cell-caption">Финиш</span>
+        ${tokensHTML(here)}
       </div>`
     }
     const mKey = BOARD[slot]
     const isCurrent = team && team.position === slot
     const here = state.teams.filter(t => t.position === slot)
-    return `<div class="board-cell mode-${mKey.toLowerCase()}${isCurrent ? ' current' : ''}">
+    const startClass = slot === 0 ? ' start-cell' : ''
+    return `<div class="board-cell mode-${mKey.toLowerCase()}${isCurrent ? ' current' : ''}${startClass}">
       <span class="cn">${slot}</span>
-      <div class="tokens">${here.map(t => `<span class="tok" style="background:${t.color}"></span>`).join('')}</div>
+      ${slot === 0 ? '<span class="cell-caption">Старт</span>' : ''}
+      ${tokensHTML(here)}
     </div>`
   }
 
   let rows = '<div class="board-rows">'
   for (let r = 0; r < GRID_ROWS; r++) {
-    // Ряд ячеек
+    const isLeftToRight = r % 2 === 0
+
     rows += '<div class="board-row">'
     for (let c = 0; c < GRID_COLS; c++) rows += cellHTML(grid[r][c], r, c)
     rows += '</div>'
 
     // Разделитель между рядами (кроме последнего)
-    // Открытый сегмент — там, куда уходит змейка:
-    //   чётный ряд → выход справа (col 6), нечётный → выход слева (col 0)
+    // Переход змейки вниз на стороне, где закончился текущий ряд.
     if (r < GRID_ROWS - 1) {
-      const openCol = (r % 2 === 0) ? GRID_COLS - 1 : 0
-      rows += '<div class="board-sep">'
-      for (let c = 0; c < GRID_COLS; c++) {
-        rows += `<div class="sep-seg${c === openCol ? ' open' : ''}"></div>`
-      }
-      rows += '</div>'
+      rows += `<div class="board-turn ${isLeftToRight ? 'turn-right' : 'turn-left'}" aria-hidden="true">
+        <span class="turn-down"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 6.5 8 10l3.5-3.5"/></svg></span>
+      </div>`
     }
   }
   rows += '</div>'
@@ -1415,6 +1458,7 @@ async function loadDictionaries() {
   const preserved = dictionaries.find(dict => dict.id === previousSelectedId && dict.canPlay)
   const firstPlayable = dictionaries.find(dict => dict.canPlay)
   selectedDictId = preserved?.id || firstPlayable?.id || null
+  clearDictionaryNotice()
   renderDictGrid()
 }
 
@@ -1434,8 +1478,10 @@ function renderDictGrid() {
     const footerText = !d.available
       ? 'Словарь ещё не открыт'
       : locked
-        ? d.lockedReason === 'login_required' || d.requiresPurchase
-          ? 'Карточек: ' + d.wordCount
+        ? d.lockedReason === 'login_required' && !d.requiresPurchase
+          ? 'Бесплатно после входа'
+          : d.requiresPurchase
+            ? 'Карточек: ' + d.wordCount
           : 'Нужна покупка словаря'
         : 'Карточек: ' + d.wordCount
     const actionHtml = !d.available
@@ -1464,6 +1510,21 @@ function renderDictGrid() {
       ${actionHtml}
     </div>`
   }).join('')
+}
+
+function setDictionaryNotice(message, variant = 'info') {
+  const el = q('dict-message')
+  if (!el) return
+  el.textContent = message
+  el.className = `dict-message${variant === 'warning' ? ' warning' : ''}${variant === 'success' ? ' success' : ''}`
+  el.hidden = false
+}
+
+function clearDictionaryNotice() {
+  const el = q('dict-message')
+  if (!el) return
+  el.textContent = ''
+  el.hidden = true
 }
 
 async function loadDictionaryEntries(dict) {
@@ -1498,6 +1559,7 @@ window.selectDict = function(id) {
   const dict = dictionaries.find(d => d.id === id)
   if (!dict || !dict.canPlay) return
   selectedDictId = id
+  clearDictionaryNotice()
   renderDictGrid()
 }
 
@@ -1505,14 +1567,17 @@ window.selectLockedDict = function(id) {
   const dict = dictionaries.find(d => d.id === id)
   if (!dict) return
   if (dict.lockedReason === 'coming_soon') {
-    alert('Этот словарь ещё не открыт.')
+    setDictionaryNotice(`Словарь "${dict.name}" ещё готовится и пока недоступен для игры.`, 'warning')
     return
   }
   if (dict.lockedReason === 'login_required') {
-    alert('Войди через Telegram, чтобы открыть этот словарь.')
+    const message = dict.requiresPurchase
+      ? `Для покупки словаря "${dict.name}" сначала войди через Telegram в профиле.`
+      : `Словарь "${dict.name}" бесплатный, но открывается после входа через Telegram. Нажми "Войти" на карточке или перейди в профиль.`
+    setDictionaryNotice(message, 'warning')
     return
   }
-  alert(`Словарь "${dict.name}" можно купить отдельно за 149 ₽.`)
+  setDictionaryNotice(`Словарь "${dict.name}" пока закрыт. Используй кнопку на карточке, когда он станет доступен.`, 'warning')
 }
 
 window.buyDictionaryAccess = async function(id) {
@@ -1539,7 +1604,7 @@ window.buyDictionaryAccess = async function(id) {
 
     if (payload.alreadyOwned) {
       await loadDictionaries()
-      alert(`Словарь "${dict.name}" уже доступен на этом аккаунте.`)
+      setDictionaryNotice(`Словарь "${dict.name}" уже доступен на этом аккаунте.`, 'success')
       return
     }
 
@@ -1549,7 +1614,7 @@ window.buyDictionaryAccess = async function(id) {
 
     window.location.href = payload.confirmationUrl
   } catch (err) {
-    alert(err.message || 'Не удалось начать оплату.')
+    setDictionaryNotice(err.message || 'Не удалось начать оплату.', 'warning')
   }
 }
 
@@ -1693,7 +1758,11 @@ function goTurnStart() {
   state.cellMode = getCellMode(team.position)
 
   setBadge('ts-badge', team)
-  q('ts-cell-label').textContent = `Клетка ${team.position} из 40`
+  q('ts-cell-label').textContent = team.position >= FINISH
+    ? 'Финиш'
+    : team.position === 0
+      ? `Старт · финиш ${FINISH}`
+      : `Клетка ${team.position} · финиш ${FINISH}`
   const explainer = getExplainer(team)
   q('ts-explainer').innerHTML = team.players.length > 1
     ? `Загадывает: <strong>${explainer}</strong>`
@@ -1998,7 +2067,7 @@ function showGameOver(winner) {
     meta: 'go-summary-meta',
     teams: 'go-team-stats',
     highlights: 'go-highlights',
-  })
+  }, { compact: true })
   showScreen('game-over')
   saveFinishedGame(winner, state.lastGameSummary)
   state.gameInProgress = false; // Game over, reset flag
@@ -2060,7 +2129,6 @@ loadAuthConfig()
   .then(renderAuthCard)
 renderProfileStatsLocked()
 
-q('ts-back-to-menu-btn').addEventListener('click', goSetupMenu); // <-- New event listener
 q('gd-back-btn').addEventListener('click', () => {
   sfxNavBack()
   showScreen('profile')

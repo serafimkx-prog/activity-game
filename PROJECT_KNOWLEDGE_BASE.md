@@ -26,6 +26,8 @@
 Ключевые файлы:
 
 - [index.html](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/index.html) — все экраны приложения.
+- [activity-online/index.html](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/activity-online/index.html), [rules/index.html](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/rules/index.html), [words/index.html](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/words/index.html), [dictionaries/index.html](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/dictionaries/index.html), [games-for-company/index.html](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/games-for-company/index.html), [crocodile-alias-activity/index.html](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/crocodile-alias-activity/index.html) — статические SEO-страницы.
+- [privacy/index.html](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/privacy/index.html), [offer/index.html](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/offer/index.html), [access/index.html](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/access/index.html), [requisites/index.html](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/requisites/index.html) — юридические и справочные страницы.
 - [style.css](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/style.css) — стили интерфейса.
 - [script.js](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/script.js) — игровой runtime, клиентская auth-логика и статистика.
 - [src/worker.js](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/src/worker.js) — основной Worker entrypoint.
@@ -36,9 +38,34 @@
 - [dictionaries.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/dictionaries.json) — список словарей и их метаданные.
 - [words.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/words.json) — основной словарь.
 - [words_geo.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/words_geo.json) — географический словарь.
+- [words_society.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/words_society.json) — словарь `Общество`.
+- [words_around_us.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/words_around_us.json) — словарь `Вокруг нас`.
+- [words_cinema.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/words_cinema.json) — бесплатный словарь `Мир кино`.
+- [words_science.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/words_science.json) — бесплатный словарь `Наука и природа`.
 - [.assetsignore](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/.assetsignore) — исключения для публикации static assets.
 - [README.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/README.md) — краткое описание проекта.
+- [AGENTS.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/AGENTS.md) — стартовая инструкция для ИИ-модели или coding agent: карта проекта, источники истины, правила изменений, проверки и release handoff. Если пользователь начинает с фразы `посмотри стартовый файл`, нужно читать этот файл.
 - [GAME_SPEC.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/GAME_SPEC.md) — техническая спецификация по текущему коду.
+- [DICTIONARY_REWORK_PLAN.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/DICTIONARY_REWORK_PLAN.md) — ТЗ и план аудита текущих словарей и сборки `Мир кино` / `Наука и природа`.
+- [DICTIONARY_AUDIT_REPORT.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/DICTIONARY_AUDIT_REPORT.md) — технический отчёт по размерам, дублям, пересечениям и повторяющимся паттернам словарей.
+- [DICTIONARY_EDITORIAL_REVIEW.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/DICTIONARY_EDITORIAL_REVIEW.md) — редакторские выводы и приоритеты чистки текущих словарей.
+- [DICTIONARY_INTERSECTION_DECISIONS.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/DICTIONARY_INTERSECTION_DECISIONS.md) — decision-list по оставшимся пересечениям между словарями.
+- [DICTIONARY_BLUEPRINT_CINEMA_SCIENCE.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/DICTIONARY_BLUEPRINT_CINEMA_SCIENCE.md) — содержательная рамка и кластеры для новых словарей.
+- [tools/smoke_check.mjs](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/tools/smoke_check.mjs) — воспроизводимый smoke-check для синтаксиса, словарей, статических страниц, sitemap и ключевых DOM/source-контрактов.
+
+### SEO-страницы
+
+Кроме основной SPA-страницы в проекте есть статические страницы для поисковых запросов:
+
+- `/activity-online/` — запросы про `Activity онлайн` и `Активити онлайн`.
+- `/rules/` — правила игры Активити.
+- `/words/` — слова и карточки для Активити.
+- `/dictionaries/` — словари и наборы карточек.
+- `/games-for-company/` — игры для компании онлайн.
+- `/crocodile-alias-activity/` — сравнение Крокодила, Alias и Activity.
+- `/privacy/` — информация о localStorage, Telegram-входе, cookies, истории игр, фидбэке и Яндекс.Метрике.
+
+Эти страницы должны оставаться в [sitemap.xml](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/sitemap.xml) и иметь canonical URL на production-домене.
 
 ## 3. Как устроен фронтенд
 
@@ -75,6 +102,8 @@
 - `Правила`
 - `Профиль`
 
+Навигация реализована нативными `button` внутри `nav.nav-pill`. Активный раздел помечается классом `active` и `aria-current="page"`.
+
 ### Визуальная модель
 
 По коду и стилям интерфейс:
@@ -84,6 +113,8 @@
 - mobile-friendly;
 - ограничен шириной `max-width: 600px`;
 - прижат к верхней части viewport, а не центрируется вертикально.
+
+Для доступности в главной SPA есть skip-link к настройке игры, видимые `:focus-visible` состояния и нативные кнопки для верхней навигации и выбора сложности карточки.
 
 ## 4. Игровое состояние
 
@@ -164,26 +195,29 @@
   - `geo`
   - `society`
   - `around_us`
-- по модели доступа:
-  - `classic` — free
-  - `geo` — free after login
-  - `society` — premium
-  - `around_us` — premium
-- недоступные словари с `available: false`:
   - `cinema`
   - `science`
+- по модели доступа:
+  - `classic` — free
+  - `geo` — free
+  - `society` — free
+  - `around_us` — free after login
+  - `cinema` — free after login
+  - `science` — free after login
 
-При старте игры фронтенд загружает `dict.file` через `fetch()`, но Worker отдельно защищает словари с ограниченным доступом: `geo` требует авторизацию, а premium-файлы дополнительно проверяют доступ в таблице `user_dictionary_access`.
+Первые три словаря в сетке открыты без входа. Остальные три словаря открываются бесплатно после входа через Telegram.
+
+При старте игры фронтенд загружает `dict.file` через `fetch()`, но Worker отдельно защищает словари с ограниченным доступом: словари с `authAccess: "login"` требуют авторизацию. Premium-проверка через `user_dictionary_access` остаётся в коде для будущей платной модели, но сейчас активных premium-словарей в каталоге нет.
+
+Важно: прямые JSON-файлы ограниченных словарей должны быть перечислены в `assets.run_worker_first` в [wrangler.jsonc](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/wrangler.jsonc). Иначе Cloudflare static assets могут отдать файл напрямую, минуя `protectDictionaryAsset(...)`.
 
 После этого вызывается `initPools(data)`, которая создаёт перемешанные пулы слов по режимам и сложностям.
 
 Текущий вид карточек словарей на setup-экране:
 
 - описание словаря вынесено в tooltip по значку `i`;
-- `Общество` показывает бейдж `149 руб.`;
 - у доступных словарей внизу показывается `Выбран` или `Выбрать`;
-- для `geo` без входа показывается CTA `Войти`;
-- для `society` без входа показывается CTA `Войти, чтобы купить`;
+- для словарей, доступных после входа, показывается CTA `Войти`;
 - подпись количества унифицирована как `Карточек: N`.
 
 Правила составления новых словарей зафиксированы в [DICTIONARY_RULES.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/DICTIONARY_RULES.md).
@@ -221,6 +255,12 @@
 При нажатии она возвращает пользователя в `goTurnStart()`.
 
 После появления runtime-снимка в `localStorage` игра теперь может восстановиться и после полного обновления страницы.
+
+### Финальный экран и история
+
+`showGameOver()` строит `summary_json` через `buildGameSummary(winner)`, сохраняет его как durable-контракт завершённой партии и рендерит компактный post-game экран: победитель, финальный счёт, короткие highlights и раскрываемая подробная статистика.
+
+Экран деталей партии в профиле использует тот же `summary_json`, но рендерит полную статистику сразу. Это различие относится только к UI-режиму отображения и не меняет форму сохранённых данных.
 
 ## 8. Таймеры и правила
 
@@ -317,6 +357,7 @@
 - слот под Telegram Login Widget;
 - кнопку logout;
 - блок `История и статистика`.
+- юридические ссылки на оферту, доступ, реквизиты и приватность.
 
 Ключевые функции в [script.js](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/script.js):
 
@@ -391,9 +432,11 @@ Backend находится в [src/worker.js](/Users/k-serafim/Yandex.Disk.local
 
 `POST /api/purchase/create`
 
-- создаёт платёж ЮKassa на один premium-словарь (`geo` или `society`);
+- создаёт платёж ЮKassa на один premium-словарь, когда в каталоге есть active premium-доступ;
 - сохраняет заказ в `purchase_orders`;
 - возвращает `confirmationUrl` для редиректа на оплату.
+
+Сейчас активных premium-словарей в `dictionaries.json` нет: все словари бесплатные, часть открывается после входа через Telegram.
 
 `POST /api/game-sessions`
 
@@ -565,7 +608,7 @@ Backend пишет:
 - `main: "src/worker.js"`
 - `assets.directory: "."`
 - `assets.binding: "ASSETS"`
-- `assets.run_worker_first: ["/api/*"]`
+- `assets.run_worker_first` включает `/api/*`, verification HTML и текущие JSON-файлы словарей, которые требуют Telegram-входа.
 - D1 binding `DB`
 - `vars.APP_NAME`
 - `vars.TELEGRAM_BOT_USERNAME`
@@ -580,10 +623,11 @@ Backend пишет:
 
 - `.git`
 - `.wrangler`
+- все markdown-документы `*.md`
+- `.agent-pipeline`
 - `db`
 - `src`
-- `README.md`
-- `GAME_SPEC.md`
+- `tools`
 - `wrangler.toml`
 - `wrangler.json`
 - `wrangler.jsonc`
@@ -612,7 +656,43 @@ Backend пишет:
 - серверное сохранение этого фидбэка в D1 для авторизованных пользователей;
 - единый Worker для API и static assets.
 
-## 18. Что не стоит утверждать без отдельной проверки
+## 18. ИИ-конвейер разработки
+
+В проект добавлен локальный регламент ИИ-конвейера в [.agent-pipeline](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/.agent-pipeline).
+
+Назначение:
+
+- фиксировать роли, через которые проходят нетривиальные изменения;
+- разделять реализацию и проверку;
+- не пропускать изменения без quality gates;
+- оставлять task-журнал как артефакт прохождения задачи.
+
+Ключевые файлы:
+
+- [AGENTS.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/AGENTS.md) — стартовый файл, который нужно читать первым при работе ИИ-модели с проектом; триггерная фраза: `посмотри стартовый файл`.
+- [.agent-pipeline/AGENT_PIPELINE.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/.agent-pipeline/AGENT_PIPELINE.md) — выбор конвейера по типу задачи и правила handoff между ролями.
+- [.agent-pipeline/QUALITY_GATES.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/.agent-pipeline/QUALITY_GATES.md) — стоп-гейты для frontend, дизайна, gameplay, backend/auth/payment, словарей, документации и релиза.
+- [.agent-pipeline/TASK_TEMPLATE.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/.agent-pipeline/TASK_TEMPLATE.md) — шаблон журнала задачи.
+- [.agent-pipeline/agents/](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/.agent-pipeline/agents) — инструкции отдельных ролей.
+
+Для UI-изменений базовая цепочка:
+
+```text
+Intake
+→ Project Context Reader
+→ UX Planner
+→ Frontend Developer
+→ Design Adequacy Reviewer
+→ Functional QA
+→ Docs Sync
+→ Release Manager
+```
+
+Для изменений gameplay, backend/auth/payment, словарей и SEO используются специализированные ветки, описанные в `AGENT_PIPELINE.md`.
+
+Важно: reviewer-агенты имеют право остановить задачу с `needs_changes` или `blocked`. В этом случае задача возвращается на предыдущую роль, а не считается готовой.
+
+## 19. Что не стоит утверждать без отдельной проверки
 
 Этот документ намеренно не фиксирует как факт:
 
