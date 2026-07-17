@@ -1326,6 +1326,34 @@ function renderBoard(containerId) {
     if (row < GRID_ROWS) grid[row][col] = slot
   }
 
+  function tokenOffset(count, index) {
+    const safeCount = Math.min(Math.max(count, 2), 6)
+    const arcAngles = {
+      2: [40, 140],
+      3: [35, 90, 145],
+      4: [25, 68, 112, 155],
+      5: [20, 55, 90, 125, 160],
+      6: [18, 48, 78, 102, 132, 162],
+    }
+    const radius = safeCount <= 2 ? 10.5 : 12
+    const angle = arcAngles[safeCount][index] * Math.PI / 180
+
+    return {
+      x: Number((Math.cos(angle) * radius).toFixed(2)),
+      y: Number((Math.sin(angle) * radius).toFixed(2)),
+    }
+  }
+
+  function tokensHTML(teamsOnCell) {
+    const count = teamsOnCell.length
+    const clusterClass = count >= 2 ? ` tokens-cluster tokens-count-${Math.min(count, 6)}` : ''
+    return `<div class="tokens${clusterClass}">${teamsOnCell.map((t, i) => {
+      const offset = count >= 2 ? tokenOffset(count, i) : null
+      const positionStyle = offset ? `;--tx:${offset.x}px;--ty:${offset.y}px` : ''
+      return `<span class="tok" style="background:${t.color}${positionStyle}"></span>`
+    }).join('')}</div>`
+  }
+
   function cellHTML(slot, r, c) {
     if (slot === -1) return '<div class="board-cell empty"></div>'
     if (slot === FINISH) {
@@ -1333,7 +1361,7 @@ function renderBoard(containerId) {
       return `<div class="board-cell fin-cell">
         <span class="cn">41</span>
         <span class="cell-caption">Финиш</span>
-        <div class="tokens">${here.map(t => `<span class="tok" style="background:${t.color}"></span>`).join('')}</div>
+        ${tokensHTML(here)}
       </div>`
     }
     const mKey = BOARD[slot]
@@ -1343,7 +1371,7 @@ function renderBoard(containerId) {
     return `<div class="board-cell mode-${mKey.toLowerCase()}${isCurrent ? ' current' : ''}${startClass}">
       <span class="cn">${slot}</span>
       ${slot === 0 ? '<span class="cell-caption">Старт</span>' : ''}
-      <div class="tokens">${here.map(t => `<span class="tok" style="background:${t.color}"></span>`).join('')}</div>
+      ${tokensHTML(here)}
     </div>`
   }
 
@@ -1359,8 +1387,7 @@ function renderBoard(containerId) {
     // Переход змейки вниз на стороне, где закончился текущий ряд.
     if (r < GRID_ROWS - 1) {
       rows += `<div class="board-turn ${isLeftToRight ? 'turn-right' : 'turn-left'}" aria-hidden="true">
-        <span class="turn-arrow">${isLeftToRight ? '→' : '←'}</span>
-        <span class="turn-down">↓</span>
+        <span class="turn-down"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 6.5 8 10l3.5-3.5"/></svg></span>
       </div>`
     }
   }

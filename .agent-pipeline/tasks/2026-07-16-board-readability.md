@@ -208,3 +208,37 @@ Open risks:
 
 Ready to hand back:
 - Yes.
+
+## 9. Follow-up Board Polish
+
+Agent: Frontend Developer
+Verdict: pass
+
+User feedback addressed:
+- The long turn-start hint took unnecessary space.
+- Multiple team tokens on `Старт` could collide with the caption.
+- Round snake-turn markers looked heavier than needed.
+
+Changed files:
+- `index.html`
+- `script.js`
+- `style.css`
+
+Implementation summary:
+- Shortened the turn-start hint to keep the screen more compact.
+- Added clustered token positioning for cells with several teams: 2-6 tokens are arranged on an open lower arc so they do not intersect the `Старт` caption.
+- Replaced circular turn arrows with rounded rectangular markers that match one board cell width.
+- Softened the finish cell styling so `Финиш` reads as a cell label without visually overpowering the board.
+
+Verification:
+- `node --check script.js`: passed.
+- `node tools/smoke_check.mjs`: passed, 267 assertions.
+- Browser visual previews were generated for 2, 3, 4, 5, and 6 teams at 360px width.
+- Token/caption intersection check for `Старт`: 0 intersections for 2-6 teams.
+- Rectangular connector metrics: one-cell-wide markers, no horizontal overflow at 360px.
+
+Docs sync:
+- No product docs changed because gameplay rules, board positions, saved summaries, backend, and D1 schema did not change.
+
+Release follow-up:
+- Push and merge are required before the approved visual polish reaches the shared branch.
