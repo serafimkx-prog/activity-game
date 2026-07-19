@@ -1335,21 +1335,22 @@ function renderBoard(containerId) {
       5: [20, 55, 90, 125, 160],
       6: [18, 48, 78, 102, 132, 162],
     }
-    const radius = safeCount <= 2 ? 10.5 : 12
-    const angle = arcAngles[safeCount][index] * Math.PI / 180
+    const radius = safeCount <= 2 ? 1.05 : 1.28
+    const angle = arcAngles[safeCount][Math.min(index, safeCount - 1)] * Math.PI / 180
 
     return {
-      x: Number((Math.cos(angle) * radius).toFixed(2)),
-      y: Number((Math.sin(angle) * radius).toFixed(2)),
+      x: `${Number((Math.cos(angle) * radius).toFixed(2))}em`,
+      y: `${Number((Math.sin(angle) * radius).toFixed(2))}em`,
     }
   }
 
   function tokensHTML(teamsOnCell) {
     const count = teamsOnCell.length
-    const clusterClass = count >= 2 ? ` tokens-cluster tokens-count-${Math.min(count, 6)}` : ''
-    return `<div class="tokens${clusterClass}">${teamsOnCell.map((t, i) => {
+    const countClass = ` tokens-count-${Math.min(count, 6)}`
+    const clusterClass = count >= 2 ? ' tokens-cluster' : ''
+    return `<div class="tokens${countClass}${clusterClass}">${teamsOnCell.map((t, i) => {
       const offset = count >= 2 ? tokenOffset(count, i) : null
-      const positionStyle = offset ? `;--tx:${offset.x}px;--ty:${offset.y}px` : ''
+      const positionStyle = offset ? `;--tx:${offset.x};--ty:${offset.y}` : ''
       return `<span class="tok" style="background:${t.color}${positionStyle}"></span>`
     }).join('')}</div>`
   }

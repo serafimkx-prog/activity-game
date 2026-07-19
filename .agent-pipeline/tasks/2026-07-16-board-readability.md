@@ -242,3 +242,37 @@ Docs sync:
 
 Release follow-up:
 - Push and merge are required before the approved visual polish reaches the shared branch.
+
+## 10. Desktop Token Size Polish
+
+Agent: Frontend Developer
+Verdict: pass
+
+User feedback addressed:
+- On desktop, team tokens looked too small relative to the larger board cells.
+
+Changed files:
+- `script.js`
+- `style.css`
+
+Implementation summary:
+- Token size now depends on how many teams are in the same cell.
+- One or two teams get larger, more visible tokens; five or six teams stay smaller to avoid crowding.
+- Cluster offsets are now expressed in `em`, so the arc grows together with the token size.
+- The `Старт` and `Финиш` cluster is slightly lower to preserve label readability.
+
+Design constraints:
+- Board path, cell positions, scoring, collisions, saved summaries, backend, and D1 schema remain unchanged.
+- Mobile density is preserved by using responsive size limits rather than a single large fixed token size.
+
+Verification:
+- `node --check script.js`: passed.
+- `node tools/smoke_check.mjs`: passed, 267 assertions.
+- Headless Chrome visual checks:
+  - desktop 1980px, 2 teams: token size ~15.3px, no `Старт` caption overlap.
+  - desktop 1980px, 6 teams: token size ~9.8px, no `Старт` caption overlap.
+  - mobile 360px, 6 teams: token size ~8px, no `Старт` caption overlap.
+- Screenshots saved:
+  - `/tmp/activity-board-screens/desktop-1980-2-teams-token-size-final.png`
+  - `/tmp/activity-board-screens/desktop-1980-6-teams-token-size-final.png`
+  - `/tmp/activity-board-screens/mobile-360-6-teams-token-size-final.png`
