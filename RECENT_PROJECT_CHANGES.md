@@ -4,17 +4,17 @@
 
 ## 1. Словари
 
-- Добавлен новый словарь [words_society.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/words_society.json) с темой `Общество`.
-- Добавлен новый словарь [words_around_us.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/words_around_us.json) с темой `Вокруг нас`.
-- Словарь `society` зарегистрирован в [dictionaries.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/dictionaries.json) и доступен в UI.
-- Словарь `around_us` зарегистрирован в [dictionaries.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/dictionaries.json) и доступен в UI.
+- Добавлен новый словарь [words_society.json](words_society.json) с темой `Общество`.
+- Добавлен новый словарь [words_around_us.json](words_around_us.json) с темой `Вокруг нас`.
+- Словарь `society` зарегистрирован в [dictionaries.json](dictionaries.json) и доступен в UI.
+- Словарь `around_us` зарегистрирован в [dictionaries.json](dictionaries.json) и доступен в UI.
 - Словарь `sport` убран из публичного каталога, а `around_us` используется как опубликованный релизный словарь вместо него.
 - Ранее словарь `around_us` переводился в premium-модель через тот же механизм покупок и серверной защиты, что и `society`; сейчас все словари временно бесплатные.
 - Словарь `around_us` пересобран как самостоятельный набор без заимствования карточек из других словарей.
 - В `around_us` отдельно усилены блоки про хобби, спорт, активный отдых, творчество и походные сцены.
-- Для составления новых словарей добавлен документ [DICTIONARY_RULES.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/DICTIONARY_RULES.md).
-- В [DICTIONARY_RULES.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/DICTIONARY_RULES.md) дополнительно зафиксированы правила кластерного расширения словарей, непересечения с другими словарями, снижения повторяемости формулировок и отдельный фильтр для `DRAW`.
-- В [DICTIONARY_RULES.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/DICTIONARY_RULES.md) отдельно сохранён рабочий пайплайн сборки нового словаря: от роли и кластеров до раскладки по 9 корзинам, редакторских проходов, проверок и публикации.
+- Для составления новых словарей добавлен документ [DICTIONARY_RULES.md](DICTIONARY_RULES.md).
+- В [DICTIONARY_RULES.md](DICTIONARY_RULES.md) дополнительно зафиксированы правила кластерного расширения словарей, непересечения с другими словарями, снижения повторяемости формулировок и отдельный фильтр для `DRAW`.
+- В [DICTIONARY_RULES.md](DICTIONARY_RULES.md) отдельно сохранён рабочий пайплайн сборки нового словаря: от роли и кластеров до раскладки по 9 корзинам, редакторских проходов, проверок и публикации.
 - В `society` были:
   - собраны базовые корзины;
   - расширены уровни `5`;
@@ -55,7 +55,7 @@
 - В D1 добавлена таблица:
   - `dictionary_feedback`
 - Для `dictionary_feedback` добавлено поле `mark_for_removal` для явной пометки слишком сложных карточек.
-- Схема добавлена в [db/schema.sql](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/db/schema.sql).
+- Схема добавлена в [db/schema.sql](db/schema.sql).
 - Таблица `dictionary_feedback` уже создана в удалённой Cloudflare D1 и была проверена через `PRAGMA table_info(dictionary_feedback)`.
 
 Важно:
@@ -108,7 +108,7 @@
 ## 8. Конфигурация Telegram-Бота
 
 - `TELEGRAM_BOT_USERNAME` больше не должен жить только в Cloudflare dashboard.
-- Он теперь зафиксирован в [wrangler.jsonc](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/wrangler.jsonc):
+- Он теперь зафиксирован в [wrangler.jsonc](wrangler.jsonc):
   - `activity_auth_bot`
 - Это сделано потому, что `wrangler deploy` перезаписывал dashboard-значение пустым значением из репозитория.
 
@@ -118,20 +118,20 @@
 - Каталог словарей теперь приходит через `GET /api/dictionaries`, а не только из статического `dictionaries.json`.
 - Premium-словари нельзя считать защищёнными только через UI:
   Worker отдельно проверяет доступ к их JSON-файлам.
-- Для хранения доступов добавлена таблица `user_dictionary_access` в [db/schema.sql](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/db/schema.sql).
+- Для хранения доступов добавлена таблица `user_dictionary_access` в [db/schema.sql](db/schema.sql).
 - Для покупок premium-словарей добавлена таблица `purchase_orders` и endpoints `POST /api/purchase/create` и `POST /api/payment/webhook/yookassa`.
-- Если добавляем новые словари, ориентируемся на [DICTIONARY_RULES.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/DICTIONARY_RULES.md).
+- Если добавляем новые словари, ориентируемся на [DICTIONARY_RULES.md](DICTIONARY_RULES.md).
 - Если меняем форму или смысл фидбэка по сложности, надо синхронно смотреть:
-  - [index.html](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/index.html)
-  - [style.css](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/style.css)
-  - [script.js](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/script.js)
-  - [src/worker.js](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/src/worker.js)
-  - [db/schema.sql](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/db/schema.sql)
+  - [index.html](index.html)
+  - [style.css](style.css)
+  - [script.js](script.js)
+  - [src/worker.js](src/worker.js)
+  - [db/schema.sql](db/schema.sql)
 - Если меняем механику восстановления игры или надёжность сохранения истории, надо синхронно смотреть:
-  - [script.js](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/script.js)
-  - [src/worker.js](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/src/worker.js)
-  - [wrangler.jsonc](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/wrangler.jsonc)
-- Этот файл, [README.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/README.md), [GAME_SPEC.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/GAME_SPEC.md) и [PROJECT_KNOWLEDGE_BASE.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/PROJECT_KNOWLEDGE_BASE.md) нужно обновлять вместе, если меняется зафиксированное поведение проекта.
+  - [script.js](script.js)
+  - [src/worker.js](src/worker.js)
+  - [wrangler.jsonc](wrangler.jsonc)
+- Этот файл, [README.md](README.md), [GAME_SPEC.md](GAME_SPEC.md) и [PROJECT_KNOWLEDGE_BASE.md](PROJECT_KNOWLEDGE_BASE.md) нужно обновлять вместе, если меняется зафиксированное поведение проекта.
 
 ## 10. Последние UI-Уточнения
 
@@ -163,25 +163,25 @@
   - `/dictionaries/`
   - `/games-for-company/`
   - `/crocodile-alias-activity/`
-- [sitemap.xml](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/sitemap.xml) расширен: теперь включает главную, SEO-страницы и юридические страницы.
+- [sitemap.xml](sitemap.xml) расширен: теперь включает главную, SEO-страницы и юридические страницы.
 - В корень сайта добавлен IndexNow key-файл `7f3a9c1e4b8d43f6916a2c0e5d9b7a84.txt`, чтобы отправлять новые и обновлённые URL в поисковые системы, поддерживающие IndexNow.
 - После UX/SEO/QA-аудита верхняя SEO-карточка убрана с первого экрана, subtitle укорочен, нижние SEO-ссылки сделаны менее навязчивыми, а mobile-стили уплотнены для игрового setup.
 - На юридические страницы добавлены `description` и `canonical`.
-- В [offer/index.html](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/offer/index.html) и [access/index.html](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/access/index.html) синхронизирована временная бесплатная модель словарей.
+- В [offer/index.html](offer/index.html) и [access/index.html](access/index.html) синхронизирована временная бесплатная модель словарей.
 
 ## 12. ИИ-Конвейер Разработки
 
-- В корень проекта добавлен [AGENTS.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/AGENTS.md) — стартовый файл для ИИ-модели или coding agent с картой проекта, источниками истины, правилами изменений, обязательным pipeline, проверками и release handoff. Зафиксирована триггерная фраза: `посмотри стартовый файл`.
-- Добавлена папка [.agent-pipeline](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/.agent-pipeline) с регламентом прохождения нетривиальных изменений через роли и quality gates.
-- В [.agent-pipeline/AGENT_PIPELINE.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/.agent-pipeline/AGENT_PIPELINE.md) описаны отдельные цепочки для:
+- В корень проекта добавлен [AGENTS.md](AGENTS.md) — стартовый файл для ИИ-модели или coding agent с картой проекта, источниками истины, правилами изменений, обязательным pipeline, проверками и release handoff. Зафиксирована триггерная фраза: `посмотри стартовый файл`.
+- Добавлена папка [.agent-pipeline](.agent-pipeline) с регламентом прохождения нетривиальных изменений через роли и quality gates.
+- В [.agent-pipeline/AGENT_PIPELINE.md](.agent-pipeline/AGENT_PIPELINE.md) описаны отдельные цепочки для:
   - UI/frontend-изменений;
   - игровой логики;
   - backend/auth/payment;
   - словарей;
   - SEO/static pages.
-- В [.agent-pipeline/QUALITY_GATES.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/.agent-pipeline/QUALITY_GATES.md) зафиксированы стоп-гейты для frontend implementation, design adequacy, gameplay logic, backend/auth/payment, dictionary quality, docs sync и release.
-- В [.agent-pipeline/TASK_TEMPLATE.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/.agent-pipeline/TASK_TEMPLATE.md) добавлен шаблон task-журнала, который должен заполняться по этапам.
-- В [.agent-pipeline/agents](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/.agent-pipeline/agents) добавлены инструкции для ролей:
+- В [.agent-pipeline/QUALITY_GATES.md](.agent-pipeline/QUALITY_GATES.md) зафиксированы стоп-гейты для frontend implementation, design adequacy, gameplay logic, backend/auth/payment, dictionary quality, docs sync и release.
+- В [.agent-pipeline/TASK_TEMPLATE.md](.agent-pipeline/TASK_TEMPLATE.md) добавлен шаблон task-журнала, который должен заполняться по этапам.
+- В [.agent-pipeline/agents](.agent-pipeline/agents) добавлены инструкции для ролей:
   - Intake;
   - Project Context Reader;
   - UX Planner;
@@ -196,38 +196,38 @@
 
 ## 13. План Переработки Словарей
 
-- Добавлен [DICTIONARY_REWORK_PLAN.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/DICTIONARY_REWORK_PLAN.md) — ТЗ и план глубокой работы над текущими словарями и новыми словарями `Мир кино` / `Наука и природа`.
-- Добавлен [tools/dictionary_audit.mjs](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/tools/dictionary_audit.mjs) — воспроизводимый скрипт технического аудита словарей.
-- Сгенерирован [DICTIONARY_AUDIT_REPORT.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/DICTIONARY_AUDIT_REPORT.md) с размерами корзин, mismatch `wordCount`, дублями, пересечениями и повторяющимися паттернами.
-- Добавлен [DICTIONARY_EDITORIAL_REVIEW.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/DICTIONARY_EDITORIAL_REVIEW.md) с приоритетами чистки текущих словарей.
-- Добавлен [DICTIONARY_INTERSECTION_DECISIONS.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/DICTIONARY_INTERSECTION_DECISIONS.md) с классификацией оставшихся пересечений после cleanup-проходов.
-- Добавлен [DICTIONARY_BLUEPRINT_CINEMA_SCIENCE.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/DICTIONARY_BLUEPRINT_CINEMA_SCIENCE.md) с кластерами и примерами для будущих словарей.
+- Добавлен [DICTIONARY_REWORK_PLAN.md](DICTIONARY_REWORK_PLAN.md) — ТЗ и план глубокой работы над текущими словарями и новыми словарями `Мир кино` / `Наука и природа`.
+- Добавлен [tools/dictionary_audit.mjs](tools/dictionary_audit.mjs) — воспроизводимый скрипт технического аудита словарей.
+- Сгенерирован [DICTIONARY_AUDIT_REPORT.md](DICTIONARY_AUDIT_REPORT.md) с размерами корзин, mismatch `wordCount`, дублями, пересечениями и повторяющимися паттернами.
+- Добавлен [DICTIONARY_EDITORIAL_REVIEW.md](DICTIONARY_EDITORIAL_REVIEW.md) с приоритетами чистки текущих словарей.
+- Добавлен [DICTIONARY_INTERSECTION_DECISIONS.md](DICTIONARY_INTERSECTION_DECISIONS.md) с классификацией оставшихся пересечений после cleanup-проходов.
+- Добавлен [DICTIONARY_BLUEPRINT_CINEMA_SCIENCE.md](DICTIONARY_BLUEPRINT_CINEMA_SCIENCE.md) с кластерами и примерами для будущих словарей.
 - Выполнен первый высокоуверенный cleanup-проход по `classic`:
-  - `wordCount` в [dictionaries.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/dictionaries.json) исправлен с `922` на фактические `900`;
-  - в [words.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/words.json) убраны внутренние точные дубли;
+  - `wordCount` в [dictionaries.json](dictionaries.json) исправлен с `922` на фактические `900`;
+  - в [words.json](words.json) убраны внутренние точные дубли;
   - фраза длиннее `4` слов `рубить сук на котором сидишь` заменена на `рубить сук`;
   - после повторного аудита у `classic` нет mismatch `wordCount`, длинных фраз и internal duplicate groups.
 - Выполнены high-confidence cleanup-проходы пересечений `classic` с `geo` и `society`; количество точных duplicate/intersection groups снижено с `72` до `9`.
-- Выполнен targeted cleanup однотипных серий в [words_society.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/words_society.json):
+- Выполнен targeted cleanup однотипных серий в [words_society.json](words_society.json):
   - снижены серии `у входа`, `у сцены`, `во дворе`, `в чате`;
   - после проверки у `society` нет внутренних дублей, длинных фраз и mismatch `wordCount`.
 - Созданы и открыты бесплатные словари:
-  - [words_cinema.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/words_cinema.json) — `Мир кино`, `800` карточек;
-  - [words_science.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/words_science.json) — `Наука и природа`, `700` карточек.
-- Добавлен [tools/build_new_dictionaries.mjs](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/tools/build_new_dictionaries.mjs) — генератор текущих черновиков `Мир кино` и `Наука и природа`.
+  - [words_cinema.json](words_cinema.json) — `Мир кино`, `800` карточек;
+  - [words_science.json](words_science.json) — `Наука и природа`, `700` карточек.
+- Добавлен [tools/build_new_dictionaries.mjs](tools/build_new_dictionaries.mjs) — генератор текущих черновиков `Мир кино` и `Наука и природа`.
 - После финального аудита 6 словарей:
   - все `wordCount` совпадают;
   - фраз длиннее `4` слов нет;
   - внутренних duplicate groups нет;
   - `cinema` и `science` не добавили новых точных пересечений.
-- Текущая временная модель доступа в [dictionaries.json](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/dictionaries.json):
+- Текущая временная модель доступа в [dictionaries.json](dictionaries.json):
   - первые три словаря: `classic`, `geo`, `society` — открыты сразу;
   - остальные три словаря: `around_us`, `cinema`, `science` — бесплатны после входа через Telegram;
   - активных premium-словарей сейчас нет, покупка, D1-доступы и premium-продукты для текущего доступа не требуются.
 
 ## 14. Post-Release UX И Deploy Runbook
 
-- В [README.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/README.md) добавлен deploy/fallback runbook:
+- В [README.md](README.md) добавлен deploy/fallback runbook:
   - деплоить только из clean worktree на конкретном SHA;
   - перед деплоем запускать `node --check script.js`, `node --check src/worker.js` и `npx wrangler deploy --dry-run`;
   - fallback делать через redeploy предыдущего проверенного SHA или через `git revert` + deploy.
@@ -246,7 +246,7 @@
 - На экране начала хода добавлена подсказка про передачу телефона объясняющему до выбора карточки.
 - Карточки выбора сложности стали нативными кнопками, поэтому выбор `3/4/5` очков доступен с клавиатуры без изменения игровой логики.
 - Финальный экран партии стал компактнее: показывает победителя, финальный счёт и короткие highlights, а подробную статистику игроков раскрывает ниже. `summary_json` и экран деталей партии в профиле не менялись как контракт данных.
-- Добавлена статическая страница [privacy/index.html](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/privacy/index.html) про localStorage, Telegram-вход, сессии, историю игр, фидбек и Яндекс.Метрику.
-- `privacy` добавлена в профильные и юридические ссылки, а также в [sitemap.xml](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/sitemap.xml).
-- Добавлен [tools/smoke_check.mjs](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/tools/smoke_check.mjs): проверяет JS-синтаксис, структуру словарей, static pages, sitemap, DOM/source-контракты и при необходимости HTTP-доступность локального или production URL.
-- В [wrangler.jsonc](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/wrangler.jsonc) добавлены JSON-файлы словарей после входа в `assets.run_worker_first`, чтобы прямой запрос к asset не обходил `protectDictionaryAsset(...)`.
+- Добавлена статическая страница [privacy/index.html](privacy/index.html) про localStorage, Telegram-вход, сессии, историю игр, фидбек и Яндекс.Метрику.
+- `privacy` добавлена в профильные и юридические ссылки, а также в [sitemap.xml](sitemap.xml).
+- Добавлен [tools/smoke_check.mjs](tools/smoke_check.mjs): проверяет JS-синтаксис, структуру словарей, static pages, sitemap, DOM/source-контракты и при необходимости HTTP-доступность локального или production URL.
+- В [wrangler.jsonc](wrangler.jsonc) добавлены JSON-файлы словарей после входа в `assets.run_worker_first`, чтобы прямой запрос к asset не обходил `protectDictionaryAsset(...)`.

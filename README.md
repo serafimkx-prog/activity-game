@@ -39,7 +39,7 @@
 1. Перейдите в папку проекта:
 
    ```bash
-   cd "/Users/k-serafim/Yandex.Disk.localized/activity-game — копия"
+   cd "/Users/k-serafim/Яндекс.Диск/awesome-vault/Прочее/AI/Projects/activity-game"
    ```
 
 2. Поднимите простой сервер, например:
@@ -120,7 +120,7 @@ node tools/smoke_check.mjs --base http://127.0.0.1:8080
 
 Первые три словаря в сетке открыты сразу, остальные три открываются после входа в аккаунт.
 
-Редакторские правила составления новых словарей зафиксированы в [DICTIONARY_RULES.md](/Users/k-serafim/Yandex.Disk.localized/activity-game — копия/DICTIONARY_RULES.md).
+Редакторские правила составления новых словарей зафиксированы в [DICTIONARY_RULES.md](DICTIONARY_RULES.md).
 
 Формат словаря:
 
