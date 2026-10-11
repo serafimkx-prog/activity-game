@@ -57,7 +57,7 @@ Replace the unreleased 29 RUB monthly subscription with one-time Self.PayAnyWay 
 
 ## Status
 
-- 2026-10-11: local implementation and local verification completed. Production, remote D1, provider account and real money were not changed. Release remains blocked by the account-side and controlled-live-payment checks listed below.
+- 2026-10-11: implementation is deployed to production with checkout disabled. Provider account, Cloudflare Secrets and remote D1 are configured and verified. Release remains blocked only by the controlled live purchase/refund and final checkout enablement.
 
 ## Official provider research
 
@@ -146,18 +146,25 @@ Commands and results:
 - Fresh local D1 plus local Worker and `tools/payment_worker_check.mjs` — pass: GET on both callback endpoints returns 405; POST covers all three individual products, bundle, pending reuse, Check 402/200, replay, wrong amount/currency/user/order/test mode, forged signature, direct asset protection and absence of old subscription endpoints.
 - Local refund simulation — pass: `around_us` changed from 200 to 403, unrelated `cinema` and `science` remained 200, replayed callback left refunded access revoked.
 
-No production URL, remote database, live secret or real payment was used.
+These command results describe the pre-deploy local verification. The later production endpoint and remote D1 checks are recorded in the release section below; no real payment has been made yet.
 
 ## Release blocker and exact next actions
 
 The authenticated Self.PayAnyWay desktop account was inspected on 2026-10-11. Its website-integration screen exposes a business account, an integrity code and a single Pay URL field; it does not expose a separate Check URL or an HTTP-method selector. The Pay URL was saved as `https://activity-game.ru/api/payment/webhook/payanyway`. The account settings now contain seller name `Активити Онлайн`, site `https://activity-game.ru/`, automatic receipt creation enabled and sale notifications enabled.
 
-The integrity code was rendered as plaintext by the provider during visual diagnosis and must be considered exposed. Its value was not copied into the repository, knowledge base or report, and temporary diagnostic screenshots were deleted. The remaining release actions are:
+The integrity code was rendered as plaintext by the provider during visual diagnosis and must be considered exposed. Its value was not copied into the repository, knowledge base or report, and temporary diagnostic screenshots were deleted. The owner declined rotation after the risk was explained and directly entered the existing value in Cloudflare; this accepted risk remains documented.
 
-1. The owner manually replaces the provider integrity code with a new high-entropy value and enters the same value directly into the Cloudflare secret UI; it must not pass through chat, terminal, Git, clipboard automation or ordinary files.
-2. Store the business account number as `PAYANYWAY_ACCOUNT_ID` and the rotated code as `PAYANYWAY_INTEGRITY_CODE` in Cloudflare Secrets.
-3. Apply the additive remote D1 migration, deploy with checkout still disabled, and verify the production Pay endpoint. The optional Check endpoint remains implemented and tested but is not configured because this Self account has no Check URL field.
-4. Enable checkout only for a controlled real low-value verification transaction permitted by the account, confirm the Pay callback, entitlement, automatic NPD receipt and buyer delivery, then refund and confirm both money refund and receipt reversal.
-5. After the controlled test passes, restore the production prices if temporarily changed, set `PAYANYWAY_CHECKOUT_ENABLED=true`, deploy from a clean accepted commit, and run production smoke/access checks.
+Completed production actions:
 
-Until all five steps pass, checkout must remain disabled and this payment release is not production-ready.
+1. `PAYANYWAY_ACCOUNT_ID` and `PAYANYWAY_INTEGRITY_CODE` are present as encrypted Cloudflare Worker secrets; checkout remains disabled.
+2. The additive remote D1 migration was applied statement-by-statement. Verification returned three expected columns, one entitlement table and five expected indexes.
+3. Production and the Worker endpoint both return `paymentCheckoutReady: false`; GET Pay URL returns 405, an unsigned POST returns `FAIL`, and protected dictionary assets return 401 without a session.
+4. The optional Check endpoint remains implemented and tested but is not configured because this Self account has no Check URL field.
+
+Remaining release actions:
+
+1. Enable checkout for a controlled real 149 RUB purchase, confirm the signed Pay callback, exact entitlement, automatic NPD receipt and buyer delivery.
+2. Refund that purchase and confirm both the money refund and receipt reversal, then apply the documented order-scoped entitlement revocation.
+3. If the controlled test passes, leave `PAYANYWAY_CHECKOUT_ENABLED=true` and run the final authenticated production smoke/access checks. If it fails, disable checkout before diagnosis.
+
+Until the controlled live purchase/refund passes, checkout must remain disabled and this payment release is not production-ready.
