@@ -18,7 +18,7 @@ Acceptance criteria:
 - ошибки и поддельные callback не получают номенклатуру и не выдают доступ;
 - документация и production follow-up зафиксированы.
 
-Out of scope: ручное создание чека по уже завершённой операции, фактический возврат 149 ₽ и автоматизация возвратов.
+Out of scope: фактический возврат 149 ₽ и автоматизация возвратов.
 
 Relevant pipeline: Backend / Auth / Payment.
 
@@ -93,7 +93,7 @@ Implementation summary:
 
 Important decisions: цифровой доступ предоставляется сразу после оплаты, поэтому используется полный расчёт и объект `услуга`; пользовательские строки в номенклатуру не попадают.
 
-Known risks: уже завершённая операция не получит новый response повторно и требует ручного чека.
+Known risks: уже завершённая операция не получит новый response повторно; провайдер предлагает для неё возврат по СМС-паролю, а не ретроспективное дополнение номенклатуры.
 
 ## 5. Specialist Review
 
@@ -147,7 +147,7 @@ Docs not changed because: no gameplay or D1 schema behavior changed.
 ## 8. Release Check
 
 Agent: Release Manager
-Verdict: pending production deploy
+Verdict: pass
 
 Diff reviewed: scoped to PayAnyWay receipt inventory, tests and docs.
 
@@ -155,7 +155,7 @@ Commands run: recorded in Functional QA.
 
 Manual checks: Self.PayAnyWay operation completed; automatic receipt setting enabled; provider diagnostic explicitly reported missing nomenclature; remote D1 succeeded with one entitlement.
 
-Deploy follow-up: commit and push, deploy from clean SHA, restore checkout flag if deployment resets it, verify `/api/config`, then verify automatic receipt on the next controlled purchase.
+Deploy follow-up: commit `ac9673a` pushed and deployed from a clean detached worktree with checkout explicitly enabled. Production `/api/config` returned `paymentCheckoutReady: true`; unsigned GET callback returned `FAIL` with HTTP 200; a protected paid asset remained 401 without a session.
 
 D1 follow-up: none.
 
@@ -163,6 +163,6 @@ Secret or config follow-up: none.
 
 Cache follow-up: none expected for Worker API response.
 
-Open risks: current live operation requires manual receipt creation; live automatic check creation remains unverified until a new payment.
+Open risks: current live operation requires a full refund by SMS password; live automatic check creation remains unverified until a new payment.
 
-Ready to hand back: no, until production deploy is verified.
+Ready to hand back: yes for the receipt-response fix; refund and the second live receipt test remain explicit financial follow-up actions.
