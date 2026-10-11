@@ -942,7 +942,7 @@ function renderTeamStats(summary) {
   return `
     <div class="team-stats-grid">
       ${summary.teams.map(team => `
-        <div class="team-summary-card" style="border-left:4px solid ${escapeHtml(team.color)}">
+        <div class="team-summary-card">
           <div class="team-summary-head">
             <div>
               <div class="team-summary-name">${escapeHtml(team.name)}</div>
