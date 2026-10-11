@@ -116,6 +116,7 @@ Work performed:
 - Checkout is submitted as a server-signed POST form and the client restricts the action host to `www.payanyway.ru`.
 - Already owned dictionaries render as playable from backend entitlements.
 - Updated offer, access and privacy pages; added `/support/` with payment/access/refund instructions.
+- Added the official `showAdditionalPaymentMethods=true` checkout field so PayAnyWay exposes every payment method enabled for the Self account instead of opening only the provider-selected default. No `paymentSystem.unitId` or `paymentSystem.limitIds` is sent, so Activity neither preselects nor removes a method.
 
 ## Refund policy
 

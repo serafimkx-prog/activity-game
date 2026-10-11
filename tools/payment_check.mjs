@@ -93,6 +93,9 @@ assert.equal(checkoutUrl.origin, "https://www.payanyway.ru");
 assert.equal(checkoutUrl.pathname, "/assistant.htm");
 assert.equal(checkout.fields.MNT_AMOUNT, "379.00");
 assert.equal(checkout.fields.MNT_SUBSCRIBER_ID, "42");
+assert.equal(checkout.fields.showAdditionalPaymentMethods, "true");
+assert.equal(checkout.fields["paymentSystem.unitId"], undefined);
+assert.equal(checkout.fields["paymentSystem.limitIds"], undefined);
 assert.ok(checkout.fields.MNT_SIGNATURE);
 
 const order = {

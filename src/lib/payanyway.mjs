@@ -129,6 +129,7 @@ export function buildPayAnyWayCheckout({
     MNT_SUBSCRIBER_ID: String(subscriberId),
     MNT_TEST_MODE: String(testMode),
     MNT_DESCRIPTION: product.title,
+    showAdditionalPaymentMethods: "true",
   };
   fields.MNT_SIGNATURE = buildCheckoutSignature(fields, integrityCode);
 
