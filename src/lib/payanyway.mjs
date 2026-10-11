@@ -8,6 +8,7 @@ export const PAYANYWAY_PRODUCTS = Object.freeze({
   dictionary_around_us: Object.freeze({
     productCode: "dictionary_around_us",
     title: "Словарь «Вокруг нас»",
+    receiptTitle: "Доступ к словарю Вокруг нас",
     amountValue: "149.00",
     amountCurrency: PAYANYWAY_CURRENCY,
     dictionaryIds: Object.freeze(["around_us"]),
@@ -15,6 +16,7 @@ export const PAYANYWAY_PRODUCTS = Object.freeze({
   dictionary_cinema: Object.freeze({
     productCode: "dictionary_cinema",
     title: "Словарь «Мир кино»",
+    receiptTitle: "Доступ к словарю Мир кино",
     amountValue: "149.00",
     amountCurrency: PAYANYWAY_CURRENCY,
     dictionaryIds: Object.freeze(["cinema"]),
@@ -22,6 +24,7 @@ export const PAYANYWAY_PRODUCTS = Object.freeze({
   dictionary_science: Object.freeze({
     productCode: "dictionary_science",
     title: "Словарь «Наука и природа»",
+    receiptTitle: "Доступ к словарю Наука и природа",
     amountValue: "149.00",
     amountCurrency: PAYANYWAY_CURRENCY,
     dictionaryIds: Object.freeze(["science"]),
@@ -29,6 +32,7 @@ export const PAYANYWAY_PRODUCTS = Object.freeze({
   dictionaries_bundle: Object.freeze({
     productCode: "dictionaries_bundle",
     title: "Комплект из трёх словарей Activity",
+    receiptTitle: "Доступ к комплекту словарей Activity",
     amountValue: "379.00",
     amountCurrency: PAYANYWAY_CURRENCY,
     dictionaryIds: Object.freeze(["around_us", "cinema", "science"]),

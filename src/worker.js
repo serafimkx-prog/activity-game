@@ -157,7 +157,28 @@ function xmlEscape(value) {
   }[character]));
 }
 
-function payAnyWayXmlResponse(fields, env, resultCode, description, amount = null) {
+function payAnyWayReceiptInventory(order) {
+  const product = getPayAnyWayProduct(order?.product_code);
+  if (!product) return null;
+
+  return [{
+    name: product.receiptTitle,
+    price: product.amountValue,
+    quantity: "1",
+    vatTag: "1105",
+    pm: "full_payment",
+    po: "service",
+  }];
+}
+
+function payAnyWayXmlResponse(
+  fields,
+  env,
+  resultCode,
+  description,
+  amount = null,
+  inventory = null
+) {
   const accountId = fields?.MNT_ID || env.PAYANYWAY_ACCOUNT_ID || "";
   const transactionId = fields?.MNT_TRANSACTION_ID || "";
   const signature = buildResponseSignature(
@@ -167,13 +188,16 @@ function payAnyWayXmlResponse(fields, env, resultCode, description, amount = nul
     env.PAYANYWAY_INTEGRITY_CODE || ""
   );
   const amountElement = amount ? `\n  <MNT_AMOUNT>${xmlEscape(amount)}</MNT_AMOUNT>` : "";
+  const attributesElement = Array.isArray(inventory) && inventory.length
+    ? `\n  <MNT_ATTRIBUTES>\n    <ATTRIBUTE>\n      <KEY>INVENTORY</KEY>\n      <VALUE>${xmlEscape(JSON.stringify(inventory))}</VALUE>\n    </ATTRIBUTE>\n  </MNT_ATTRIBUTES>`
+    : "";
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <MNT_RESPONSE>
   <MNT_ID>${xmlEscape(accountId)}</MNT_ID>
   <MNT_TRANSACTION_ID>${xmlEscape(transactionId)}</MNT_TRANSACTION_ID>
   <MNT_RESULT_CODE>${resultCode}</MNT_RESULT_CODE>
   <MNT_DESCRIPTION>${xmlEscape(description)}</MNT_DESCRIPTION>${amountElement}
-  <MNT_SIGNATURE>${signature}</MNT_SIGNATURE>
+  <MNT_SIGNATURE>${signature}</MNT_SIGNATURE>${attributesElement}
 </MNT_RESPONSE>`;
   return new Response(xml, {
     status: 200,
@@ -803,7 +827,14 @@ async function handlePayAnyWayPayment(request, env) {
     return payAnyWayXmlResponse(fields, env, 302, "Payment processing");
   }
 
-  return payAnyWayXmlResponse(fields, env, 200, "Payment accepted");
+  return payAnyWayXmlResponse(
+    fields,
+    env,
+    200,
+    "Payment accepted",
+    null,
+    payAnyWayReceiptInventory(order)
+  );
 }
 
 async function handleProfileSummary(request, env) {

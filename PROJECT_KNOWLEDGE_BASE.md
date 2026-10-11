@@ -454,16 +454,17 @@ Backend находится в [src/worker.js](src/worker.js).
 - требует авторизации;
 - делает upsert по паре `user_id + feedback_id`.
 
-`POST /api/payment/check/payanyway`
+`GET|POST /api/payment/check/payanyway`
 
 - проверяет подпись CHECK-запроса и точное совпадение аккаунта, заказа, суммы, валюты, пользователя и режима;
 - отвечает кодом 402 только для готового pending-заказа, 200 — для уже оплаченного, 500 — для недоступного или несовпадающего.
 
-`POST /api/payment/webhook/payanyway`
+`GET|POST /api/payment/webhook/payanyway`
 
 - принимает Pay URL уведомление Self.PayAnyWay;
 - проверяет официальную MD5-подпись и точное совпадение неизменяемых данных заказа;
 - только подтверждённый callback переводит заказ в `succeeded` и идемпотентно выдаёт точные права через `purchase_order_entitlements`;
+- успешный ответ содержит подписанный XML-атрибут `INVENTORY`, сформированный только из серверного каталога: безопасное название доступа, точную цену заказа, количество `1`, `vatTag: 1105`, `pm: full_payment` и `po: service`;
 - повторный callback безопасен; forged, failed, canceled и mismatched запросы доступ не выдают.
 
 ## 11. Telegram auth

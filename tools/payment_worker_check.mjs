@@ -65,6 +65,26 @@ function assertXmlCode(text, code) {
   assert.ok(text.includes(`<MNT_SIGNATURE>${buildResponseSignature(code, accountId, transactionId, integrityCode)}</MNT_SIGNATURE>`));
 }
 
+function assertReceiptInventory(text, expectedTitle, expectedPrice) {
+  assert.match(text, /<KEY>INVENTORY<\/KEY>/);
+  const encodedValue = text.match(/<VALUE>([\s\S]*?)<\/VALUE>/)?.[1] || "";
+  const decodedValue = encodedValue
+    .replaceAll("&quot;", '"')
+    .replaceAll("&apos;", "'")
+    .replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">")
+    .replaceAll("&amp;", "&");
+  const inventory = JSON.parse(decodedValue);
+  assert.deepEqual(inventory, [{
+    name: expectedTitle,
+    price: expectedPrice,
+    quantity: "1",
+    vatTag: "1105",
+    pm: "full_payment",
+    po: "service",
+  }]);
+}
+
 async function createProduct(productCode, cookie, expectedAmount) {
   const { response, text } = await request("/api/purchase/create", {
     method: "POST",
@@ -82,7 +102,7 @@ async function createProduct(productCode, cookie, expectedAmount) {
   return payload.checkout.fields;
 }
 
-async function payProduct(fields, operationId, method = "POST") {
+async function payProduct(fields, operationId, expectedReceiptTitle, method = "POST") {
   const checkBefore = await providerRequest("/api/payment/check/payanyway", method, checkFields(fields));
   assert.equal(checkBefore.response.status, 200);
   assertXmlCode(checkBefore.text, 402);
@@ -91,10 +111,12 @@ async function payProduct(fields, operationId, method = "POST") {
   const paid = await providerRequest("/api/payment/webhook/payanyway", method, payment);
   assert.equal(paid.response.status, 200);
   assertXmlCode(paid.text, 200);
+  assertReceiptInventory(paid.text, expectedReceiptTitle, fields.MNT_AMOUNT);
 
   const replay = await providerRequest("/api/payment/webhook/payanyway", method, payment);
   assert.equal(replay.response.status, 200);
   assertXmlCode(replay.text, 200);
+  assertReceiptInventory(replay.text, expectedReceiptTitle, fields.MNT_AMOUNT);
 
   const checkAfter = await providerRequest("/api/payment/check/payanyway", method, checkFields(fields));
   assertXmlCode(checkAfter.text, 200);
@@ -145,23 +167,23 @@ const forgedResponse = await request("/api/payment/webhook/payanyway", { method:
 assert.equal(forgedResponse.text, "FAIL");
 assert.equal((await request("/words_around_us.json", { cookie: "test-session-individual" })).response.status, 403);
 
-await payProduct(aroundFields, "operation-around", "GET");
+await payProduct(aroundFields, "operation-around", "Доступ к словарю Вокруг нас", "GET");
 assert.equal((await request("/words_around_us.json", { cookie: "test-session-individual" })).response.status, 200);
 assert.equal((await request("/words_cinema.json", { cookie: "test-session-individual" })).response.status, 403);
 
-for (const [productCode, asset, operationId] of [
-  ["dictionary_cinema", "/words_cinema.json", "operation-cinema"],
-  ["dictionary_science", "/words_science.json", "operation-science"],
+for (const [productCode, asset, operationId, receiptTitle] of [
+  ["dictionary_cinema", "/words_cinema.json", "operation-cinema", "Доступ к словарю Мир кино"],
+  ["dictionary_science", "/words_science.json", "operation-science", "Доступ к словарю Наука и природа"],
 ]) {
   const fields = await createProduct(productCode, "test-session-individual", "149.00");
-  await payProduct(fields, operationId);
+  await payProduct(fields, operationId, receiptTitle);
   assert.equal((await request(asset, { cookie: "test-session-individual" })).response.status, 200);
 }
 
 const bundleFields = await createProduct("dictionaries_bundle", "test-session-bundle", "379.00");
 const bundleRetryFields = await createProduct("dictionaries_bundle", "test-session-bundle", "379.00");
 assert.equal(bundleRetryFields.MNT_TRANSACTION_ID, bundleFields.MNT_TRANSACTION_ID, "pending bundle order is reused");
-await payProduct(bundleFields, "operation-bundle");
+await payProduct(bundleFields, "operation-bundle", "Доступ к комплекту словарей Activity");
 for (const asset of ["/words_around_us.json", "/words_cinema.json", "/words_science.json"]) {
   assert.equal((await request(asset, { cookie: "test-session-bundle" })).response.status, 200);
 }
