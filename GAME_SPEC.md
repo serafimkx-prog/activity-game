@@ -137,22 +137,24 @@
 - показывает словари с учётом `canPlay`, `lockedReason` и `requiresPurchase`;
 - по умолчанию выбирает первый словарь с `canPlay: true`.
 - для словарей с `authAccess: "login"` без входа показывает CTA `Войти`;
-- premium-ветка UI и покупок остаётся в коде для будущих premium-словарей, но в текущем каталоге активных premium-словарей нет.
+- для premium-словарей показывает разовую покупку после входа; цена и состав товара проверяются backend.
 
 Текущие доступные словари по репозиторию:
 
 - `classic` — free, открыт сразу
-- `geo` — free, открыт сразу
-- `society` — free, открыт сразу
-- `around_us` — free after login
-- `cinema` — free after login
-- `science` — free after login
+- `geo` — free after login
+- `society` — free after login
+- `around_us` — premium, 149 ₽ разово
+- `cinema` — premium, 149 ₽ разово
+- `science` — premium, 149 ₽ разово
+
+Комплект из трёх premium-словарей стоит 379 ₽. Это отдельный товар без доплаты или зачёта предыдущих покупок.
 
 При старте партии игра загружает JSON-файл выбранного словаря через защищённый asset-fetch:
 
 - `fetch(dict.file)`
 
-Для словарей с `authAccess: "login"` Worker требует авторизацию, но не требует покупку. Для будущих premium-словарей Worker дополнительно проверяет сессию и наличие доступа в `user_dictionary_access`; сейчас в `dictionaries.json` таких словарей нет.
+Для словарей с `authAccess: "login"` Worker требует авторизацию. Для premium-словарей Worker дополнительно проверяет действующее право в `purchase_order_entitlements` либо совместимую старую выдачу в `user_dictionary_access`.
 
 После загрузки вызывается `initPools(data)`, которая создаёт перемешанные пулы слов для:
 
@@ -419,7 +421,8 @@ Worker entrypoint находится в `src/worker.js`.
 - `POST /api/game-sessions`
 - `GET /api/profile/summary`
 - `POST /api/dictionary-feedback`
-- `POST /api/payment/webhook/yookassa`
+- `POST /api/payment/check/payanyway`
+- `POST /api/payment/webhook/payanyway`
 
 Сохранение завершённой партии на клиенте теперь устроено так:
 

@@ -123,6 +123,7 @@ const state = {
 const auth = {
   config: null,
   user: null,
+  ownedDictionaryIds: [],
   widgetLoaded: false,
   statsLoaded: false,
   recentGamesMap: {},
@@ -1134,24 +1135,6 @@ async function refreshCurrentUser() {
   }
 }
 
-async function syncPendingDictionaryPurchases(dictionaryId = null) {
-  if (!auth.user) return false
-
-  try {
-    const response = await fetch('/api/purchase/sync', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      credentials: 'same-origin',
-      body: JSON.stringify(dictionaryId ? { dictionaryId } : {}),
-    })
-    if (!response.ok) return false
-    const payload = await response.json().catch(() => null)
-    return Boolean(payload?.updatedCount)
-  } catch {
-    return false
-  }
-}
-
 function renderTelegramLoginWidget() {
   if (!auth.config?.telegramBotUsername || auth.user || auth.widgetLoaded) return
 
@@ -1196,9 +1179,7 @@ function renderAuthCard() {
     })
     loadProfileStats()
     flushPendingGameSessions()
-    syncPendingDictionaryPurchases().then((didSync) => {
-      if (didSync) loadDictionaries()
-    })
+    renderPurchaseCard()
     return
   }
 
@@ -1209,17 +1190,127 @@ function renderAuthCard() {
       loginHtml: '<div class="account-note">После этого на этом месте появится кнопка входа через Telegram.</div>',
     })
     renderProfileStatsLocked()
+    renderPurchaseCard()
     return
   }
 
   setAccountView({
     name: 'Войти через Telegram',
-    meta: 'Подключи аккаунт, чтобы сохранять историю и открыть словари для авторизованных игроков.',
+    meta: 'Откройте словари и сохраняйте историю игр.',
     loginHtml: '<div class="account-note">Загружаем кнопку входа…</div>',
   })
   renderProfileStatsLocked()
+  renderPurchaseCard()
 
   renderTelegramLoginWidget()
+}
+
+const PAID_DICTIONARY_IDS = ['around_us', 'cinema', 'science']
+const DICTIONARY_PRODUCT_CODES = {
+  around_us: 'dictionary_around_us',
+  cinema: 'dictionary_cinema',
+  science: 'dictionary_science',
+}
+
+function renderPurchaseCard() {
+  const statusEl = q('purchase-bundle-status')
+  const button = q('purchase-bundle-action')
+  const note = q('purchase-bundle-note')
+  if (!statusEl || !button || !note) return
+
+  if (!auth.user) {
+    statusEl.textContent = 'Нужен вход'
+    button.textContent = 'Войти через Telegram'
+    button.dataset.action = 'login'
+    button.disabled = false
+    note.textContent = 'Покупки привязываются к Telegram‑аккаунту.'
+    return
+  }
+
+  const owned = new Set(auth.ownedDictionaryIds)
+  if (PAID_DICTIONARY_IDS.every(id => owned.has(id))) {
+    statusEl.textContent = 'Куплено'
+    button.textContent = 'Все три словаря открыты'
+    button.dataset.action = 'owned'
+    button.className = 'btn btn-secondary purchase-action'
+    button.disabled = true
+    note.textContent = 'Доступ сохраняется в этом аккаунте.'
+    return
+  }
+
+  if (!auth.config?.paymentCheckoutReady) {
+    statusEl.textContent = 'Настройка'
+    button.textContent = 'Оплата скоро'
+    button.dataset.action = 'unavailable'
+    button.className = 'btn btn-primary purchase-action'
+    button.disabled = true
+    note.textContent = 'Завершаем подключение платежей.'
+    return
+  }
+
+  statusEl.textContent = 'Разово'
+  button.textContent = 'Открыть все за 379 ₽'
+  button.dataset.action = 'buy-bundle'
+  button.className = 'btn btn-primary purchase-action'
+  button.disabled = false
+  note.textContent = 'Один платёж. Без автопродления.'
+}
+
+async function startPurchase(productCode, button = null) {
+  if (!auth.user) {
+    showScreen('profile')
+    return
+  }
+  const targetButton = button || q('purchase-bundle-action')
+  if (targetButton) {
+    targetButton.disabled = true
+    targetButton.textContent = 'Открываем оплату…'
+  }
+  try {
+    const response = await fetch('/api/purchase/create', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ productCode }),
+    })
+    const payload = await response.json().catch(() => null)
+    if (!response.ok || !payload?.ok) throw new Error(payload?.error || 'Не удалось создать платёж.')
+
+    if (payload.alreadyOwned) {
+      await loadDictionaries()
+      return
+    }
+    const checkout = payload.checkout
+    if (checkout?.method !== 'POST' || !checkout.action || !checkout.fields) {
+      throw new Error('Не удалось открыть страницу оплаты.')
+    }
+    const checkoutUrl = new URL(checkout.action)
+    if (checkoutUrl.protocol !== 'https:' || checkoutUrl.hostname !== 'www.payanyway.ru') {
+      throw new Error('Получен неверный адрес оплаты.')
+    }
+    const form = document.createElement('form')
+    form.method = 'POST'
+    form.action = checkoutUrl.toString()
+    for (const [name, value] of Object.entries(checkout.fields)) {
+      const input = document.createElement('input')
+      input.type = 'hidden'
+      input.name = name
+      input.value = String(value)
+      form.appendChild(input)
+    }
+    document.body.appendChild(form)
+    form.submit()
+  } catch (err) {
+    setDictionaryNotice(err.message || 'Не удалось начать оплату.', 'warning')
+    renderPurchaseCard()
+    renderDictGrid()
+  }
+}
+
+window.startDictionaryPurchase = function(dictionaryId, button) {
+  const productCode = DICTIONARY_PRODUCT_CODES[dictionaryId]
+  if (!productCode) return
+  startPurchase(productCode, button)
 }
 
 window.handleTelegramAuth = async function(user) {
@@ -1244,6 +1335,7 @@ window.handleTelegramAuth = async function(user) {
     renderAuthCard()
   } catch (err) {
     auth.user = null
+    auth.ownedDictionaryIds = []
     auth.widgetLoaded = false
     setAccountView({
       name: 'Вход не удался',
@@ -1261,6 +1353,7 @@ async function logoutTelegramUser() {
     })
   } finally {
     auth.user = null
+    auth.ownedDictionaryIds = []
     auth.widgetLoaded = false
     await loadDictionaries()
     renderAuthCard()
@@ -1395,10 +1488,11 @@ function renderBoard(containerId) {
   rows += '</div>'
 
   const labels = state.teams.map(t => {
-    const posLabel = t.position >= FINISH ? '🏁' : `кл.${t.position}`
+    const posLabel = t.position >= FINISH ? 'Финиш' : t.position === 0 ? 'Старт' : t.position
     return `<span class="board-team-label">
-      <span style="width:9px;height:9px;border-radius:50%;background:${t.color};display:inline-block"></span>
-      ${t.name}: ${posLabel}
+      <span class="board-team-dot" style="background:${t.color}"></span>
+      <span class="board-team-name">${escapeHtml(t.name)}</span>
+      <span class="board-team-position">${posLabel}</span>
     </span>`
   }).join('')
 
@@ -1406,9 +1500,9 @@ function renderBoard(containerId) {
     <div class="board-info">${labels}</div>
     ${rows}
     <div class="board-legend">
-      <div class="leg"><div class="leg-dot" style="background:#3d3180"></div>🗣️ Объяснение</div>
-      <div class="leg"><div class="leg-dot" style="background:#7a1e1e"></div>🙌 Пантомима</div>
-      <div class="leg"><div class="leg-dot" style="background:#7a5500"></div>🎨 Рисование</div>
+      <div class="leg"><div class="leg-dot" style="background:#5746ad"></div>Объяснить</div>
+      <div class="leg"><div class="leg-dot" style="background:#9b3030"></div>Показать</div>
+      <div class="leg"><div class="leg-dot" style="background:#9a6c0b"></div>Нарисовать</div>
     </div>`
 }
 
@@ -1424,20 +1518,24 @@ async function loadDictionaries() {
     if (!response.ok) throw new Error('dictionaries request failed')
     const payload = await response.json()
     dictionaries = Array.isArray(payload.dictionaries) ? payload.dictionaries : []
+    auth.ownedDictionaryIds = Array.isArray(payload.ownedDictionaryIds) ? payload.ownedDictionaryIds : []
   } catch {
     const staticCatalog = await fetch('dictionaries.json').then(r => r.json()).catch(() => [])
+    const ownedDictionaryIds = new Set(auth.ownedDictionaryIds)
     dictionaries = Array.isArray(staticCatalog) ? staticCatalog.map(dict => ({
       ...dict,
       access: dict.access === 'premium' ? 'premium' : 'free',
       authAccess: dict.authAccess === 'login' ? 'login' : 'none',
-      canPlay: dict.available !== false && dict.access !== 'premium' && (dict.authAccess !== 'login' || Boolean(auth.user)),
+      canPlay: dict.available !== false
+        && (dict.authAccess !== 'login' || Boolean(auth.user))
+        && (dict.access !== 'premium' || ownedDictionaryIds.has(dict.id)),
       requiresPurchase: dict.access === 'premium',
       lockedReason: dict.available === false
         ? 'coming_soon'
         : dict.authAccess === 'login' && !auth.user
           ? 'login_required'
           : dict.access === 'premium'
-            ? 'login_required'
+            ? 'purchase_required'
             : null,
       priceLabel: dict.priceLabel || null,
     })) : [{
@@ -1461,6 +1559,7 @@ async function loadDictionaries() {
   selectedDictId = preserved?.id || firstPlayable?.id || null
   clearDictionaryNotice()
   renderDictGrid()
+  renderPurchaseCard()
 }
 
 function renderDictGrid() {
@@ -1471,19 +1570,14 @@ function renderDictGrid() {
     const infoHtml = d.description
       ? `<span class="dict-info-trigger" onclick="event.stopPropagation()" tabindex="0" role="button" aria-label="Описание словаря ${escapeHtml(d.name)}">i<span class="dict-info-tooltip">${escapeHtml(d.description)}</span></span>`
       : ''
-    const badge = !d.available
-      ? (d.badge || 'Скоро')
-      : locked && d.requiresPurchase
-        ? (d.priceLabel || 'Премиум')
-        : d.badge
     const footerText = !d.available
       ? 'Словарь ещё не открыт'
       : locked
         ? d.lockedReason === 'login_required' && !d.requiresPurchase
           ? 'Бесплатно после входа'
           : d.requiresPurchase
-            ? 'Карточек: ' + d.wordCount
-          : 'Нужна покупка словаря'
+            ? 'Разово · 149 ₽'
+          : 'Нужна покупка'
         : 'Карточек: ' + d.wordCount
     const actionHtml = !d.available
       ? ''
@@ -1491,8 +1585,8 @@ function renderDictGrid() {
         ? `<button class="dict-buy-btn" onclick="event.stopPropagation(); showScreen('profile')">Войти</button>`
       : locked && d.requiresPurchase
         ? d.lockedReason === 'login_required'
-          ? `<button class="dict-buy-btn" onclick="event.stopPropagation(); showScreen('profile')">Войти, чтобы купить</button>`
-          : `<button class="dict-buy-btn" onclick="event.stopPropagation(); buyDictionaryAccess('${d.id}')">Купить за 149 ₽</button>`
+          ? `<button class="dict-buy-btn" onclick="event.stopPropagation(); showScreen('profile')">Войти</button>`
+          : `<button class="dict-buy-btn" ${auth.config?.paymentCheckoutReady ? '' : 'disabled'} onclick="event.stopPropagation(); startDictionaryPurchase('${d.id}', this)">${auth.config?.paymentCheckoutReady ? 'Купить · 149 ₽' : 'Оплата скоро'}</button>`
       : isSel
         ? `<div class="dict-state-pill">Выбран</div>`
         : `<button class="dict-select-btn" onclick="event.stopPropagation(); selectDict('${d.id}')">Выбрать</button>`
@@ -1500,17 +1594,29 @@ function renderDictGrid() {
     return `<div class="dict-card${isSel ? ' selected' : ''}${locked ? ' locked' : ''}"
                  onclick="${locked ? `selectLockedDict('${d.id}')` : `selectDict('${d.id}')`}">
       ${isSel ? '<div class="dict-check">✓</div>' : ''}
-      ${!isSel && badge ? `<div class="dict-badge">${badge}</div>` : ''}
-      <div class="dict-icon">${d.icon}</div>
-      <div class="dict-name">${d.name}</div>
+      <div class="dict-icon">${dictionaryIconSvg(d.id)}</div>
+      <div class="dict-name">${escapeHtml(d.name)}</div>
       <div class="dict-sub-row">
-        <div class="dict-sub">${d.subtitle}</div>
+        <div class="dict-sub">${escapeHtml(d.subtitle)}</div>
         ${infoHtml}
       </div>
       <div class="dict-words">${footerText}</div>
       ${actionHtml}
     </div>`
   }).join('')
+}
+
+function dictionaryIconSvg(id) {
+  const paths = {
+    classic: '<path d="M4 6.5h5v3a2.5 2.5 0 0 1-5 0v-3Zm11 0h5v3a2.5 2.5 0 0 1-5 0v-3ZM9 8h6v6a3 3 0 0 1-6 0V8Z"/><path d="M5.5 8.5h2M16.5 8.5h2M11 11.5h2"/>',
+    geo: '<circle cx="12" cy="12" r="8.5"/><path d="M3.8 10h16.4M3.8 14h16.4M12 3.5c2.3 2.4 3.4 5.2 3.4 8.5S14.3 18.1 12 20.5M12 3.5C9.7 5.9 8.6 8.7 8.6 12s1.1 6.1 3.4 8.5"/>',
+    society: '<path d="m3.5 9 8.5-5 8.5 5M5 9.5h14M6.5 10v7.5M10 10v7.5M14 10v7.5M17.5 10v7.5M4 20h16"/>',
+    around_us: '<path d="m12 3 1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6L12 3Z"/><path d="m5 14 .9 2.1L8 17l-2.1.9L5 20l-.9-2.1L2 17l2.1-.9L5 14Zm14-3 .7 1.8 1.8.7-1.8.7L19 16l-.7-1.8-1.8-.7 1.8-.7L19 11Z"/>',
+    cinema: '<rect x="3" y="6.5" width="18" height="13" rx="2"/><path d="M3 10.5h18M6 3l2 3.5M11 3l2 3.5M16 3l2 3.5"/>',
+    science: '<path d="M9 3h6M10 3v5l-4.8 8.2A3.2 3.2 0 0 0 8 21h8a3.2 3.2 0 0 0 2.8-4.8L14 8V3"/><path d="M7.5 15h9"/>',
+  }
+  const path = paths[id] || paths.classic
+  return `<svg viewBox="0 0 24 24" aria-hidden="true">${path}</svg>`
 }
 
 function setDictionaryNotice(message, variant = 'info') {
@@ -1538,13 +1644,12 @@ async function loadDictionaryEntries(dict) {
       throw new Error('Войди через Telegram, чтобы открыть этот словарь.')
     }
     if (response.status === 403 && errorCode === 'Dictionary access required') {
-      await syncPendingDictionaryPurchases(dict.id)
       await loadDictionaries()
       const refreshedDict = dictionaries.find(item => item.id === dict.id)
       if (refreshedDict?.canPlay) {
         return loadDictionaryEntries(refreshedDict)
       }
-      throw new Error(`Оплата словаря "${dict.name}" ещё не подтверждена. Если вы уже оплатили, обновите страницу через несколько секунд.`)
+      throw new Error('Оплата ещё не подтверждена. Обновите страницу через несколько секунд.')
     }
     if (response.status === 404) {
       throw new Error('Этот словарь пока недоступен.')
@@ -1573,50 +1678,16 @@ window.selectLockedDict = function(id) {
   }
   if (dict.lockedReason === 'login_required') {
     const message = dict.requiresPurchase
-      ? `Для покупки словаря "${dict.name}" сначала войди через Telegram в профиле.`
-      : `Словарь "${dict.name}" бесплатный, но открывается после входа через Telegram. Нажми "Войти" на карточке или перейди в профиль.`
+      ? 'Сначала войдите через Telegram, чтобы купить словарь.'
+      : `Словарь "${dict.name}" бесплатный и открывается после входа через Telegram.`
     setDictionaryNotice(message, 'warning')
     return
   }
-  setDictionaryNotice(`Словарь "${dict.name}" пока закрыт. Используй кнопку на карточке, когда он станет доступен.`, 'warning')
-}
-
-window.buyDictionaryAccess = async function(id) {
-  const dict = dictionaries.find(d => d.id === id)
-  if (!dict) return
-
-  if (!auth.user) {
-    showScreen('profile')
+  if (dict.lockedReason === 'purchase_required') {
+    setDictionaryNotice('Этот словарь стоит 149 ₽. Все три можно открыть за 379 ₽.', 'warning')
     return
   }
-
-  try {
-    const response = await fetch('/api/purchase/create', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      credentials: 'same-origin',
-      body: JSON.stringify({ dictionaryId: id }),
-    })
-    const payload = await response.json().catch(() => null)
-
-    if (!response.ok || !payload?.ok) {
-      throw new Error(payload?.error || 'Не удалось создать платёж.')
-    }
-
-    if (payload.alreadyOwned) {
-      await loadDictionaries()
-      setDictionaryNotice(`Словарь "${dict.name}" уже доступен на этом аккаунте.`, 'success')
-      return
-    }
-
-    if (!payload.confirmationUrl) {
-      throw new Error('Не удалось получить ссылку на оплату.')
-    }
-
-    window.location.href = payload.confirmationUrl
-  } catch (err) {
-    setDictionaryNotice(err.message || 'Не удалось начать оплату.', 'warning')
-  }
+  setDictionaryNotice(`Словарь "${dict.name}" пока закрыт.`, 'warning')
 }
 
 // ─── Setup ─────────────────────────────────────────────────────────────────────
@@ -1643,16 +1714,16 @@ function renderTeams() {
     const players = teamPlayers[i]
     const playersHTML = players.map((name, j) => `
       <div class="player-row">
-        <input class="player-input" id="pi${i}_${j}" placeholder="Имя игрока" value="${name}">
+        <input class="player-input" id="pi${i}_${j}" placeholder="Имя игрока" value="${escapeHtml(name)}">
         ${players.length > 1
           ? `<button class="btn btn-sm btn-secondary" style="padding:4px 8px;font-size:.75rem" onclick="removePlayer(${i},${j})">✕</button>`
           : ''}
       </div>`).join('')
     const d = document.createElement('div')
     d.className = 'team-block'
-    d.style.borderLeftColor = TEAM_COLORS[i]
     d.innerHTML = `<div class="team-header">
-      <input class="team-name-input" id="ti${i}" value="${defaultNames[i]}" style="border-bottom-color:${TEAM_COLORS[i]}">
+      <span class="team-color-dot" style="background:${TEAM_COLORS[i]}" aria-hidden="true"></span>
+      <input class="team-name-input" id="ti${i}" value="${escapeHtml(defaultNames[i])}" aria-label="Название команды ${i + 1}">
       ${teamCount > 2 ? `<button class="btn btn-sm btn-danger" onclick="removeTeam(${i})">✕</button>` : ''}
     </div>
     <div class="players-section">
@@ -2129,10 +2200,20 @@ loadAuthConfig()
   .then(loadDictionaries)
   .then(renderAuthCard)
 renderProfileStatsLocked()
+renderPurchaseCard()
 
 q('gd-back-btn').addEventListener('click', () => {
   sfxNavBack()
   showScreen('profile')
+})
+
+q('purchase-bundle-action').addEventListener('click', async () => {
+  const action = q('purchase-bundle-action').dataset.action
+  if (action === 'login') {
+    q('telegram-login-slot').scrollIntoView({ behavior: 'smooth', block: 'center' })
+    return
+  }
+  if (action === 'buy-bundle') await startPurchase('dictionaries_bundle')
 })
 
 // Handle Continue Game button click

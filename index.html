@@ -59,19 +59,16 @@
 <!-- SETUP -->
 <div class="screen active" id="screen-setup">
   <h1>Активити Онлайн</h1>
-  <p class="subtitle">Настройте команды, выберите словарь и начните партию в браузере.</p>
+  <p class="subtitle">Выберите словарь, настройте команды. Первый, кто наберёт 41 очко, победит.</p>
   <nav class="nav-pill" aria-label="Основная навигация">
     <button type="button" class="nav-item active" aria-current="page" onclick="showScreen('setup')">Новая игра</button>
     <button type="button" class="nav-item" onclick="showScreen('rules')">Правила</button>
     <button type="button" class="nav-item" onclick="showScreen('profile')">Профиль</button>
   </nav>
-  <div class="quick-start" aria-label="Важная подсказка">
-    <div class="quick-step"><strong aria-hidden="true">!</strong><span>На просмотр слова телефон берёт только объясняющий. Остальные игроки отворачиваются.</span></div>
-  </div>
   <div class="section">
     <h2>Словарь</h2>
     <div class="dict-grid" id="dict-grid">
-      <div style="color:#aaa;font-size:.9rem;grid-column:span 2">Загрузка словарей…</div>
+      <div style="color:#bdc5d1;font-size:.9rem;grid-column:span 2">Загрузка словарей…</div>
     </div>
     <div class="dict-message" id="dict-message" role="status" aria-live="polite" hidden></div>
   </div>
@@ -122,7 +119,7 @@
 
 <!-- RULES -->
 <div class="screen" id="screen-rules">
-  <div class="screen-title">🎭 Activity</div>
+  <div class="screen-title">Активити</div>
   <nav class="nav-pill" aria-label="Основная навигация">
     <button type="button" class="nav-item" onclick="showScreen('setup')">Новая игра</button>
     <button type="button" class="nav-item active" aria-current="page" onclick="showScreen('rules')">Правила</button>
@@ -131,7 +128,7 @@
   
   <div class="section">
     <h2>Суть игры</h2>
-    <p>Команды соревнуются в объяснении слов. Задача — первыми добраться до <span class="highlight">финиша (41 клетка)</span>, используя три способа объяснения: 🗣️ Слова, 🙌 Пантомима, 🎨 Рисование.</p>
+    <p>Команды объясняют слова тремя способами: словами, пантомимой или рисунком. Побеждает команда, которая первой доберётся до <span class="highlight">41 очка</span>.</p>
   </div>
 
   <div class="section">
@@ -164,7 +161,7 @@
 
 <!-- PROFILE -->
 <div class="screen" id="screen-profile">
-  <div class="screen-title">🎭 Activity</div>
+  <div class="screen-title">Активити</div>
   <nav class="nav-pill" aria-label="Основная навигация">
     <button type="button" class="nav-item" onclick="showScreen('setup')">Новая игра</button>
     <button type="button" class="nav-item" onclick="showScreen('rules')">Правила</button>
@@ -173,7 +170,7 @@
 
   <div class="section account-section">
     <h2>Профиль</h2>
-    <p class="account-subtitle">Вход через Telegram открывает дополнительные бесплатные словари, историю партий и будущие функции профиля.</p>
+    <p class="account-subtitle">Войдите, чтобы открыть словари и сохранять игры.</p>
     <div class="account-card" id="account-card">
       <div class="account-state">
         <div class="account-avatar placeholder" id="account-avatar">TG</div>
@@ -195,15 +192,27 @@
     </div>
   </div>
   <div class="section">
-    <h2>Доступ к словарям</h2>
+    <h2>Доступ</h2>
+    <div class="purchase-card" id="purchase-bundle-card">
+      <div class="purchase-head">
+        <div>
+          <div class="purchase-eyebrow">Выгоднее вместе</div>
+          <div class="purchase-price">379 ₽ <span>вместо 447 ₽</span></div>
+          <p>Вокруг нас, Мир кино и Наука и природа</p>
+        </div>
+        <span class="purchase-status" id="purchase-bundle-status">Нужен вход</span>
+      </div>
+      <button class="btn btn-primary purchase-action" id="purchase-bundle-action" type="button">Войти</button>
+      <p class="purchase-note" id="purchase-bundle-note">Разовая покупка. Доступ останется в аккаунте.</p>
+    </div>
     <div class="product-note">
-      <p>Сейчас все опубликованные словари бесплатные: первые три открыты сразу, остальные три открываются после входа через Telegram.</p>
-      <p>Платная модель может вернуться позже для новых наборов, но активных premium-словарей в текущем каталоге нет.</p>
+      <p>Каждый тематический словарь можно купить отдельно за 149 ₽. «География» и «Общество» бесплатны после входа.</p>
       <div class="legal-links">
         <a href="/offer/" target="_blank" rel="noopener">Оферта</a>
         <a href="/access/" target="_blank" rel="noopener">Как получить доступ</a>
         <a href="/requisites/" target="_blank" rel="noopener">Реквизиты</a>
         <a href="/privacy/" target="_blank" rel="noopener">Приватность</a>
+        <a href="/support/" target="_blank" rel="noopener">Поддержка</a>
       </div>
     </div>
   </div>
@@ -221,10 +230,15 @@
     <div class="mode-name-big" id="ts-mode-name"></div>
     <p class="mode-hint" id="ts-hint"></p>
   </div>
-  <p class="turn-tip">Перед выбором карточки передайте телефон объясняющему.</p>
   <div class="board-wrap" id="ts-board"></div>
-  <button class="btn btn-primary" id="ts-ready-btn">Выбрать карточку →</button>
-  <button class="btn btn-secondary" id="ts-back-to-menu-btn">← В меню</button>
+  <button class="btn btn-primary" id="ts-ready-btn">
+    <span>Выбрать карточку</span>
+    <svg class="btn-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="m7.5 4.5 5.5 5.5-5.5 5.5"/></svg>
+  </button>
+  <button class="btn btn-secondary" id="ts-back-to-menu-btn">
+    <svg class="btn-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5"/></svg>
+    <span>В меню</span>
+  </button>
 </div>
 
 <!-- CARD SELECTION (difficulty only, no words) -->
@@ -254,8 +268,11 @@
       <div class="diff-moves">фишка +5</div>
     </button>
   </div>
-  <p style="color:#aaa;font-size:.85rem;text-align:center;margin-bottom:14px">Слово откроется после выбора</p>
-  <button class="btn btn-secondary" id="cs-back-btn">← К полю</button>
+  <p style="color:#bdc5d1;font-size:.85rem;text-align:center;margin-bottom:14px">Слово откроется после выбора</p>
+  <button class="btn btn-secondary" id="cs-back-btn">
+    <svg class="btn-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5"/></svg>
+    <span>К полю</span>
+  </button>
 </div>
 
 <!-- PREVIEW (word revealed + 10s countdown) -->
@@ -269,7 +286,7 @@
     <div id="pv-open-round-alert" class="open-round-alert" style="display:none">🎭 ОТКРЫТЫЙ РАУНД!</div>
     <div class="preview-word" id="pv-word"></div>
     <div class="countdown-ring" id="pv-countdown"></div>
-    <p style="color:#aaa;font-size:.88rem;margin-bottom:15px">Объяснение начнётся автоматически</p>
+    <p style="color:#bdc5d1;font-size:.88rem;margin-bottom:15px">Объяснение начнётся автоматически</p>
     <button class="btn btn-secondary" onclick="sfxNavBack(); goTurnStart()">✕ Отменить ход</button>
   </div>
 </div>
@@ -291,7 +308,7 @@
     <button class="btn btn-fail" id="fail-btn">✕ Не угадали</button>
   </div>
   <div id="open-round-btns" style="display:none; text-align:center;">
-    <p style="margin-bottom:10px; color:#aaa;">Кто угадал?</p>
+    <p style="margin-bottom:10px;color:#bdc5d1">Кто угадал?</p>
     <div id="teams-btns-container" style="display:grid; grid-template-columns:1fr 1fr; gap:8px;"></div>
     <button class="btn btn-fail" id="open-fail-btn" style="margin-top:8px; padding: 12px 16px; font-size: 0.95rem;">Никто</button>
   </div>
@@ -307,7 +324,10 @@
     <div class="outcome-sub" id="tr-sub"></div>
   </div>
   <div class="board-wrap" id="tr-board"></div>
-  <button class="btn btn-primary" id="next-turn-btn">Следующий ход →</button>
+  <button class="btn btn-primary" id="next-turn-btn">
+    <span>Следующий ход</span>
+    <svg class="btn-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="m7.5 4.5 5.5 5.5-5.5 5.5"/></svg>
+  </button>
   <div class="section feedback-section" id="turn-feedback-section" style="display:none">
     <h2>Оценка сложности</h2>
     <p class="feedback-copy" id="turn-feedback-copy"></p>
@@ -326,7 +346,7 @@
   <div class="winner-screen">
     <span class="winner-emoji">🏆</span>
     <div class="winner-title" id="go-winner"></div>
-    <p style="color:#aaa;font-size:1.1rem;margin-bottom:0">побеждает!</p>
+    <p style="color:#bdc5d1;font-size:1.1rem;margin-bottom:0">побеждает!</p>
     <div class="final-list" id="go-scores"></div>
     <div id="go-summary-meta"></div>
     <div id="go-team-stats"></div>
@@ -345,7 +365,10 @@
   <div id="gd-summary-meta"></div>
   <div id="gd-team-stats"></div>
   <div id="gd-highlights"></div>
-  <button class="btn btn-secondary" id="gd-back-btn">← Назад в профиль</button>
+  <button class="btn btn-secondary" id="gd-back-btn">
+    <svg class="btn-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5"/></svg>
+    <span>Назад в профиль</span>
+  </button>
 </div>
 
 <script src="script.js"></script>

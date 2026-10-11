@@ -40,8 +40,8 @@
 - [words_geo.json](words_geo.json) — географический словарь.
 - [words_society.json](words_society.json) — словарь `Общество`.
 - [words_around_us.json](words_around_us.json) — словарь `Вокруг нас`.
-- [words_cinema.json](words_cinema.json) — бесплатный словарь `Мир кино`.
-- [words_science.json](words_science.json) — бесплатный словарь `Наука и природа`.
+- [words_cinema.json](words_cinema.json) — платный словарь `Мир кино`.
+- [words_science.json](words_science.json) — платный словарь `Наука и природа`.
 - [.assetsignore](.assetsignore) — исключения для публикации static assets.
 - [README.md](README.md) — краткое описание проекта.
 - [AGENTS.md](AGENTS.md) — стартовая инструкция для ИИ-модели или coding agent: карта проекта, источники истины, правила изменений, проверки и release handoff. Если пользователь начинает с фразы `посмотри стартовый файл`, нужно читать этот файл.
@@ -199,15 +199,15 @@
   - `science`
 - по модели доступа:
   - `classic` — free
-  - `geo` — free
-  - `society` — free
-  - `around_us` — free after login
-  - `cinema` — free after login
-  - `science` — free after login
+  - `geo` — free after login
+  - `society` — free after login
+  - `around_us` — premium, 149 ₽ разово
+  - `cinema` — premium, 149 ₽ разово
+  - `science` — premium, 149 ₽ разово
 
-Первые три словаря в сетке открыты без входа. Остальные три словаря открываются бесплатно после входа через Telegram.
+`classic` открыт без входа. `geo` и `society` открываются бесплатно после входа через Telegram. Три premium-словаря можно купить по 149 ₽ каждый или комплектом за 379 ₽; прошлые отдельные покупки не уменьшают цену комплекта.
 
-При старте игры фронтенд загружает `dict.file` через `fetch()`, но Worker отдельно защищает словари с ограниченным доступом: словари с `authAccess: "login"` требуют авторизацию. Premium-проверка через `user_dictionary_access` остаётся в коде для будущей платной модели, но сейчас активных premium-словарей в каталоге нет.
+При старте игры фронтенд загружает `dict.file` через `fetch()`, но Worker отдельно защищает словари с ограниченным доступом: словари с `authAccess: "login"` требуют авторизацию, а premium-словари — действующее право из подтверждённого заказа. Старые ручные выдачи через `user_dictionary_access` продолжают учитываться.
 
 Важно: прямые JSON-файлы ограниченных словарей должны быть перечислены в `assets.run_worker_first` в [wrangler.jsonc](wrangler.jsonc). Иначе Cloudflare static assets могут отдать файл напрямую, минуя `protectDictionaryAsset(...)`.
 
@@ -405,7 +405,7 @@ Backend находится в [src/worker.js](src/worker.js).
 
 `GET /api/config`
 
-- возвращает `telegramBotUsername`.
+- возвращает `telegramBotUsername` и публичный флаг готовности checkout; секреты провайдера не отдаёт.
 
 `POST /api/auth/telegram`
 
@@ -423,7 +423,8 @@ Backend находится в [src/worker.js](src/worker.js).
 `GET /api/dictionaries`
 
 - возвращает каталог словарей;
-- добавляет вычисленные поля `canPlay`, `requiresPurchase`, `lockedReason`.
+- добавляет вычисленные поля `canPlay`, `requiresPurchase`, `lockedReason`;
+- возвращает идентификаторы уже купленных словарей для текущего аккаунта.
 
 `POST /api/logout`
 
@@ -432,11 +433,10 @@ Backend находится в [src/worker.js](src/worker.js).
 
 `POST /api/purchase/create`
 
-- создаёт платёж ЮKassa на один premium-словарь, когда в каталоге есть active premium-доступ;
-- сохраняет заказ в `purchase_orders`;
-- возвращает `confirmationUrl` для редиректа на оплату.
-
-Сейчас активных premium-словарей в `dictionaries.json` нет: все словари бесплатные, часть открывается после входа через Telegram.
+- принимает только серверный `productCode` из фиксированного каталога;
+- создаёт или повторно использует 30-минутный pending-заказ с точной суммой, валютой, пользователем и составом прав;
+- возвращает подписанные сервером поля HTML POST-формы MONETA.Assistant;
+- individual-продукты стоят 149 ₽, `dictionaries_bundle` — 379 ₽ без зачёта предыдущих покупок.
 
 `POST /api/game-sessions`
 
@@ -454,11 +454,17 @@ Backend находится в [src/worker.js](src/worker.js).
 - требует авторизации;
 - делает upsert по паре `user_id + feedback_id`.
 
-`POST /api/payment/webhook/yookassa`
+`POST /api/payment/check/payanyway`
 
-- принимает webhook ЮKassa;
-- обновляет `purchase_orders`;
-- после `payment.succeeded` выдаёт доступ к словарю через `user_dictionary_access`.
+- проверяет подпись CHECK-запроса и точное совпадение аккаунта, заказа, суммы, валюты, пользователя и режима;
+- отвечает кодом 402 только для готового pending-заказа, 200 — для уже оплаченного, 500 — для недоступного или несовпадающего.
+
+`POST /api/payment/webhook/payanyway`
+
+- принимает Pay URL уведомление Self.PayAnyWay;
+- проверяет официальную MD5-подпись и точное совпадение неизменяемых данных заказа;
+- только подтверждённый callback переводит заказ в `succeeded` и идемпотентно выдаёт точные права через `purchase_order_entitlements`;
+- повторный callback безопасен; forged, failed, canceled и mismatched запросы доступ не выдают.
 
 ## 11. Telegram auth
 
@@ -612,6 +618,9 @@ Backend пишет:
 - D1 binding `DB`
 - `vars.APP_NAME`
 - `vars.TELEGRAM_BOT_USERNAME`
+- `vars.PAYANYWAY_CHECKOUT_ENABLED` — релизный рубильник, по умолчанию `false`
+- `vars.PAYANYWAY_TEST_MODE` — для Self-контура `0`
+- secrets `PAYANYWAY_ACCOUNT_ID`, `PAYANYWAY_INTEGRITY_CODE`
 
 Текущий `database_id` в конфиге:
 

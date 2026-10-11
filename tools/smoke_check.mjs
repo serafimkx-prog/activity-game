@@ -19,6 +19,7 @@ const STATIC_ROUTES = [
   { route: "/access/", file: "access/index.html" },
   { route: "/requisites/", file: "requisites/index.html" },
   { route: "/privacy/", file: "privacy/index.html" },
+  { route: "/support/", file: "support/index.html" },
 ];
 
 const args = new Map();
@@ -107,6 +108,16 @@ function validateDictionaries() {
     }
     assert(count === Number(entry.wordCount), `${entry.id} wordCount matches file (${count})`);
   }
+
+  const byId = Object.fromEntries(catalog.map((entry) => [entry.id, entry]));
+  assert(byId.classic?.access === "free" && !byId.classic?.authAccess, "classic dictionary is anonymous");
+  for (const id of ["geo", "society"]) {
+    assert(byId[id]?.access === "free" && byId[id]?.authAccess === "login", `${id} is free after login`);
+  }
+  for (const id of ["around_us", "cinema", "science"]) {
+    assert(byId[id]?.access === "premium" && byId[id]?.authAccess === "login", `${id} requires a one-time purchase`);
+    assert(byId[id]?.priceLabel === "149 ₽", `${id} shows the individual price`);
+  }
 }
 
 function validateStaticPages() {
@@ -135,11 +146,12 @@ function validateSourceContracts() {
   const script = read("script.js");
   const sitemap = read("sitemap.xml");
   const wrangler = read("wrangler.jsonc");
+  const schema = read("db/schema.sql");
 
   assert(index.includes('class="skip-link"'), "index has skip link");
   assert(index.includes('onclick="showScreen(\'setup\')"'), "skip link opens visible setup screen");
-  assert(index.includes('class="quick-start"'), "index has setup handoff hint");
-  assert(index.includes('class="turn-tip"'), "index has turn handoff tip");
+  assert(!index.includes('class="quick-start"'), "index omits setup handoff hint");
+  assert(!index.includes('class="turn-tip"'), "index omits turn handoff tip");
   assert(index.includes('href="/privacy/"'), "index links privacy page");
   assert(countMatches(index, /<nav class="nav-pill"/g) === 3, "index has three nav landmarks");
   assert(countMatches(index, /<button type="button" class="nav-item/g) === 9, "top nav items are native buttons");
@@ -150,7 +162,7 @@ function validateSourceContracts() {
 
   assert(style.includes(".skip-link"), "style has skip-link rules");
   assert(style.includes(":focus-visible"), "style has visible focus rules");
-  assert(style.includes(".quick-start"), "style has setup handoff hint rules");
+  assert(!style.includes(".quick-start") && !style.includes(".quick-step"), "style omits setup handoff hint rules");
   assert(style.includes(".summary-details"), "style has compact summary details rules");
   assert(style.includes(".player-stats-table{display:block;overflow-x:auto;white-space:nowrap}"), "mobile player stats table scrolls");
   assert(style.includes(".nav-pill{width:100%}"), "mobile nav expands to full width");
@@ -164,13 +176,28 @@ function validateSourceContracts() {
   assert(countMatches(script, /ts-back-to-menu-btn'\)\.addEventListener/g) === 1, "turn-start back button has one listener");
 
   const lockedStart = script.indexOf("window.selectLockedDict = function");
-  const lockedEnd = script.indexOf("window.buyDictionaryAccess = async function", lockedStart);
+  const lockedEnd = script.indexOf("// ─── Setup", lockedStart);
   const lockedBlock = lockedStart >= 0 && lockedEnd > lockedStart ? script.slice(lockedStart, lockedEnd) : "";
   assert(Boolean(lockedBlock), "selectLockedDict block exists");
   assert(!lockedBlock.includes("alert("), "selectLockedDict does not use alert");
 
   assert(sitemap.includes("<loc>https://activity-game.ru/privacy/</loc>"), "sitemap includes privacy");
-  for (const protectedDictionary of ["/words_around_us.json", "/words_cinema.json", "/words_science.json"]) {
+  assert(script.includes("/api/purchase/create"), "frontend starts a one-time purchase");
+  assert(script.includes("dictionaries_bundle"), "frontend offers the three-dictionary bundle");
+  assert(script.includes("paymentCheckoutReady"), "frontend respects the payment release gate");
+  assert(!script.includes("/api/subscription/"), "frontend has no subscription API contract");
+  assert(!index.includes("в месяц") && !index.includes("автопродлен"), "index has no recurring billing copy");
+  const worker = read("src/worker.js");
+  assert(worker.includes("handlePayAnyWayCheck") && worker.includes("handlePayAnyWayPayment"), "Worker implements PayAnyWay Check and Pay URLs");
+  assert(countMatches(worker, /request\.method !== "POST"/g) >= 2, "PayAnyWay Check and Pay endpoints are POST-only");
+  assert(worker.includes("callbackMatchesOrder") && worker.includes("verifyCallbackSignature"), "Worker verifies callback signature and order fields");
+  assert(worker.includes("purchase_order_entitlements"), "Worker grants order-scoped entitlements");
+  assert(!worker.includes("subscription") && !worker.includes("yookassa"), "Worker has no subscription or YooKassa release path");
+  assert(schema.includes("CREATE TABLE IF NOT EXISTS purchase_order_entitlements"), "schema defines order-scoped entitlements");
+  assert(!schema.includes("CREATE TABLE IF NOT EXISTS subscriptions"), "fresh schema omits unreleased subscriptions");
+  assert(!wrangler.includes('"crons"'), "wrangler has no recurring billing schedule");
+  assert(wrangler.includes('"PAYANYWAY_CHECKOUT_ENABLED": "false"'), "checkout stays fail-closed before account verification");
+  for (const protectedDictionary of ["/words_geo.json", "/words_society.json", "/words_around_us.json", "/words_cinema.json", "/words_science.json"]) {
     assert(wrangler.includes(`"${protectedDictionary}"`), `wrangler runs Worker first for ${protectedDictionary}`);
   }
 }
@@ -197,7 +224,7 @@ async function validateProduction(base) {
     assert(result.status === 404, `${result.url} is not publicly exposed`);
   }
 
-  for (const route of ["/words_around_us.json", "/words_cinema.json", "/words_science.json"]) {
+  for (const route of ["/words_geo.json", "/words_society.json", "/words_around_us.json", "/words_cinema.json", "/words_science.json"]) {
     const result = await fetchStatus(base, route);
     assert(result.status === 401 || result.status === 403, `${result.url} requires login anonymously`);
   }

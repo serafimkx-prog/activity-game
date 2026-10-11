@@ -93,7 +93,7 @@ CREATE TABLE IF NOT EXISTS purchase_orders (
   status TEXT NOT NULL,
   amount_value TEXT NOT NULL,
   amount_currency TEXT NOT NULL DEFAULT 'RUB',
-  provider TEXT NOT NULL DEFAULT 'yookassa',
+  provider TEXT NOT NULL DEFAULT 'self_payanyway',
   provider_payment_id TEXT,
   idempotence_key TEXT NOT NULL,
   confirmation_url TEXT,
@@ -103,6 +103,9 @@ CREATE TABLE IF NOT EXISTS purchase_orders (
   raw_create_response TEXT,
   raw_webhook_payload TEXT,
   dictionary_id TEXT,
+  entitlement_ids_json TEXT NOT NULL DEFAULT '[]',
+  provider_test_mode TEXT NOT NULL DEFAULT '0',
+  expires_at TEXT,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
@@ -112,3 +115,25 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_purchase_orders_provider_payment_id
   ON purchase_orders(provider_payment_id);
 CREATE INDEX IF NOT EXISTS idx_purchase_orders_dictionary_id
   ON purchase_orders(dictionary_id);
+
+CREATE INDEX IF NOT EXISTS idx_purchase_orders_user_product_status
+  ON purchase_orders(user_id, product_code, status, created_at);
+CREATE INDEX IF NOT EXISTS idx_purchase_orders_status_expiry
+  ON purchase_orders(status, expires_at);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_purchase_orders_one_payanyway_pending
+  ON purchase_orders(user_id, provider, product_code)
+  WHERE status = 'pending' AND provider = 'self_payanyway';
+
+CREATE TABLE IF NOT EXISTS purchase_order_entitlements (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  purchase_order_id INTEGER NOT NULL,
+  dictionary_id TEXT NOT NULL,
+  granted_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  revoked_at TEXT,
+  FOREIGN KEY (purchase_order_id) REFERENCES purchase_orders(id) ON DELETE CASCADE
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_purchase_order_entitlements_unique
+  ON purchase_order_entitlements(purchase_order_id, dictionary_id);
+CREATE INDEX IF NOT EXISTS idx_purchase_order_entitlements_dictionary
+  ON purchase_order_entitlements(dictionary_id, revoked_at);

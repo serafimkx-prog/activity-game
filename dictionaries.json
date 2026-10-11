@@ -19,7 +19,8 @@
     "file": "words_geo.json",
     "wordCount": 800,
     "available": true,
-    "access": "free"
+    "access": "free",
+    "authAccess": "login"
   },
   {
     "id": "society",
@@ -31,7 +32,7 @@
     "wordCount": 1290,
     "available": true,
     "access": "free",
-    "badge": "Сложный"
+    "authAccess": "login"
   },
   {
     "id": "around_us",
@@ -42,9 +43,9 @@
     "file": "words_around_us.json",
     "wordCount": 1142,
     "available": true,
-    "access": "free",
+    "access": "premium",
     "authAccess": "login",
-    "badge": "Хит"
+    "priceLabel": "149 ₽"
   },
   {
     "id": "cinema",
@@ -55,9 +56,9 @@
     "file": "words_cinema.json",
     "wordCount": 800,
     "available": true,
-    "access": "free",
+    "access": "premium",
     "authAccess": "login",
-    "badge": "Новый"
+    "priceLabel": "149 ₽"
   },
   {
     "id": "science",
@@ -68,8 +69,8 @@
     "file": "words_science.json",
     "wordCount": 700,
     "available": true,
-    "access": "free",
+    "access": "premium",
     "authAccess": "login",
-    "badge": "Новый"
+    "priceLabel": "149 ₽"
   }
 ]
