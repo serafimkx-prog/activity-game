@@ -249,8 +249,8 @@ Fallback:
 - `POST /api/game-sessions`
 - `GET /api/profile/summary`
 - `POST /api/dictionary-feedback`
-- `POST /api/payment/check/payanyway`
-- `POST /api/payment/webhook/payanyway`
+- `GET|POST /api/payment/check/payanyway`
+- `GET|POST /api/payment/webhook/payanyway`
 
 ## Что важно помнить
 
@@ -265,7 +265,7 @@ Fallback:
 - Заказы хранятся в `purchase_orders`, а точные права заказа — в `purchase_order_entitlements`; старые ручные выдачи в `user_dictionary_access` продолжают учитываться.
 - Для оплаты нужны Cloudflare secrets `PAYANYWAY_ACCOUNT_ID` и `PAYANYWAY_INTEGRITY_CODE`. `PAYANYWAY_CHECKOUT_ENABLED` включается только после настройки Check URL/Pay URL, проверки НПД-чека и контролируемой реальной оплаты с возвратом.
 - Для Self.PayAnyWay-аккаунта используется `PAYANYWAY_TEST_MODE=0`: именно продукт для самозанятых не использует тестовый режим. MONETA.Assistant в целом поддерживает demo/test-контур.
-- В кабинете для Check URL и Pay URL обязательно выбирается `HTTP Method: POST`; Worker отклоняет GET с 405.
+- Self-кабинет не даёт выбрать HTTP-метод и отправляет Pay URL как GET. Worker принимает подписанные GET и POST для Check URL/Pay URL; все поля в обоих вариантах проходят одинаковую проверку подписи и заказа.
 - Локальная миграция находится в `db/migrations/2026-10-11-payanyway-one-time-products.sql`; её применение к remote D1 — отдельный релизный шаг.
 - Фидбек по сложности слова для авторизованных пользователей сохраняется в backend и D1, а при недоступности сервера остаётся локальный fallback в `localStorage`.
 - Активная партия восстанавливается после `refresh` через `localStorage`.

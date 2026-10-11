@@ -21,6 +21,13 @@ async function request(path, { method = "GET", cookie = null, body = null, form 
   return { response, text: await response.text() };
 }
 
+async function providerRequest(path, method, fields) {
+  if (method === "GET") {
+    return request(`${path}?${new URLSearchParams(fields)}`);
+  }
+  return request(path, { method: "POST", form: fields });
+}
+
 function callbackFields(checkoutFields, operationId, overrides = {}) {
   const fields = {
     MNT_ID: checkoutFields.MNT_ID,
@@ -75,21 +82,21 @@ async function createProduct(productCode, cookie, expectedAmount) {
   return payload.checkout.fields;
 }
 
-async function payProduct(fields, operationId) {
-  const checkBefore = await request("/api/payment/check/payanyway", { method: "POST", form: checkFields(fields) });
+async function payProduct(fields, operationId, method = "POST") {
+  const checkBefore = await providerRequest("/api/payment/check/payanyway", method, checkFields(fields));
   assert.equal(checkBefore.response.status, 200);
   assertXmlCode(checkBefore.text, 402);
 
   const payment = callbackFields(fields, operationId);
-  const paid = await request("/api/payment/webhook/payanyway", { method: "POST", form: payment });
+  const paid = await providerRequest("/api/payment/webhook/payanyway", method, payment);
   assert.equal(paid.response.status, 200);
   assertXmlCode(paid.text, 200);
 
-  const replay = await request("/api/payment/webhook/payanyway", { method: "POST", form: payment });
+  const replay = await providerRequest("/api/payment/webhook/payanyway", method, payment);
   assert.equal(replay.response.status, 200);
   assertXmlCode(replay.text, 200);
 
-  const checkAfter = await request("/api/payment/check/payanyway", { method: "POST", form: checkFields(fields) });
+  const checkAfter = await providerRequest("/api/payment/check/payanyway", method, checkFields(fields));
   assertXmlCode(checkAfter.text, 200);
 }
 
@@ -97,8 +104,8 @@ const config = await request("/api/config");
 assert.equal(JSON.parse(config.text).paymentCheckoutReady, true);
 
 for (const callbackRoute of ["/api/payment/check/payanyway", "/api/payment/webhook/payanyway"]) {
-  const getResponse = await request(callbackRoute);
-  assert.equal(getResponse.response.status, 405, `${callbackRoute} rejects GET to keep signatures out of URLs and access logs`);
+  const putResponse = await request(callbackRoute, { method: "PUT" });
+  assert.equal(putResponse.response.status, 405, `${callbackRoute} accepts only provider GET and POST callbacks`);
 }
 
 const anonymousAsset = await request("/words_around_us.json");
@@ -138,7 +145,7 @@ const forgedResponse = await request("/api/payment/webhook/payanyway", { method:
 assert.equal(forgedResponse.text, "FAIL");
 assert.equal((await request("/words_around_us.json", { cookie: "test-session-individual" })).response.status, 403);
 
-await payProduct(aroundFields, "operation-around");
+await payProduct(aroundFields, "operation-around", "GET");
 assert.equal((await request("/words_around_us.json", { cookie: "test-session-individual" })).response.status, 200);
 assert.equal((await request("/words_cinema.json", { cookie: "test-session-individual" })).response.status, 403);
 

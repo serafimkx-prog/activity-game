@@ -189,7 +189,7 @@ function validateSourceContracts() {
   assert(!index.includes("в месяц") && !index.includes("автопродлен"), "index has no recurring billing copy");
   const worker = read("src/worker.js");
   assert(worker.includes("handlePayAnyWayCheck") && worker.includes("handlePayAnyWayPayment"), "Worker implements PayAnyWay Check and Pay URLs");
-  assert(countMatches(worker, /request\.method !== "POST"/g) >= 2, "PayAnyWay Check and Pay endpoints are POST-only");
+  assert(countMatches(worker, /methodNotAllowed\(request, \["GET", "POST"\]\)/g) >= 2, "PayAnyWay Check and Pay endpoints accept signed Self GET and POST callbacks");
   assert(worker.includes("callbackMatchesOrder") && worker.includes("verifyCallbackSignature"), "Worker verifies callback signature and order fields");
   assert(worker.includes("purchase_order_entitlements"), "Worker grants order-scoped entitlements");
   assert(!worker.includes("subscription") && !worker.includes("yookassa"), "Worker has no subscription or YooKassa release path");

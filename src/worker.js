@@ -735,9 +735,8 @@ async function handleDictionaryFeedback(request, env) {
 }
 
 async function handlePayAnyWayCheck(request, env) {
-  if (request.method !== "POST") {
-    return error("Method not allowed", 405);
-  }
+  const wrongMethod = methodNotAllowed(request, ["GET", "POST"]);
+  if (wrongMethod) return wrongMethod;
   const configError = ensurePayAnyWayConfig(env);
   if (configError) return configError;
 
@@ -766,9 +765,8 @@ async function handlePayAnyWayCheck(request, env) {
 }
 
 async function handlePayAnyWayPayment(request, env) {
-  if (request.method !== "POST") {
-    return error("Method not allowed", 405);
-  }
+  const wrongMethod = methodNotAllowed(request, ["GET", "POST"]);
+  if (wrongMethod) return wrongMethod;
   const configError = ensurePayAnyWayConfig(env);
   if (configError) return configError;
 

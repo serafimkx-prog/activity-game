@@ -91,7 +91,7 @@ Work performed:
 - Added fixed server product catalog in `src/lib/payanyway.mjs`: three products at `149.00 RUB` and one fixed bundle at `379.00 RUB`.
 - Added official checkout, Check URL, Pay URL and signed-response helpers with constant-time signature comparison.
 - Added `POST /api/purchase/create`; price, currency, Telegram-linked user and exact entitlements are server-owned.
-- Added POST-only `/api/payment/check/payanyway` and `/api/payment/webhook/payanyway`. GET is rejected with 405 so signed callback parameters do not enter URLs or access logs.
+- Added `/api/payment/check/payanyway` and `/api/payment/webhook/payanyway` with the same signature/order validation for GET and POST. The Self cabinet has no HTTP-method selector and the controlled live payment confirmed that it sends the Pay URL as GET.
 - Enforced exact account/order/amount/currency/user/test-mode matching. Invalid signatures receive no signed oracle response.
 - Added one active pending order per Self.PayAnyWay user/product and safe reuse of a pending order.
 - Added order-scoped `purchase_order_entitlements`; grants are atomic and idempotent. A closed refunded/canceled order is never re-granted by callback replay.
@@ -144,7 +144,7 @@ Commands and results:
 - `git diff --check` — pass.
 - `npx -y -p node@22 -p wrangler@4.149.0 wrangler deploy --dry-run --outdir /tmp/activity-payanyway-dry-run-final` — pass; no deploy performed.
 - Local Wrangler D1 execution of the previous committed schema followed by `db/migrations/2026-10-11-payanyway-one-time-products.sql` — pass; fields, indexes and entitlement table present.
-- Fresh local D1 plus local Worker and `tools/payment_worker_check.mjs` — pass: GET on both callback endpoints returns 405; POST covers all three individual products, bundle, pending reuse, Check 402/200, replay, wrong amount/currency/user/order/test mode, forged signature, direct asset protection and absence of old subscription endpoints.
+- Fresh local D1 plus local Worker and `tools/payment_worker_check.mjs` — pass: signed provider GET and POST cover individual products, bundle, pending reuse, Check 402/200, replay, wrong amount/currency/user/order/test mode, forged signature, direct asset protection and absence of old subscription endpoints; other methods return 405.
 - Local refund simulation — pass: `around_us` changed from 200 to 403, unrelated `cinema` and `science` remained 200, replayed callback left refunded access revoked.
 
 These command results describe the pre-deploy local verification. The later production endpoint and remote D1 checks are recorded in the release section below; no real payment has been made yet.
@@ -159,7 +159,7 @@ Completed production actions:
 
 1. `PAYANYWAY_ACCOUNT_ID` and `PAYANYWAY_INTEGRITY_CODE` are present as encrypted Cloudflare Worker secrets; checkout remains disabled.
 2. The additive remote D1 migration was applied statement-by-statement. Verification returned three expected columns, one entitlement table and five expected indexes.
-3. Production and the Worker endpoint both return `paymentCheckoutReady: false`; GET Pay URL returns 405, an unsigned POST returns `FAIL`, and protected dictionary assets return 401 without a session.
+3. Before the live test, production and the Worker endpoint returned `paymentCheckoutReady: false`; an unsigned callback returned `FAIL`, and protected dictionary assets returned 401 without a session.
 4. The optional Check endpoint remains implemented and tested but is not configured because this Self account has no Check URL field.
 
 Remaining release actions:
