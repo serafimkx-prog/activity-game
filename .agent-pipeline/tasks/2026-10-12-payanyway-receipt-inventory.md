@@ -153,16 +153,16 @@ Diff reviewed: scoped to PayAnyWay receipt inventory, tests and docs.
 
 Commands run: recorded in Functional QA.
 
-Manual checks: Self.PayAnyWay operation completed; automatic receipt setting enabled; provider diagnostic explicitly reported missing nomenclature; remote D1 succeeded with one entitlement.
+Manual checks: Self.PayAnyWay operation completed; automatic receipt setting enabled; provider diagnostic explicitly reported missing nomenclature; remote D1 initially succeeded with one entitlement. После пользовательского возврата кабинет показал отдельную операцию на полную сумму со статусом `выполнена` и нулевой баланс.
 
 Deploy follow-up: commit `ac9673a` pushed and deployed from a clean detached worktree with checkout explicitly enabled. Production `/api/config` returned `paymentCheckoutReady: true`; unsigned GET callback returned `FAIL` with HTTP 200; a protected paid asset remained 401 without a session.
 
-D1 follow-up: none.
+D1 follow-up: соответствующий production-заказ переведён из `succeeded` в `refunded`; его единственное право отозвано. Контрольный SELECT вернул `active_entitlements = 0`.
 
 Secret or config follow-up: none.
 
 Cache follow-up: none expected for Worker API response.
 
-Open risks: current live operation requires a full refund by SMS password; live automatic check creation remains unverified until a new payment.
+Open risks: live automatic check creation remains unverified until a new controlled payment. Исходный чек контрольной покупки не был создан, поэтому в Self.PayAnyWay отсутствовал чек, который можно было бы аннулировать при возврате; перед повторным тестом это нужно сверить с разделом операций в «Моём налоге».
 
-Ready to hand back: yes for the receipt-response fix; refund and the second live receipt test remain explicit financial follow-up actions.
+Ready to hand back: yes for the receipt-response fix and reconciliation of the refunded order; the second live receipt test remains an explicit financial follow-up action.
