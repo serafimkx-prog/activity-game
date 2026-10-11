@@ -150,13 +150,14 @@ No production URL, remote database, live secret or real payment was used.
 
 ## Release blocker and exact next actions
 
-The current broker cannot reveal or inject account credentials, and this task did not request or store them. The owner must perform the account-side step in the already authenticated Self.PayAnyWay session:
+The authenticated Self.PayAnyWay desktop account was inspected on 2026-10-11. Its website-integration screen exposes a business account, an integrity code and a single Pay URL field; it does not expose a separate Check URL or an HTTP-method selector. The Pay URL was saved as `https://activity-game.ru/api/payment/webhook/payanyway`. The account settings now contain seller name `Активити Онлайн`, site `https://activity-game.ru/`, automatic receipt creation enabled and sale notifications enabled.
 
-1. Confirm the business account is active for website checkout and automatic NPD income registration/buyer receipt delivery is enabled.
-2. Set Check URL to `https://activity-game.ru/api/payment/check/payanyway`, Pay URL to `https://activity-game.ru/api/payment/webhook/payanyway`, and the account's callback `HTTP Method` to `POST`; set success/fail/return pages to Activity URLs. Do not select GET because signed parameters would enter URLs and access logs.
-3. Create or confirm the integrity code and note the business account number without putting either value in chat or Git.
-4. Release operator applies the additive remote D1 migration, stores `PAYANYWAY_ACCOUNT_ID` and `PAYANYWAY_INTEGRITY_CODE` as Cloudflare secrets, deploys with checkout still disabled, and verifies the endpoints.
-5. Enable checkout only for a controlled real low-value verification product/transaction permitted by the account, confirm the Pay callback, entitlement, automatic NPD receipt and buyer delivery, then refund and confirm both money refund and receipt reversal.
-6. After the controlled test passes, restore the production prices if temporarily changed, set `PAYANYWAY_CHECKOUT_ENABLED=true`, deploy from a clean accepted commit, and run production smoke/access checks.
+The integrity code was rendered as plaintext by the provider during visual diagnosis and must be considered exposed. Its value was not copied into the repository, knowledge base or report, and temporary diagnostic screenshots were deleted. The remaining release actions are:
 
-Until all six steps pass, checkout must remain disabled and this payment release is not production-ready.
+1. The owner manually replaces the provider integrity code with a new high-entropy value and enters the same value directly into the Cloudflare secret UI; it must not pass through chat, terminal, Git, clipboard automation or ordinary files.
+2. Store the business account number as `PAYANYWAY_ACCOUNT_ID` and the rotated code as `PAYANYWAY_INTEGRITY_CODE` in Cloudflare Secrets.
+3. Apply the additive remote D1 migration, deploy with checkout still disabled, and verify the production Pay endpoint. The optional Check endpoint remains implemented and tested but is not configured because this Self account has no Check URL field.
+4. Enable checkout only for a controlled real low-value verification transaction permitted by the account, confirm the Pay callback, entitlement, automatic NPD receipt and buyer delivery, then refund and confirm both money refund and receipt reversal.
+5. After the controlled test passes, restore the production prices if temporarily changed, set `PAYANYWAY_CHECKOUT_ENABLED=true`, deploy from a clean accepted commit, and run production smoke/access checks.
+
+Until all five steps pass, checkout must remain disabled and this payment release is not production-ready.
