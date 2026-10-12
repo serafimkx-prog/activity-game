@@ -58,8 +58,8 @@
 
 <!-- SETUP -->
 <div class="screen active" id="screen-setup">
-  <h1>Активити Онлайн</h1>
-  <p class="subtitle">Выберите словарь, настройте команды. Первый, кто наберёт 41 очко, победит.</p>
+  <h1>Активити</h1>
+  <p class="subtitle"><span>Выберите словарь и настройте команды.</span><span>Первый, кто наберёт 41 очко, победит.</span></p>
   <nav class="nav-pill" aria-label="Основная навигация">
     <button type="button" class="nav-item active" aria-current="page" onclick="showScreen('setup')">Новая игра</button>
     <button type="button" class="nav-item" onclick="showScreen('rules')">Правила</button>
@@ -67,16 +67,19 @@
   </nav>
   <div class="section">
     <h2>Словарь</h2>
-    <div class="dict-grid" id="dict-grid">
-      <div style="color:#bdc5d1;font-size:.9rem;grid-column:span 2">Загрузка словарей…</div>
+    <div class="dict-grid" id="dict-grid" role="list">
+      <div class="dict-loading">Загрузка словарей…</div>
     </div>
     <div class="dict-message" id="dict-message" role="status" aria-live="polite" hidden></div>
   </div>
 
   <div class="section">
     <h2>Команды</h2>
-    <div id="teams-container"></div>
-    <button class="add-team-btn" id="add-team-btn">+ Добавить команду</button>
+    <div id="teams-container" class="teams-grid"></div>
+    <button class="add-team-btn" id="add-team-btn" type="button">
+      <svg class="btn-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4v12M4 10h12"/></svg>
+      <span>Добавить команду</span>
+    </button>
   </div>
   <div class="section">
     <h2>Настройки</h2>

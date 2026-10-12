@@ -95,6 +95,44 @@ const MODES = {
 }
 
 const TEAM_COLORS = ['#22c55e','#3b82f6','#f97316','#ec4899','#a855f7','#06b6d4']
+const TEAM_PRESETS = [
+  [
+    { name: 'Зелёные слоники', iconId: 'elephant' },
+    { name: 'Зелёные крокодилы', iconId: 'crocodile' },
+    { name: 'Зелёные ростки', iconId: 'sprout' },
+    { name: 'Зелёные драконы', iconId: 'dragon' },
+  ],
+  [
+    { name: 'Синие коты', iconId: 'cat' },
+    { name: 'Синие киты', iconId: 'whale' },
+    { name: 'Синие ракеты', iconId: 'rocket' },
+    { name: 'Синие молнии', iconId: 'bolt' },
+  ],
+  [
+    { name: 'Оранжевые лисы', iconId: 'fox' },
+    { name: 'Оранжевые тигры', iconId: 'tiger' },
+    { name: 'Оранжевые солнца', iconId: 'sun' },
+    { name: 'Оранжевые кометы', iconId: 'comet' },
+  ],
+  [
+    { name: 'Розовые фламинго', iconId: 'flamingo' },
+    { name: 'Розовые пончики', iconId: 'donut' },
+    { name: 'Розовые аксолотли', iconId: 'axolotl' },
+    { name: 'Розовые единороги', iconId: 'unicorn' },
+  ],
+  [
+    { name: 'Фиолетовые совы', iconId: 'owl' },
+    { name: 'Фиолетовые маги', iconId: 'wizard' },
+    { name: 'Фиолетовые гроздья', iconId: 'grapes' },
+    { name: 'Фиолетовые метеоры', iconId: 'meteor' },
+  ],
+  [
+    { name: 'Бирюзовые акулы', iconId: 'shark' },
+    { name: 'Бирюзовые пингвины', iconId: 'penguin' },
+    { name: 'Бирюзовые волны', iconId: 'wave' },
+    { name: 'Бирюзовые роботы', iconId: 'robot' },
+  ],
+]
 const DICTIONARY_FEEDBACK_STORAGE_KEY = 'activity_dictionary_feedback_v1'
 const ACTIVE_GAME_STORAGE_KEY = 'activity_active_game_v1'
 const GAME_SESSION_QUEUE_STORAGE_KEY = 'activity_pending_game_sessions_v1'
@@ -137,6 +175,11 @@ function shuffle(arr) {
     [a[i], a[j]] = [a[j], a[i]]
   }
   return a
+}
+
+function teamIconSvg(iconId, className = 'team-icon') {
+  const safeIconId = /^[a-z-]+$/.test(iconId || '') ? iconId : 'elephant'
+  return `<svg class="${className}" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="/assets/team-icons.svg#${safeIconId}"></use></svg>`
 }
 
 function q(id) { return document.getElementById(id) }
@@ -254,7 +297,7 @@ function restoreExplainingScreen() {
     q('normal-btns').style.display = 'none'
     q('open-round-btns').style.display = 'block'
     q('teams-btns-container').innerHTML = state.teams.map((t, i) =>
-      `<button class="btn btn-success" style="padding: 18px; font-size: 1.1rem;" onclick="endOpenRound(${i})">${t.name}</button>`
+      `<button class="btn btn-success" style="padding: 18px; font-size: 1.1rem;" onclick="endOpenRound(${i})">${teamIconSvg(t.iconId, 'team-icon team-icon-inline')}${escapeHtml(t.name)}</button>`
     ).join('')
   } else {
     q('ex-pts-hint').textContent = `Угадаете — +${pts} очков, фишка вперёд на ${pts}`
@@ -325,7 +368,11 @@ function restoreActiveGameFromSnapshot() {
   if (!BOARD.length) return false
 
   selectedDictId = dictionary.id
-  state.teams = Array.isArray(snapshot.state.teams) ? snapshot.state.teams.map(team => ({ ...team, players: [...team.players] })) : []
+  state.teams = Array.isArray(snapshot.state.teams) ? snapshot.state.teams.map((team, index) => {
+    const colorIndex = TEAM_COLORS.indexOf(team.color)
+    const fallbackPreset = TEAM_PRESETS[colorIndex >= 0 ? colorIndex : index]?.[0] || TEAM_PRESETS[0][0]
+    return { ...team, iconId: team.iconId || fallbackPreset.iconId, players: [...team.players] }
+  }) : []
   state.teamIndex = Number(snapshot.state.teamIndex) || 0
   state.cellMode = snapshot.state.cellMode || null
   state.selectedCard = snapshot.state.selectedCard || null
@@ -1490,7 +1537,7 @@ function renderBoard(containerId) {
   const labels = state.teams.map(t => {
     const posLabel = t.position >= FINISH ? 'Финиш' : t.position === 0 ? 'Старт' : t.position
     return `<span class="board-team-label">
-      <span class="board-team-dot" style="background:${t.color}"></span>
+      <span class="board-team-symbol" style="color:${t.color}">${teamIconSvg(t.iconId, 'team-icon team-icon-board')}</span>
       <span class="board-team-name">${escapeHtml(t.name)}</span>
       <span class="board-team-position">${posLabel}</span>
     </span>`
@@ -1542,7 +1589,7 @@ async function loadDictionaries() {
       id: 'classic',
       name: 'Классический',
       subtitle: 'Всё обо всём',
-      icon: '🎭',
+      iconAsset: '/assets/dictionary-icons/classic.svg',
       file: 'words.json',
       wordCount: 922,
       available: true,
@@ -1567,34 +1614,31 @@ function renderDictGrid() {
   grid.innerHTML = dictionaries.map(d => {
     const isSel = d.id === selectedDictId
     const locked = !d.canPlay
-    const infoHtml = d.description
-      ? `<span class="dict-info-trigger" onclick="event.stopPropagation()" tabindex="0" role="button" aria-label="Описание словаря ${escapeHtml(d.name)}">i<span class="dict-info-tooltip">${escapeHtml(d.description)}</span></span>`
-      : ''
-    const footerText = !d.available
-      ? 'Словарь ещё не открыт'
-      : locked
-        ? d.lockedReason === 'login_required' && !d.requiresPurchase
-          ? 'Бесплатно после входа'
-          : d.requiresPurchase
-            ? 'Разово · 149 ₽'
-          : 'Нужна покупка'
-        : 'Карточек: ' + d.wordCount
-    const actionHtml = !d.available
+    const markerText = d.id === 'classic'
       ? ''
+      : d.requiresPurchase
+        ? (d.priceLabel || '149 ₽')
+        : 'Бесплатно'
+    const iconAsset = d.iconAsset || `/assets/dictionary-icons/${d.id.replaceAll('_', '-')}.svg`
+    const infoHtml = d.description
+      ? `<button class="dict-info-trigger" type="button" aria-label="Описание словаря ${escapeHtml(d.name)}">i<span class="dict-info-tooltip" role="tooltip">${escapeHtml(d.description)}</span></button>`
+      : ''
+    const footerText = !d.available ? 'Скоро' : `${d.wordCount} карточек`
+    const actionHtml = !d.available
+      ? '<button class="dict-action-btn" type="button" disabled>Скоро</button>'
       : locked && d.lockedReason === 'login_required' && !d.requiresPurchase
-        ? `<button class="dict-buy-btn" onclick="event.stopPropagation(); showScreen('profile')">Войти</button>`
+        ? `<button class="dict-action-btn dict-login-btn" type="button" onclick="openDictionaryLogin('${d.id}')">Войти</button>`
       : locked && d.requiresPurchase
         ? d.lockedReason === 'login_required'
-          ? `<button class="dict-buy-btn" onclick="event.stopPropagation(); showScreen('profile')">Войти</button>`
-          : `<button class="dict-buy-btn" ${auth.config?.paymentCheckoutReady ? '' : 'disabled'} onclick="event.stopPropagation(); startDictionaryPurchase('${d.id}', this)">${auth.config?.paymentCheckoutReady ? 'Купить · 149 ₽' : 'Оплата скоро'}</button>`
+          ? `<button class="dict-action-btn dict-buy-btn" type="button" onclick="openDictionaryLogin('${d.id}')">Купить</button>`
+          : `<button class="dict-action-btn dict-buy-btn" type="button" ${auth.config?.paymentCheckoutReady ? '' : 'disabled'} onclick="startDictionaryPurchase('${d.id}', this)">${auth.config?.paymentCheckoutReady ? 'Купить' : 'Оплата скоро'}</button>`
       : isSel
         ? `<div class="dict-state-pill">Выбран</div>`
-        : `<button class="dict-select-btn" onclick="event.stopPropagation(); selectDict('${d.id}')">Выбрать</button>`
+        : `<button class="dict-action-btn dict-select-btn" type="button" onclick="selectDict('${d.id}')">Выбрать</button>`
 
-    return `<div class="dict-card${isSel ? ' selected' : ''}${locked ? ' locked' : ''}"
-                 onclick="${locked ? `selectLockedDict('${d.id}')` : `selectDict('${d.id}')`}">
-      ${isSel ? '<div class="dict-check">✓</div>' : ''}
-      <div class="dict-icon">${dictionaryIconSvg(d.id)}</div>
+    return `<div class="dict-card${isSel ? ' selected' : ''}${locked ? ' locked' : ''}${markerText ? ' has-marker' : ''}" role="listitem" aria-label="${escapeHtml(d.name)}${isSel ? ', выбран' : ''}">
+      ${markerText ? `<div class="dict-badge">${escapeHtml(markerText)}</div>` : ''}
+      <div class="dict-icon"><img src="${escapeHtml(iconAsset)}" alt="" aria-hidden="true"></div>
       <div class="dict-name">${escapeHtml(d.name)}</div>
       <div class="dict-sub-row">
         <div class="dict-sub">${escapeHtml(d.subtitle)}</div>
@@ -1604,19 +1648,6 @@ function renderDictGrid() {
       ${actionHtml}
     </div>`
   }).join('')
-}
-
-function dictionaryIconSvg(id) {
-  const paths = {
-    classic: '<path d="M4 6.5h5v3a2.5 2.5 0 0 1-5 0v-3Zm11 0h5v3a2.5 2.5 0 0 1-5 0v-3ZM9 8h6v6a3 3 0 0 1-6 0V8Z"/><path d="M5.5 8.5h2M16.5 8.5h2M11 11.5h2"/>',
-    geo: '<circle cx="12" cy="12" r="8.5"/><path d="M3.8 10h16.4M3.8 14h16.4M12 3.5c2.3 2.4 3.4 5.2 3.4 8.5S14.3 18.1 12 20.5M12 3.5C9.7 5.9 8.6 8.7 8.6 12s1.1 6.1 3.4 8.5"/>',
-    society: '<path d="m3.5 9 8.5-5 8.5 5M5 9.5h14M6.5 10v7.5M10 10v7.5M14 10v7.5M17.5 10v7.5M4 20h16"/>',
-    around_us: '<path d="m12 3 1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6L12 3Z"/><path d="m5 14 .9 2.1L8 17l-2.1.9L5 20l-.9-2.1L2 17l2.1-.9L5 14Zm14-3 .7 1.8 1.8.7-1.8.7L19 16l-.7-1.8-1.8-.7 1.8-.7L19 11Z"/>',
-    cinema: '<rect x="3" y="6.5" width="18" height="13" rx="2"/><path d="M3 10.5h18M6 3l2 3.5M11 3l2 3.5M16 3l2 3.5"/>',
-    science: '<path d="M9 3h6M10 3v5l-4.8 8.2A3.2 3.2 0 0 0 8 21h8a3.2 3.2 0 0 0 2.8-4.8L14 8V3"/><path d="M7.5 15h9"/>',
-  }
-  const path = paths[id] || paths.classic
-  return `<svg viewBox="0 0 24 24" aria-hidden="true">${path}</svg>`
 }
 
 function setDictionaryNotice(message, variant = 'info') {
@@ -1690,11 +1721,38 @@ window.selectLockedDict = function(id) {
   setDictionaryNotice(`Словарь "${dict.name}" пока закрыт.`, 'warning')
 }
 
+window.openDictionaryLogin = function(id) {
+  const dict = dictionaries.find(item => item.id === id)
+  if (!dict) return
+  setDictionaryNotice(
+    dict.requiresPurchase
+      ? 'Сначала войдите через Telegram. После входа нажмите «Купить» ещё раз.'
+      : `Войдите через Telegram, чтобы открыть словарь «${dict.name}».`,
+    'warning'
+  )
+  showScreen('profile')
+  requestAnimationFrame(() => q('account-card')?.scrollIntoView({ block: 'center' }))
+}
+
 // ─── Setup ─────────────────────────────────────────────────────────────────────
 let teamCount = 2
-const defaultNames = ['Команда 1','Команда 2','Команда 3','Команда 4','Команда 5','Команда 6']
+let teamColorIndices = [0, 1]
+let teamPresetIndices = [0, 0]
+let defaultNames = [TEAM_PRESETS[0][0].name, TEAM_PRESETS[1][0].name]
 // teamPlayers[i] = массив имён игроков команды i (минимум 1)
 let teamPlayers = [[''], ['']]
+let animatedTeamIndex = -1
+
+function getTeamPreset(teamIndex) {
+  const colorIndex = teamColorIndices[teamIndex] ?? teamIndex
+  const presets = TEAM_PRESETS[colorIndex] || TEAM_PRESETS[0]
+  const presetIndex = teamPresetIndices[teamIndex] ?? 0
+  return presets[presetIndex] || presets[0]
+}
+
+function firstUnusedTeamColorIndex() {
+  return TEAM_COLORS.findIndex((_, colorIndex) => !teamColorIndices.includes(colorIndex))
+}
 
 function saveCurrentInputs() {
   for (let i = 0; i < teamCount; i++) {
@@ -1712,28 +1770,53 @@ function renderTeams() {
   c.innerHTML = ''
   for (let i = 0; i < teamCount; i++) {
     const players = teamPlayers[i]
+    const colorIndex = teamColorIndices[i] ?? i
+    const color = TEAM_COLORS[colorIndex]
+    const preset = getTeamPreset(i)
     const playersHTML = players.map((name, j) => `
       <div class="player-row">
-        <input class="player-input" id="pi${i}_${j}" placeholder="Имя игрока" value="${escapeHtml(name)}">
+        <input class="player-input" id="pi${i}_${j}" placeholder="Имя игрока" value="${escapeHtml(name)}" aria-label="Игрок ${j + 1}, команда ${i + 1}">
         ${players.length > 1
-          ? `<button class="btn btn-sm btn-secondary" style="padding:4px 8px;font-size:.75rem" onclick="removePlayer(${i},${j})">✕</button>`
+          ? `<button class="icon-btn remove-player-btn" type="button" onclick="removePlayer(${i},${j})" aria-label="Удалить игрока ${j + 1}">×</button>`
           : ''}
       </div>`).join('')
     const d = document.createElement('div')
     d.className = 'team-block'
+    d.style.setProperty('--team-color', color)
     d.innerHTML = `<div class="team-header">
-      <span class="team-color-dot" style="background:${TEAM_COLORS[i]}" aria-hidden="true"></span>
+      <div class="team-identity${animatedTeamIndex === i ? ' is-shuffling' : ''}" aria-hidden="true">
+        ${teamIconSvg(preset.iconId)}
+      </div>
       <input class="team-name-input" id="ti${i}" value="${escapeHtml(defaultNames[i])}" aria-label="Название команды ${i + 1}">
-      ${teamCount > 2 ? `<button class="btn btn-sm btn-danger" onclick="removeTeam(${i})">✕</button>` : ''}
+      <button class="icon-btn team-dice-btn" type="button" onclick="randomizeTeamPreset(${i})" aria-label="Сменить название и значок команды ${i + 1}" title="Другое название">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"/><circle cx="9" cy="9" r="1"/><circle cx="15" cy="9" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="9" cy="15" r="1"/><circle cx="15" cy="15" r="1"/></svg>
+      </button>
+      ${teamCount > 2 ? `<button class="icon-btn remove-team-btn" type="button" onclick="removeTeam(${i})" aria-label="Удалить команду ${i + 1}">×</button>` : ''}
     </div>
     <div class="players-section">
-      <div class="players-label">Игроки</div>
       ${playersHTML}
-      <button class="add-player-btn" onclick="addPlayer(${i})">+ Добавить игрока</button>
+      <button class="add-player-btn" type="button" onclick="addPlayer(${i})">
+        <svg class="btn-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4v12M4 10h12"/></svg>
+        <span>Добавить игрока</span>
+      </button>
     </div>`
     c.appendChild(d)
   }
-  q('add-team-btn').style.display = teamCount >= 6 ? 'none' : 'block'
+  q('add-team-btn').style.display = teamCount >= 6 ? 'none' : 'flex'
+}
+
+window.randomizeTeamPreset = function(i) {
+  saveCurrentInputs()
+  const colorIndex = teamColorIndices[i] ?? i
+  const presets = TEAM_PRESETS[colorIndex]
+  const current = teamPresetIndices[i] ?? 0
+  let next = current
+  while (next === current) next = Math.floor(Math.random() * presets.length)
+  teamPresetIndices[i] = next
+  defaultNames[i] = presets[next].name
+  animatedTeamIndex = i
+  renderTeams()
+  window.setTimeout(() => { animatedTeamIndex = -1 }, 280)
 }
 
 window.addPlayer = function(i) {
@@ -1752,6 +1835,8 @@ window.removeTeam = function(i) {
   saveCurrentInputs()
   defaultNames.splice(i, 1)
   teamPlayers.splice(i, 1)
+  teamColorIndices.splice(i, 1)
+  teamPresetIndices.splice(i, 1)
   teamCount--
   renderTeams()
 }
@@ -1759,6 +1844,11 @@ window.removeTeam = function(i) {
 q('add-team-btn').addEventListener('click', () => {
   if (teamCount < 6) {
     saveCurrentInputs()
+    const colorIndex = firstUnusedTeamColorIndex()
+    if (colorIndex < 0) return
+    teamColorIndices.push(colorIndex)
+    teamPresetIndices.push(0)
+    defaultNames.push(TEAM_PRESETS[colorIndex][0].name)
     teamPlayers.push([''])
     teamCount++
     renderTeams()
@@ -1803,7 +1893,8 @@ q('start-btn').addEventListener('click', async () => {
   state.teams = names.map((name, i) => ({
     name,
     position: 0,
-    color: TEAM_COLORS[i],
+    color: TEAM_COLORS[teamColorIndices[i]],
+    iconId: getTeamPreset(i).iconId,
     players: playerLists[i],
     explainerIdx: 0,
   }))
@@ -1929,7 +2020,7 @@ function goExplaining() {
     q('normal-btns').style.display = 'none'
     q('open-round-btns').style.display = 'block'
     q('teams-btns-container').innerHTML = state.teams.map((t, i) =>
-      `<button class="btn btn-success" style="padding: 18px; font-size: 1.1rem;" onclick="endOpenRound(${i})">${t.name}</button>`
+      `<button class="btn btn-success" style="padding: 18px; font-size: 1.1rem;" onclick="endOpenRound(${i})">${teamIconSvg(t.iconId, 'team-icon team-icon-inline')}${escapeHtml(t.name)}</button>`
     ).join('')
   } else {
     q('ex-pts-hint').textContent = `Угадаете — +${pts} очков, фишка вперёд на ${pts}`
@@ -2150,8 +2241,9 @@ function showGameOver(winner) {
 q('restart-btn').addEventListener('click', () => {
   sfxNavForward();
   teamCount = 2
-  defaultNames.length = 0
-  defaultNames.push('Команда 1','Команда 2','Команда 3','Команда 4','Команда 5','Команда 6')
+  teamColorIndices = [0, 1]
+  teamPresetIndices = [0, 0]
+  defaultNames = [TEAM_PRESETS[0][0].name, TEAM_PRESETS[1][0].name]
   teamPlayers = [[''], ['']]
   renderTeams()
   state.currentDictionary = null
@@ -2186,7 +2278,9 @@ function updateSetupMenuButtons() {
 
 // ─── Util ───────────────────────────────────────────────────────────────────────
 function setBadge(id, team) {
-  const el = q(id); el.textContent = team.name; el.style.background = team.color
+  const el = q(id)
+  el.innerHTML = `${teamIconSvg(team.iconId, 'team-icon team-icon-inline')}<span>${escapeHtml(team.name)}</span>`
+  el.style.background = team.color
 }
 
 // ─── Init ───────────────────────────────────────────────────────────────────────
