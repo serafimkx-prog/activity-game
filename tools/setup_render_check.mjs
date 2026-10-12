@@ -52,10 +52,11 @@ await command('Emulation.setDeviceMetricsOverride', {
   width,
   height,
   deviceScaleFactor: 1,
-  mobile: width <= 500,
+  mobile: false,
   screenWidth: width,
   screenHeight: height,
 })
+await command('Emulation.setTouchEmulationEnabled', { enabled: width <= 500, maxTouchPoints: width <= 500 ? 5 : 1 })
 await command('Page.navigate', { url: baseUrl })
 await new Promise(resolve => setTimeout(resolve, 1200))
 await command('Runtime.evaluate', { expression: `if (typeof state !== 'undefined') state.gameInProgress = false; localStorage.clear()` })
@@ -90,6 +91,17 @@ const evaluation = await command('Runtime.evaluate', {
       viewport: { width: innerWidth, height: innerHeight },
       document: { width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight },
       overflowX: document.documentElement.scrollWidth > innerWidth,
+      overflowElements: [...document.querySelectorAll('body *')].map(element => {
+        const rect = element.getBoundingClientRect()
+        return {
+          tag: element.tagName.toLowerCase(),
+          id: element.id,
+          className: typeof element.className === 'string' ? element.className : '',
+          left: Math.round(rect.left),
+          right: Math.round(rect.right),
+          width: Math.round(rect.width),
+        }
+      }).filter(item => item.left < -1 || item.right > innerWidth + 1).slice(0, 20),
       dictionaryColumns: getComputedStyle(document.querySelector('.dict-grid')).gridTemplateColumns.split(' ').length,
       teamColumns: getComputedStyle(document.querySelector('.teams-grid')).gridTemplateColumns.split(' ').length,
       dictionaryImages,
@@ -107,6 +119,22 @@ const screenshot = await command('Page.captureScreenshot', {
   captureBeyondViewport: false,
 })
 await writeFile(outputPath, Buffer.from(screenshot.data, 'base64'))
+
+const layoutMetrics = await command('Page.getLayoutMetrics')
+const contentSize = layoutMetrics.cssContentSize || layoutMetrics.contentSize
+const fullScreenshot = await command('Page.captureScreenshot', {
+  format: 'png',
+  captureBeyondViewport: true,
+  clip: {
+    x: 0,
+    y: 0,
+    width: Math.ceil(contentSize.width),
+    height: Math.ceil(contentSize.height),
+    scale: 1,
+  },
+})
+const fullOutputPath = outputPath.replace(/\.png$/i, '-full.png')
+await writeFile(fullOutputPath, Buffer.from(fullScreenshot.data, 'base64'))
 
 const focusEvaluation = await command('Runtime.evaluate', {
   returnByValue: true,
@@ -133,7 +161,7 @@ if (behaviorArg === 'behavior') {
     expression: `(() => {
       const identity = index => ({
         name: document.querySelector('#ti' + index)?.value,
-        icon: document.querySelectorAll('.team-identity use')[index]?.getAttribute('href'),
+        icon: document.querySelectorAll('.team-identity img')[index]?.getAttribute('src'),
         color: document.querySelectorAll('.team-block')[index]?.style.getPropertyValue('--team-color'),
       })
       const before = identity(0)
@@ -181,6 +209,7 @@ if (behaviorArg === 'behavior') {
 
 console.log(JSON.stringify({
   ...evaluation.result.value,
+  fullScreenshotPath: fullOutputPath,
   keyboardFocusable: focusEvaluation.result.value,
   behavior,
 }, null, 2))

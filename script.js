@@ -133,6 +133,32 @@ const TEAM_PRESETS = [
     { name: 'Бирюзовые роботы', iconId: 'robot' },
   ],
 ]
+const TEAM_ICON_ASSETS = {
+  elephant: '/assets/twemoji/1f418.svg',
+  crocodile: '/assets/twemoji/1f40a.svg',
+  sprout: '/assets/twemoji/1f331.svg',
+  dragon: '/assets/twemoji/1f409.svg',
+  cat: '/assets/twemoji/1f431.svg',
+  whale: '/assets/twemoji/1f40b.svg',
+  rocket: '/assets/twemoji/1f680.svg',
+  bolt: '/assets/twemoji/26a1.svg',
+  fox: '/assets/twemoji/1f98a.svg',
+  tiger: '/assets/twemoji/1f42f.svg',
+  sun: '/assets/twemoji/2600.svg',
+  comet: '/assets/twemoji/2604.svg',
+  flamingo: '/assets/twemoji/1f9a9.svg',
+  donut: '/assets/twemoji/1f369.svg',
+  axolotl: '/assets/twemoji/1f98e.svg',
+  unicorn: '/assets/twemoji/1f984.svg',
+  owl: '/assets/twemoji/1f989.svg',
+  wizard: '/assets/twemoji/1f9d9-200d-2642-fe0f.svg',
+  grapes: '/assets/twemoji/1f347.svg',
+  meteor: '/assets/twemoji/1f320.svg',
+  shark: '/assets/twemoji/1f988.svg',
+  penguin: '/assets/twemoji/1f427.svg',
+  wave: '/assets/twemoji/1f30a.svg',
+  robot: '/assets/twemoji/1f916.svg',
+}
 const DICTIONARY_FEEDBACK_STORAGE_KEY = 'activity_dictionary_feedback_v1'
 const ACTIVE_GAME_STORAGE_KEY = 'activity_active_game_v1'
 const GAME_SESSION_QUEUE_STORAGE_KEY = 'activity_pending_game_sessions_v1'
@@ -179,7 +205,8 @@ function shuffle(arr) {
 
 function teamIconSvg(iconId, className = 'team-icon') {
   const safeIconId = /^[a-z-]+$/.test(iconId || '') ? iconId : 'elephant'
-  return `<svg class="${className}" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="/assets/team-icons.svg#${safeIconId}"></use></svg>`
+  const iconAsset = TEAM_ICON_ASSETS[safeIconId] || TEAM_ICON_ASSETS.elephant
+  return `<img class="${className}" src="${iconAsset}" alt="" aria-hidden="true" draggable="false">`
 }
 
 function q(id) { return document.getElementById(id) }
@@ -1789,7 +1816,7 @@ function renderTeams() {
       </div>
       <input class="team-name-input" id="ti${i}" value="${escapeHtml(defaultNames[i])}" aria-label="Название команды ${i + 1}">
       <button class="icon-btn team-dice-btn" type="button" onclick="randomizeTeamPreset(${i})" aria-label="Сменить название и значок команды ${i + 1}" title="Другое название">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"/><circle cx="9" cy="9" r="1"/><circle cx="15" cy="9" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="9" cy="15" r="1"/><circle cx="15" cy="15" r="1"/></svg>
+        <img src="/assets/twemoji/1f3b2.svg" alt="" aria-hidden="true" draggable="false">
       </button>
       ${teamCount > 2 ? `<button class="icon-btn remove-team-btn" type="button" onclick="removeTeam(${i})" aria-label="Удалить команду ${i + 1}">×</button>` : ''}
     </div>
