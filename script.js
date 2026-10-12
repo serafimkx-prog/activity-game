@@ -942,7 +942,7 @@ function renderTeamStats(summary) {
   return `
     <div class="team-stats-grid">
       ${summary.teams.map(team => `
-        <div class="team-summary-card">
+        <div class="team-summary-card" style="border-left:4px solid ${escapeHtml(team.color)}">
           <div class="team-summary-head">
             <div>
               <div class="team-summary-name">${escapeHtml(team.name)}</div>
@@ -1488,11 +1488,10 @@ function renderBoard(containerId) {
   rows += '</div>'
 
   const labels = state.teams.map(t => {
-    const posLabel = t.position >= FINISH ? 'Финиш' : t.position === 0 ? 'Старт' : t.position
+    const posLabel = t.position >= FINISH ? '🏁' : `кл.${t.position}`
     return `<span class="board-team-label">
-      <span class="board-team-dot" style="background:${t.color}"></span>
-      <span class="board-team-name">${escapeHtml(t.name)}</span>
-      <span class="board-team-position">${posLabel}</span>
+      <span style="width:9px;height:9px;border-radius:50%;background:${t.color};display:inline-block"></span>
+      ${escapeHtml(t.name)}: ${posLabel}
     </span>`
   }).join('')
 
@@ -1500,9 +1499,9 @@ function renderBoard(containerId) {
     <div class="board-info">${labels}</div>
     ${rows}
     <div class="board-legend">
-      <div class="leg"><div class="leg-dot" style="background:#5746ad"></div>Объяснить</div>
-      <div class="leg"><div class="leg-dot" style="background:#9b3030"></div>Показать</div>
-      <div class="leg"><div class="leg-dot" style="background:#9a6c0b"></div>Нарисовать</div>
+      <div class="leg"><div class="leg-dot" style="background:#3d3180"></div>🗣️ Объяснение</div>
+      <div class="leg"><div class="leg-dot" style="background:#7a1e1e"></div>🙌 Пантомима</div>
+      <div class="leg"><div class="leg-dot" style="background:#7a5500"></div>🎨 Рисование</div>
     </div>`
 }
 
@@ -1570,6 +1569,9 @@ function renderDictGrid() {
     const infoHtml = d.description
       ? `<span class="dict-info-trigger" onclick="event.stopPropagation()" tabindex="0" role="button" aria-label="Описание словаря ${escapeHtml(d.name)}">i<span class="dict-info-tooltip">${escapeHtml(d.description)}</span></span>`
       : ''
+    const badge = !d.available
+      ? (d.badge || 'Скоро')
+      : d.badge || (locked && d.requiresPurchase ? (d.priceLabel || 'Премиум') : null)
     const footerText = !d.available
       ? 'Словарь ещё не открыт'
       : locked
@@ -1594,7 +1596,8 @@ function renderDictGrid() {
     return `<div class="dict-card${isSel ? ' selected' : ''}${locked ? ' locked' : ''}"
                  onclick="${locked ? `selectLockedDict('${d.id}')` : `selectDict('${d.id}')`}">
       ${isSel ? '<div class="dict-check">✓</div>' : ''}
-      <div class="dict-icon">${dictionaryIconSvg(d.id)}</div>
+      ${!isSel && badge ? `<div class="dict-badge">${escapeHtml(badge)}</div>` : ''}
+      <div class="dict-icon">${d.icon}</div>
       <div class="dict-name">${escapeHtml(d.name)}</div>
       <div class="dict-sub-row">
         <div class="dict-sub">${escapeHtml(d.subtitle)}</div>
@@ -1604,19 +1607,6 @@ function renderDictGrid() {
       ${actionHtml}
     </div>`
   }).join('')
-}
-
-function dictionaryIconSvg(id) {
-  const paths = {
-    classic: '<path d="M4 6.5h5v3a2.5 2.5 0 0 1-5 0v-3Zm11 0h5v3a2.5 2.5 0 0 1-5 0v-3ZM9 8h6v6a3 3 0 0 1-6 0V8Z"/><path d="M5.5 8.5h2M16.5 8.5h2M11 11.5h2"/>',
-    geo: '<circle cx="12" cy="12" r="8.5"/><path d="M3.8 10h16.4M3.8 14h16.4M12 3.5c2.3 2.4 3.4 5.2 3.4 8.5S14.3 18.1 12 20.5M12 3.5C9.7 5.9 8.6 8.7 8.6 12s1.1 6.1 3.4 8.5"/>',
-    society: '<path d="m3.5 9 8.5-5 8.5 5M5 9.5h14M6.5 10v7.5M10 10v7.5M14 10v7.5M17.5 10v7.5M4 20h16"/>',
-    around_us: '<path d="m12 3 1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6L12 3Z"/><path d="m5 14 .9 2.1L8 17l-2.1.9L5 20l-.9-2.1L2 17l2.1-.9L5 14Zm14-3 .7 1.8 1.8.7-1.8.7L19 16l-.7-1.8-1.8-.7 1.8-.7L19 11Z"/>',
-    cinema: '<rect x="3" y="6.5" width="18" height="13" rx="2"/><path d="M3 10.5h18M6 3l2 3.5M11 3l2 3.5M16 3l2 3.5"/>',
-    science: '<path d="M9 3h6M10 3v5l-4.8 8.2A3.2 3.2 0 0 0 8 21h8a3.2 3.2 0 0 0 2.8-4.8L14 8V3"/><path d="M7.5 15h9"/>',
-  }
-  const path = paths[id] || paths.classic
-  return `<svg viewBox="0 0 24 24" aria-hidden="true">${path}</svg>`
 }
 
 function setDictionaryNotice(message, variant = 'info') {
@@ -1721,9 +1711,9 @@ function renderTeams() {
       </div>`).join('')
     const d = document.createElement('div')
     d.className = 'team-block'
+    d.style.borderLeftColor = TEAM_COLORS[i]
     d.innerHTML = `<div class="team-header">
-      <span class="team-color-dot" style="background:${TEAM_COLORS[i]}" aria-hidden="true"></span>
-      <input class="team-name-input" id="ti${i}" value="${escapeHtml(defaultNames[i])}" aria-label="Название команды ${i + 1}">
+      <input class="team-name-input" id="ti${i}" value="${escapeHtml(defaultNames[i])}" style="border-bottom-color:${TEAM_COLORS[i]}" aria-label="Название команды ${i + 1}">
       ${teamCount > 2 ? `<button class="btn btn-sm btn-danger" onclick="removeTeam(${i})">✕</button>` : ''}
     </div>
     <div class="players-section">

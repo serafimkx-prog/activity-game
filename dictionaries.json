@@ -32,7 +32,8 @@
     "wordCount": 1290,
     "available": true,
     "access": "free",
-    "authAccess": "login"
+    "authAccess": "login",
+    "badge": "Сложный"
   },
   {
     "id": "around_us",
@@ -45,6 +46,7 @@
     "available": true,
     "access": "premium",
     "authAccess": "login",
+    "badge": "Хит",
     "priceLabel": "149 ₽"
   },
   {
@@ -58,6 +60,7 @@
     "available": true,
     "access": "premium",
     "authAccess": "login",
+    "badge": "Новый",
     "priceLabel": "149 ₽"
   },
   {
@@ -71,6 +74,7 @@
     "available": true,
     "access": "premium",
     "authAccess": "login",
+    "badge": "Новый",
     "priceLabel": "149 ₽"
   }
 ]
