@@ -174,6 +174,19 @@ function validateSourceContracts() {
   assert(script.includes("function renderSummaryInto(summary, ids, options = {})"), "renderSummaryInto supports options");
   assert(script.includes("{ compact: true }"), "showGameOver uses compact summary rendering");
   assert(countMatches(script, /ts-back-to-menu-btn'\)\.addEventListener/g) === 1, "turn-start back button has one listener");
+  const identityNames = [...script.matchAll(/\{ name: '([^']+)', iconId: '[^']+' \}/g)].map(match => match[1]);
+  assert(identityNames.length === 24 && new Set(identityNames).size === 24, "team identity presets contain 24 unique names");
+  assert(!identityNames.some(name => /^(Зелён|Син|Оранжев|Розов|Фиолетов|Бирюзов)/i.test(name)), "team identity names do not encode legacy colors");
+  assert(!style.includes("var(--team-color)"), "visible styles do not depend on a team color variable");
+  for (const legacyVisual of [
+    "background:${t.color}",
+    "color:${t.color}",
+    "--accent:${escapeHtml(team.color)}",
+    "el.style.background = team.color",
+  ]) {
+    assert(!script.includes(legacyVisual), `team color is not rendered via ${legacyVisual}`);
+  }
+  assert(script.includes("teamIconSvg(t.iconId, 'team-icon team-icon-token')"), "board tokens use team emoji identities");
 
   const lockedStart = script.indexOf("window.selectLockedDict = function");
   const lockedEnd = script.indexOf("// ─── Setup", lockedStart);

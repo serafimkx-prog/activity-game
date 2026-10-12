@@ -162,11 +162,15 @@ if (behaviorArg === 'behavior') {
       const identity = index => ({
         name: document.querySelector('#ti' + index)?.value,
         icon: document.querySelectorAll('.team-identity img')[index]?.getAttribute('src'),
-        color: document.querySelectorAll('.team-block')[index]?.style.getPropertyValue('--team-color'),
       })
       const before = identity(0)
       randomizeTeamPreset(0)
       const after = identity(0)
+      const restoredLegacyTeam = getRestoredTeamIdentity({
+        name: 'Зелёные слоники',
+        color: '#22c55e',
+        players: ['Игрок'],
+      }, 0)
       for (let index = 2; index < 6; index += 1) document.querySelector('#add-team-btn').click()
       const teams = [...document.querySelectorAll('.team-block')].map((_, index) => identity(index))
       openDictionaryLogin('around_us')
@@ -176,14 +180,43 @@ if (behaviorArg === 'behavior') {
         diceChangedName: before.name !== after.name,
         diceChangedIcon: before.icon !== after.icon,
         teamCount: teams.length,
-        uniqueColors: new Set(teams.map(team => team.color)).size,
+        uniqueNames: new Set(teams.map(team => team.name)).size,
+        uniqueIcons: new Set(teams.map(team => team.icon)).size,
         completeTeamIdentities: teams.every(team => team.name && team.icon),
+        setupUsesTeamColorStyle: [...document.querySelectorAll('.team-block')]
+          .some(block => block.getAttribute('style')?.includes('--team-color')),
+        legacySnapshotMigrated: restoredLegacyTeam.name === 'Слоники'
+          && restoredLegacyTeam.iconId === 'elephant'
+          && restoredLegacyTeam.players[0] === 'Игрок',
         guestPaidDestination,
         teams,
       }
     })()`,
   })
   behavior = behaviorEvaluation.result.value
+
+  const teamSectionRect = await command('Runtime.evaluate', {
+    returnByValue: true,
+    expression: `(() => {
+      const section = document.querySelector('#teams-container')?.closest('.section')
+      const rect = section.getBoundingClientRect()
+      return {
+        x: Math.max(0, rect.left + scrollX),
+        y: Math.max(0, rect.top + scrollY),
+        width: Math.ceil(rect.width),
+        height: Math.ceil(rect.height),
+      }
+    })()`,
+  })
+  const teamsOutputPath = outputPath.replace(/\.png$/i, '-teams.png')
+  const teamsScreenshot = await command('Page.captureScreenshot', {
+    format: 'png',
+    captureBeyondViewport: true,
+    clip: { ...teamSectionRect.result.value, scale: 1 },
+  })
+  await writeFile(teamsOutputPath, Buffer.from(teamsScreenshot.data, 'base64'))
+  behavior.teamsScreenshotPath = teamsOutputPath
+
   const startButtonRect = await command('Runtime.evaluate', {
     returnByValue: true,
     expression: `(() => {
@@ -198,13 +231,45 @@ if (behaviorArg === 'behavior') {
   await new Promise(resolve => setTimeout(resolve, 3000))
   const liveStateEvaluation = await command('Runtime.evaluate', {
     returnByValue: true,
-    expression: `({
-      activeScreen: document.querySelector('.screen.active')?.id,
-      teamCount: state.teams.length,
-      identitiesPersisted: state.teams.every(team => Boolean(team.name && team.iconId && team.color)),
-    })`,
+    expression: `(() => {
+      const active = document.querySelector('.screen.active')
+      const legacyColors = ['#22c55e','#3b82f6','#f97316','#ec4899','#a855f7','#06b6d4']
+      const visibleInlineColorRefs = [...active.querySelectorAll('[style]')]
+        .map(element => element.getAttribute('style') || '')
+        .filter(style => legacyColors.some(color => style.toLowerCase().includes(color)))
+      const renderedTeamIcons = [...active.querySelectorAll('.team-icon')]
+      return {
+        activeScreen: active?.id,
+        teamCount: state.teams.length,
+        identitiesPersisted: state.teams.every(team => Boolean(team.name && team.iconId)),
+        legacyColorsPersisted: state.teams.every(team => Boolean(team.color)),
+        visibleInlineColorRefs,
+        renderedTeamIconCount: renderedTeamIcons.length,
+        allRenderedTeamIconsLoaded: renderedTeamIcons.every(icon => icon.complete && icon.naturalWidth > 0),
+        overflowX: document.documentElement.scrollWidth > innerWidth,
+      }
+    })()`,
   })
   behavior.liveState = liveStateEvaluation.result.value
+
+  await command('Runtime.evaluate', { expression: 'scrollTo(0, 0)' })
+  await new Promise(resolve => setTimeout(resolve, 150))
+  const gameLayoutMetrics = await command('Page.getLayoutMetrics')
+  const gameContentSize = gameLayoutMetrics.cssContentSize || gameLayoutMetrics.contentSize
+  const gameScreenshot = await command('Page.captureScreenshot', {
+    format: 'png',
+    captureBeyondViewport: true,
+    clip: {
+      x: 0,
+      y: 0,
+      width: Math.ceil(gameContentSize.width),
+      height: Math.ceil(gameContentSize.height),
+      scale: 1,
+    },
+  })
+  const gameOutputPath = outputPath.replace(/\.png$/i, '-game.png')
+  await writeFile(gameOutputPath, Buffer.from(gameScreenshot.data, 'base64'))
+  behavior.gameScreenshotPath = gameOutputPath
 }
 
 console.log(JSON.stringify({
