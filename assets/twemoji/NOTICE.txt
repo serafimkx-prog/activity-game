@@ -11,5 +11,5 @@ International license. The complete license text is included in
 assets/twemoji/LICENSE-CC-BY-4.0.txt and is also available at:
 https://creativecommons.org/licenses/by/4.0/
 
-The Activity project does not modify the SVG artwork beyond selecting and
-renaming copies used for the six dictionary categories.
+The Activity project does not modify the SVG artwork beyond selecting the
+dice control and renaming copies used for the six dictionary categories.

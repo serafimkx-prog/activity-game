@@ -94,80 +94,22 @@ const MODES = {
        hint:'Рисуй — слова, буквы и цифры под запретом' },
 }
 
-// Kept in snapshots only so games saved before the colorless-team update still restore.
-// Team color is no longer rendered anywhere in the UI.
-const LEGACY_TEAM_COLORS = ['#22c55e','#3b82f6','#f97316','#ec4899','#a855f7','#06b6d4']
-const TEAM_IDENTITY_PRESETS = [
-  [
-    { name: 'Слоники', iconId: 'elephant' },
-    { name: 'Крокодилы', iconId: 'crocodile' },
-    { name: 'Ростки', iconId: 'sprout' },
-    { name: 'Драконы', iconId: 'dragon' },
-  ],
-  [
-    { name: 'Коты', iconId: 'cat' },
-    { name: 'Киты', iconId: 'whale' },
-    { name: 'Ракеты', iconId: 'rocket' },
-    { name: 'Молнии', iconId: 'bolt' },
-  ],
-  [
-    { name: 'Лисы', iconId: 'fox' },
-    { name: 'Тигры', iconId: 'tiger' },
-    { name: 'Солнышки', iconId: 'sun' },
-    { name: 'Кометы', iconId: 'comet' },
-  ],
-  [
-    { name: 'Фламинго', iconId: 'flamingo' },
-    { name: 'Пончики', iconId: 'donut' },
-    { name: 'Ящерки', iconId: 'axolotl' },
-    { name: 'Единороги', iconId: 'unicorn' },
-  ],
-  [
-    { name: 'Совушки', iconId: 'owl' },
-    { name: 'Волшебники', iconId: 'wizard' },
-    { name: 'Виноградинки', iconId: 'grapes' },
-    { name: 'Звёздочки', iconId: 'meteor' },
-  ],
-  [
-    { name: 'Акулы', iconId: 'shark' },
-    { name: 'Пингвины', iconId: 'penguin' },
-    { name: 'Волны', iconId: 'wave' },
-    { name: 'Роботы', iconId: 'robot' },
-  ],
+const TEAM_COLORS = ['#22c55e','#3b82f6','#f97316','#ec4899','#a855f7','#06b6d4']
+const TEAM_NAME_PRESETS = [
+  ['Слоники', 'Крокодилы', 'Ростки', 'Драконы'],
+  ['Коты', 'Киты', 'Ракеты', 'Молнии'],
+  ['Лисы', 'Тигры', 'Солнышки', 'Кометы'],
+  ['Фламинго', 'Пончики', 'Ящерки', 'Единороги'],
+  ['Совушки', 'Волшебники', 'Виноградинки', 'Звёздочки'],
+  ['Акулы', 'Пингвины', 'Волны', 'Роботы'],
 ]
-const LEGACY_COLOR_QUALIFIED_TEAM_NAMES = new Set([
-  'Зелёные слоники', 'Зелёные крокодилы', 'Зелёные ростки', 'Зелёные драконы',
-  'Синие коты', 'Синие киты', 'Синие ракеты', 'Синие молнии',
-  'Оранжевые лисы', 'Оранжевые тигры', 'Оранжевые солнца', 'Оранжевые кометы',
-  'Розовые фламинго', 'Розовые пончики', 'Розовые аксолотли', 'Розовые единороги',
-  'Фиолетовые совы', 'Фиолетовые маги', 'Фиолетовые гроздья', 'Фиолетовые метеоры',
-  'Бирюзовые акулы', 'Бирюзовые пингвины', 'Бирюзовые волны', 'Бирюзовые роботы',
-])
-const TEAM_ICON_ASSETS = {
-  elephant: '/assets/twemoji/1f418.svg',
-  crocodile: '/assets/twemoji/1f40a.svg',
-  sprout: '/assets/twemoji/1f331.svg',
-  dragon: '/assets/twemoji/1f409.svg',
-  cat: '/assets/twemoji/1f431.svg',
-  whale: '/assets/twemoji/1f40b.svg',
-  rocket: '/assets/twemoji/1f680.svg',
-  bolt: '/assets/twemoji/26a1.svg',
-  fox: '/assets/twemoji/1f98a.svg',
-  tiger: '/assets/twemoji/1f42f.svg',
-  sun: '/assets/twemoji/2600.svg',
-  comet: '/assets/twemoji/2604.svg',
-  flamingo: '/assets/twemoji/1f9a9.svg',
-  donut: '/assets/twemoji/1f369.svg',
-  axolotl: '/assets/twemoji/1f98e.svg',
-  unicorn: '/assets/twemoji/1f984.svg',
-  owl: '/assets/twemoji/1f989.svg',
-  wizard: '/assets/twemoji/1f9d9-200d-2642-fe0f.svg',
-  grapes: '/assets/twemoji/1f347.svg',
-  meteor: '/assets/twemoji/1f320.svg',
-  shark: '/assets/twemoji/1f988.svg',
-  penguin: '/assets/twemoji/1f427.svg',
-  wave: '/assets/twemoji/1f30a.svg',
-  robot: '/assets/twemoji/1f916.svg',
+const LEGACY_TEAM_NAME_MIGRATIONS = {
+  'Зелёные слоники': 'Слоники', 'Зелёные крокодилы': 'Крокодилы', 'Зелёные ростки': 'Ростки', 'Зелёные драконы': 'Драконы',
+  'Синие коты': 'Коты', 'Синие киты': 'Киты', 'Синие ракеты': 'Ракеты', 'Синие молнии': 'Молнии',
+  'Оранжевые лисы': 'Лисы', 'Оранжевые тигры': 'Тигры', 'Оранжевые солнца': 'Солнышки', 'Оранжевые кометы': 'Кометы',
+  'Розовые фламинго': 'Фламинго', 'Розовые пончики': 'Пончики', 'Розовые аксолотли': 'Ящерки', 'Розовые единороги': 'Единороги',
+  'Фиолетовые совы': 'Совушки', 'Фиолетовые маги': 'Волшебники', 'Фиолетовые гроздья': 'Виноградинки', 'Фиолетовые метеоры': 'Звёздочки',
+  'Бирюзовые акулы': 'Акулы', 'Бирюзовые пингвины': 'Пингвины', 'Бирюзовые волны': 'Волны', 'Бирюзовые роботы': 'Роботы',
 }
 const DICTIONARY_FEEDBACK_STORAGE_KEY = 'activity_dictionary_feedback_v1'
 const ACTIVE_GAME_STORAGE_KEY = 'activity_active_game_v1'
@@ -213,10 +155,9 @@ function shuffle(arr) {
   return a
 }
 
-function teamIconSvg(iconId, className = 'team-icon') {
-  const safeIconId = /^[a-z-]+$/.test(iconId || '') ? iconId : 'elephant'
-  const iconAsset = TEAM_ICON_ASSETS[safeIconId] || TEAM_ICON_ASSETS.elephant
-  return `<img class="${className}" src="${iconAsset}" alt="" aria-hidden="true" draggable="false">`
+function teamMarker(color, className = 'team-marker') {
+  const safeColor = TEAM_COLORS.includes(color) ? color : TEAM_COLORS[0]
+  return `<span class="${className}" style="--team-color:${safeColor}" aria-hidden="true"></span>`
 }
 
 function q(id) { return document.getElementById(id) }
@@ -334,7 +275,7 @@ function restoreExplainingScreen() {
     q('normal-btns').style.display = 'none'
     q('open-round-btns').style.display = 'block'
     q('teams-btns-container').innerHTML = state.teams.map((t, i) =>
-      `<button class="btn btn-secondary open-round-team-btn" onclick="endOpenRound(${i})">${teamIconSvg(t.iconId, 'team-icon team-icon-inline')}${escapeHtml(t.name)}</button>`
+      `<button class="btn btn-secondary open-round-team-btn" onclick="endOpenRound(${i})">${teamMarker(t.color)}${escapeHtml(t.name)}</button>`
     ).join('')
   } else {
     q('ex-pts-hint').textContent = `Угадаете — +${pts} очков, фишка вперёд на ${pts}`
@@ -391,23 +332,18 @@ function restoreTurnResultScreen() {
 }
 
 function getRestoredTeamIdentity(team, index) {
-  const legacyColorIndex = LEGACY_TEAM_COLORS.indexOf(team.color)
+  const colorIndex = TEAM_COLORS.indexOf(team.color)
   const identitySlot = Number.isInteger(team.identitySlot)
     ? team.identitySlot
-    : legacyColorIndex >= 0 ? legacyColorIndex : index
-  const fallbackPreset = TEAM_IDENTITY_PRESETS[identitySlot]?.[0] || TEAM_IDENTITY_PRESETS[0][0]
-  const restoredIconId = team.iconId || fallbackPreset.iconId
-  const currentIconPreset = TEAM_IDENTITY_PRESETS.flat().find(preset => preset.iconId === restoredIconId)
-  const restoredName = LEGACY_COLOR_QUALIFIED_TEAM_NAMES.has(team.name)
-    ? currentIconPreset?.name || fallbackPreset.name
-    : team.name || fallbackPreset.name
+    : colorIndex >= 0 ? colorIndex : index
+  const fallbackName = TEAM_NAME_PRESETS[identitySlot]?.[0] || TEAM_NAME_PRESETS[0][0]
+  const restoredName = LEGACY_TEAM_NAME_MIGRATIONS[team.name] || team.name || fallbackName
 
   return {
     ...team,
     identitySlot,
-    color: team.color || LEGACY_TEAM_COLORS[identitySlot],
+    color: TEAM_COLORS[identitySlot] || team.color || TEAM_COLORS[0],
     name: restoredName,
-    iconId: restoredIconId,
     players: Array.isArray(team.players) ? [...team.players] : [restoredName],
   }
 }
@@ -1049,7 +985,7 @@ function renderTeamStats(summary) {
         <div class="team-summary-card">
           <div class="team-summary-head">
             <div>
-              <div class="team-summary-name">${escapeHtml(team.name)}</div>
+              <div class="team-summary-name">${teamMarker(team.color)}<span>${escapeHtml(team.name)}</span></div>
               <div class="team-summary-meta">${team.place === 1
                 ? 'Победители'
                 : `Набрано очков: ${Math.min(team.finalPosition, FINISH)}. Повезет в следующий раз!`}</div>
@@ -1527,7 +1463,7 @@ function renderBoard(containerId) {
     const count = teamsOnCell.length
     const countClass = ` tokens-count-${Math.min(count, 6)}`
     return `<div class="tokens${countClass}">${teamsOnCell.map(t =>
-      `<span class="tok">${teamIconSvg(t.iconId, 'team-icon team-icon-token')}</span>`
+      `<span class="tok" style="--team-color:${TEAM_COLORS.includes(t.color) ? t.color : TEAM_COLORS[0]}" aria-hidden="true"></span>`
     ).join('')}</div>`
   }
 
@@ -1573,7 +1509,7 @@ function renderBoard(containerId) {
   const labels = state.teams.map(t => {
     const posLabel = t.position >= FINISH ? 'Финиш' : t.position === 0 ? 'Старт' : t.position
     return `<span class="board-team-label">
-      <span class="board-team-symbol">${teamIconSvg(t.iconId, 'team-icon team-icon-board')}</span>
+      <span class="board-team-symbol">${teamMarker(t.color)}</span>
       <span class="board-team-name">${escapeHtml(t.name)}</span>
       <span class="board-team-position">${posLabel}</span>
     </span>`
@@ -1774,20 +1710,13 @@ window.openDictionaryLogin = function(id) {
 let teamCount = 2
 let teamIdentitySlots = [0, 1]
 let teamPresetIndices = [0, 0]
-let defaultNames = [TEAM_IDENTITY_PRESETS[0][0].name, TEAM_IDENTITY_PRESETS[1][0].name]
+let defaultNames = [TEAM_NAME_PRESETS[0][0], TEAM_NAME_PRESETS[1][0]]
 // teamPlayers[i] = массив имён игроков команды i (минимум 1)
 let teamPlayers = [[''], ['']]
 let animatedTeamIndex = -1
 
-function getTeamPreset(teamIndex) {
-  const identitySlot = teamIdentitySlots[teamIndex] ?? teamIndex
-  const presets = TEAM_IDENTITY_PRESETS[identitySlot] || TEAM_IDENTITY_PRESETS[0]
-  const presetIndex = teamPresetIndices[teamIndex] ?? 0
-  return presets[presetIndex] || presets[0]
-}
-
 function firstUnusedTeamIdentitySlot() {
-  return TEAM_IDENTITY_PRESETS.findIndex((_, identitySlot) => !teamIdentitySlots.includes(identitySlot))
+  return TEAM_NAME_PRESETS.findIndex((_, identitySlot) => !teamIdentitySlots.includes(identitySlot))
 }
 
 function saveCurrentInputs() {
@@ -1806,7 +1735,6 @@ function renderTeams() {
   c.innerHTML = ''
   for (let i = 0; i < teamCount; i++) {
     const players = teamPlayers[i]
-    const preset = getTeamPreset(i)
     const playersHTML = players.map((name, j) => `
       <div class="player-row">
         <input class="player-input" id="pi${i}_${j}" placeholder="Имя игрока" value="${escapeHtml(name)}" aria-label="Игрок ${j + 1}, команда ${i + 1}">
@@ -1818,10 +1746,10 @@ function renderTeams() {
     d.className = 'team-block'
     d.innerHTML = `<div class="team-header">
       <div class="team-identity${animatedTeamIndex === i ? ' is-shuffling' : ''}" aria-hidden="true">
-        ${teamIconSvg(preset.iconId)}
+        ${teamMarker(TEAM_COLORS[teamIdentitySlots[i]])}
       </div>
       <input class="team-name-input" id="ti${i}" value="${escapeHtml(defaultNames[i])}" aria-label="Название команды ${i + 1}">
-      <button class="icon-btn team-dice-btn" type="button" onclick="randomizeTeamPreset(${i})" aria-label="Сменить название и значок команды ${i + 1}" title="Другое название">
+      <button class="icon-btn team-dice-btn" type="button" onclick="randomizeTeamPreset(${i})" aria-label="Сменить название команды ${i + 1}" title="Другое название">
         <img src="/assets/twemoji/1f3b2.svg" alt="" aria-hidden="true" draggable="false">
       </button>
       ${teamCount > 2 ? `<button class="icon-btn remove-team-btn" type="button" onclick="removeTeam(${i})" aria-label="Удалить команду ${i + 1}">×</button>` : ''}
@@ -1841,12 +1769,12 @@ function renderTeams() {
 window.randomizeTeamPreset = function(i) {
   saveCurrentInputs()
   const identitySlot = teamIdentitySlots[i] ?? i
-  const presets = TEAM_IDENTITY_PRESETS[identitySlot]
+  const presets = TEAM_NAME_PRESETS[identitySlot]
   const current = teamPresetIndices[i] ?? 0
   let next = current
   while (next === current) next = Math.floor(Math.random() * presets.length)
   teamPresetIndices[i] = next
-  defaultNames[i] = presets[next].name
+  defaultNames[i] = presets[next]
   animatedTeamIndex = i
   renderTeams()
   window.setTimeout(() => { animatedTeamIndex = -1 }, 280)
@@ -1881,7 +1809,7 @@ q('add-team-btn').addEventListener('click', () => {
     if (identitySlot < 0) return
     teamIdentitySlots.push(identitySlot)
     teamPresetIndices.push(0)
-    defaultNames.push(TEAM_IDENTITY_PRESETS[identitySlot][0].name)
+    defaultNames.push(TEAM_NAME_PRESETS[identitySlot][0])
     teamPlayers.push([''])
     teamCount++
     renderTeams()
@@ -1927,8 +1855,7 @@ q('start-btn').addEventListener('click', async () => {
     name,
     position: 0,
     identitySlot: teamIdentitySlots[i],
-    color: LEGACY_TEAM_COLORS[teamIdentitySlots[i]],
-    iconId: getTeamPreset(i).iconId,
+    color: TEAM_COLORS[teamIdentitySlots[i]],
     players: playerLists[i],
     explainerIdx: 0,
   }))
@@ -2054,7 +1981,7 @@ function goExplaining() {
     q('normal-btns').style.display = 'none'
     q('open-round-btns').style.display = 'block'
     q('teams-btns-container').innerHTML = state.teams.map((t, i) =>
-      `<button class="btn btn-secondary open-round-team-btn" onclick="endOpenRound(${i})">${teamIconSvg(t.iconId, 'team-icon team-icon-inline')}${escapeHtml(t.name)}</button>`
+      `<button class="btn btn-secondary open-round-team-btn" onclick="endOpenRound(${i})">${teamMarker(t.color)}${escapeHtml(t.name)}</button>`
     ).join('')
   } else {
     q('ex-pts-hint').textContent = `Угадаете — +${pts} очков, фишка вперёд на ${pts}`
@@ -2181,7 +2108,7 @@ function renderPositions() {
   const team = state.teams[state.teamIndex]
   q('ex-positions').innerHTML = state.teams.map(t =>
     `<div class="pos-badge${t === team ? ' is-current' : ''}">
-      ${teamIconSvg(t.iconId, 'team-icon team-icon-position')}
+      ${teamMarker(t.color)}
       <span>${escapeHtml(t.name)}: кл.${Math.min(t.position, 40)}</span>
     </div>`
   ).join('')
@@ -2253,11 +2180,11 @@ q('next-turn-btn').addEventListener('click', () => { sfxNavForward(); state.team
 function showGameOver(winner) {
   state.pendingTurnFeedback = null
   state.lastGameSummary = buildGameSummary(winner)
-  q('go-winner').textContent = winner.name
+  q('go-winner').innerHTML = `${teamMarker(winner.color, 'team-marker team-marker-title')}<span>${escapeHtml(winner.name)}</span>`
   const sorted = [...state.teams].sort((a, b) => b.position - a.position)
   q('go-scores').innerHTML = sorted.map(t =>
     `<div class="final-row${t.name===winner.name?' winner-row':''}">
-      <span>${t.name===winner.name?'🥇 ':''}${t.name}</span>
+      <span class="final-team">${teamMarker(t.color)}<span>${t.name===winner.name?'🥇 ':''}${escapeHtml(t.name)}</span></span>
       <strong>${t.position >= FINISH ? 'финиш 🏁' : `очки ${Math.min(t.position, FINISH)}/${FINISH}`}</strong>
     </div>`
   ).join('')
@@ -2278,7 +2205,7 @@ q('restart-btn').addEventListener('click', () => {
   teamCount = 2
   teamIdentitySlots = [0, 1]
   teamPresetIndices = [0, 0]
-  defaultNames = [TEAM_IDENTITY_PRESETS[0][0].name, TEAM_IDENTITY_PRESETS[1][0].name]
+  defaultNames = [TEAM_NAME_PRESETS[0][0], TEAM_NAME_PRESETS[1][0]]
   teamPlayers = [[''], ['']]
   renderTeams()
   state.currentDictionary = null
@@ -2314,7 +2241,7 @@ function updateSetupMenuButtons() {
 // ─── Util ───────────────────────────────────────────────────────────────────────
 function setBadge(id, team) {
   const el = q(id)
-  el.innerHTML = `${teamIconSvg(team.iconId, 'team-icon team-icon-inline')}<span>${escapeHtml(team.name)}</span>`
+  el.innerHTML = `${teamMarker(team.color)}<span>${escapeHtml(team.name)}</span>`
   el.style.removeProperty('background')
 }
 

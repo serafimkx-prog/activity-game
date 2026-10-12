@@ -161,33 +161,51 @@ if (behaviorArg === 'behavior') {
     expression: `(() => {
       const identity = index => ({
         name: document.querySelector('#ti' + index)?.value,
-        icon: document.querySelectorAll('.team-identity img')[index]?.getAttribute('src'),
+        color: getComputedStyle(document.querySelectorAll('.team-identity .team-marker')[index]).backgroundColor,
       })
+      const minimumTeamCount = document.querySelectorAll('.team-block').length
+      const minimumRemoveButtonCount = document.querySelectorAll('.remove-team-btn').length
       const before = identity(0)
       randomizeTeamPreset(0)
       const after = identity(0)
       const restoredLegacyTeam = getRestoredTeamIdentity({
         name: 'Зелёные слоники',
         color: '#22c55e',
+        iconId: 'elephant',
         players: ['Игрок'],
       }, 0)
+      const restoredFallbackTeam = getRestoredTeamIdentity({ identitySlot: 1 }, 1)
       for (let index = 2; index < 6; index += 1) document.querySelector('#add-team-btn').click()
+      const sixTeams = [...document.querySelectorAll('.team-block')].map((_, index) => identity(index))
+      removeTeam(5)
+      const countAfterRemove = document.querySelectorAll('.team-block').length
+      document.querySelector('#add-team-btn').click()
       const teams = [...document.querySelectorAll('.team-block')].map((_, index) => identity(index))
       openDictionaryLogin('around_us')
       const guestPaidDestination = document.querySelector('.screen.active')?.id
       showScreen('setup')
       return {
         diceChangedName: before.name !== after.name,
-        diceChangedIcon: before.icon !== after.icon,
+        diceKeptColor: before.color === after.color,
+        minimumTeamCount,
+        minimumRemoveButtonCount,
+        countAfterRemove,
         teamCount: teams.length,
         uniqueNames: new Set(teams.map(team => team.name)).size,
-        uniqueIcons: new Set(teams.map(team => team.icon)).size,
-        completeTeamIdentities: teams.every(team => team.name && team.icon),
+        uniqueColors: new Set(teams.map(team => team.color)).size,
+        completeTeamIdentities: teams.every(team => team.name && team.color),
+        addRemovePreservedUniqueNames: new Set(sixTeams.map(team => team.name)).size === 6
+          && new Set(teams.map(team => team.name)).size === 6,
+        teamEmojiImageCount: document.querySelectorAll('.team-identity img').length,
         setupUsesTeamColorStyle: [...document.querySelectorAll('.team-block')]
           .some(block => block.getAttribute('style')?.includes('--team-color')),
         legacySnapshotMigrated: restoredLegacyTeam.name === 'Слоники'
+          && restoredLegacyTeam.color === '#22c55e'
           && restoredLegacyTeam.iconId === 'elephant'
           && restoredLegacyTeam.players[0] === 'Игрок',
+        missingSnapshotIdentityFallback: restoredFallbackTeam.name === 'Коты'
+          && restoredFallbackTeam.color === '#3b82f6'
+          && restoredFallbackTeam.players[0] === 'Коты',
         guestPaidDestination,
         teams,
       }
@@ -233,19 +251,21 @@ if (behaviorArg === 'behavior') {
     returnByValue: true,
     expression: `(() => {
       const active = document.querySelector('.screen.active')
-      const legacyColors = ['#22c55e','#3b82f6','#f97316','#ec4899','#a855f7','#06b6d4']
-      const visibleInlineColorRefs = [...active.querySelectorAll('[style]')]
-        .map(element => element.getAttribute('style') || '')
-        .filter(style => legacyColors.some(color => style.toLowerCase().includes(color)))
-      const renderedTeamIcons = [...active.querySelectorAll('.team-icon')]
+      const pieces = [...active.querySelectorAll('.tok')]
+      const pieceColors = pieces.map(piece => getComputedStyle(piece).backgroundColor)
+      const badge = active.querySelector('.team-badge')
+      const currentTeamColor = getComputedStyle(active.querySelector('.team-badge .team-marker')).backgroundColor
       return {
         activeScreen: active?.id,
         teamCount: state.teams.length,
-        identitiesPersisted: state.teams.every(team => Boolean(team.name && team.iconId)),
-        legacyColorsPersisted: state.teams.every(team => Boolean(team.color)),
-        visibleInlineColorRefs,
-        renderedTeamIconCount: renderedTeamIcons.length,
-        allRenderedTeamIconsLoaded: renderedTeamIcons.every(icon => icon.complete && icon.naturalWidth > 0),
+        identitiesPersisted: state.teams.every(team => Boolean(team.name && team.color)),
+        newStateUsesTeamEmoji: state.teams.some(team => Object.hasOwn(team, 'iconId')),
+        renderedTeamMarkerCount: active.querySelectorAll('.team-marker').length,
+        teamEmojiImageCount: active.querySelectorAll('.team-icon, .team-badge img, .board-team-label img, .tok img').length,
+        boardPieceCount: pieces.length,
+        uniqueBoardPieceColors: new Set(pieceColors).size,
+        multiplePiecesShareStartCell: active.querySelectorAll('.start-cell .tok').length === state.teams.length,
+        badgeUsesTeamFill: getComputedStyle(badge).backgroundColor === currentTeamColor,
         overflowX: document.documentElement.scrollWidth > innerWidth,
       }
     })()`,
