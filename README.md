@@ -10,7 +10,6 @@
 ## Что есть в текущей версии
 
 - настройка партии: словарь, команды, игроки, время хода, открытый раунд;
-- компактный setup с локальными SVG-значками словарей, 24 готовыми названиями команд и шестью цветными фишками;
 - игровое поле на 41 клетку плюс финиш;
 - три режима заданий:
   - `EXPLAIN`
@@ -160,7 +159,6 @@ node tools/smoke_check.mjs --base http://127.0.0.1:8080
 - `src/lib/telegram.js` — валидация Telegram auth payload.
 - `db/schema.sql` — схема D1.
 - `dictionaries.json` — метаданные словарей.
-- `assets/dictionary-icons/` и `assets/twemoji/` — локальные Twemoji SVG для словарей и команд; они одинаковы на разных платформах, а source/CC-BY 4.0 attribution лежит в `assets/twemoji/NOTICE.txt`.
 - `words.json`, `words_geo.json`, `words_society.json`, `words_around_us.json`, `words_cinema.json`, `words_science.json` — словари.
 - `sitemap.xml` — карта сайта, включая главную, SEO-страницы и юридические страницы.
 - `7f3a9c1e4b8d43f6916a2c0e5d9b7a84.txt` — key-файл для IndexNow.

@@ -95,22 +95,6 @@ const MODES = {
 }
 
 const TEAM_COLORS = ['#22c55e','#3b82f6','#f97316','#ec4899','#a855f7','#06b6d4']
-const TEAM_NAME_PRESETS = [
-  ['Слоники', 'Крокодилы', 'Ростки', 'Драконы'],
-  ['Коты', 'Киты', 'Ракеты', 'Молнии'],
-  ['Лисы', 'Тигры', 'Солнышки', 'Кометы'],
-  ['Фламинго', 'Пончики', 'Ящерки', 'Единороги'],
-  ['Совушки', 'Волшебники', 'Виноградинки', 'Звёздочки'],
-  ['Акулы', 'Пингвины', 'Волны', 'Роботы'],
-]
-const LEGACY_TEAM_NAME_MIGRATIONS = {
-  'Зелёные слоники': 'Слоники', 'Зелёные крокодилы': 'Крокодилы', 'Зелёные ростки': 'Ростки', 'Зелёные драконы': 'Драконы',
-  'Синие коты': 'Коты', 'Синие киты': 'Киты', 'Синие ракеты': 'Ракеты', 'Синие молнии': 'Молнии',
-  'Оранжевые лисы': 'Лисы', 'Оранжевые тигры': 'Тигры', 'Оранжевые солнца': 'Солнышки', 'Оранжевые кометы': 'Кометы',
-  'Розовые фламинго': 'Фламинго', 'Розовые пончики': 'Пончики', 'Розовые аксолотли': 'Ящерки', 'Розовые единороги': 'Единороги',
-  'Фиолетовые совы': 'Совушки', 'Фиолетовые маги': 'Волшебники', 'Фиолетовые гроздья': 'Виноградинки', 'Фиолетовые метеоры': 'Звёздочки',
-  'Бирюзовые акулы': 'Акулы', 'Бирюзовые пингвины': 'Пингвины', 'Бирюзовые волны': 'Волны', 'Бирюзовые роботы': 'Роботы',
-}
 const DICTIONARY_FEEDBACK_STORAGE_KEY = 'activity_dictionary_feedback_v1'
 const ACTIVE_GAME_STORAGE_KEY = 'activity_active_game_v1'
 const GAME_SESSION_QUEUE_STORAGE_KEY = 'activity_pending_game_sessions_v1'
@@ -153,11 +137,6 @@ function shuffle(arr) {
     [a[i], a[j]] = [a[j], a[i]]
   }
   return a
-}
-
-function teamMarker(color, className = 'team-marker') {
-  const safeColor = TEAM_COLORS.includes(color) ? color : TEAM_COLORS[0]
-  return `<span class="${className}" style="--team-color:${safeColor}" aria-hidden="true"></span>`
 }
 
 function q(id) { return document.getElementById(id) }
@@ -275,7 +254,7 @@ function restoreExplainingScreen() {
     q('normal-btns').style.display = 'none'
     q('open-round-btns').style.display = 'block'
     q('teams-btns-container').innerHTML = state.teams.map((t, i) =>
-      `<button class="btn btn-secondary open-round-team-btn" onclick="endOpenRound(${i})">${teamMarker(t.color)}${escapeHtml(t.name)}</button>`
+      `<button class="btn btn-success" style="padding: 18px; font-size: 1.1rem;" onclick="endOpenRound(${i})">${t.name}</button>`
     ).join('')
   } else {
     q('ex-pts-hint').textContent = `Угадаете — +${pts} очков, фишка вперёд на ${pts}`
@@ -331,23 +310,6 @@ function restoreTurnResultScreen() {
   showScreen('turn-result')
 }
 
-function getRestoredTeamIdentity(team, index) {
-  const colorIndex = TEAM_COLORS.indexOf(team.color)
-  const identitySlot = Number.isInteger(team.identitySlot)
-    ? team.identitySlot
-    : colorIndex >= 0 ? colorIndex : index
-  const fallbackName = TEAM_NAME_PRESETS[identitySlot]?.[0] || TEAM_NAME_PRESETS[0][0]
-  const restoredName = LEGACY_TEAM_NAME_MIGRATIONS[team.name] || team.name || fallbackName
-
-  return {
-    ...team,
-    identitySlot,
-    color: TEAM_COLORS[identitySlot] || team.color || TEAM_COLORS[0],
-    name: restoredName,
-    players: Array.isArray(team.players) ? [...team.players] : [restoredName],
-  }
-}
-
 function restoreActiveGameFromSnapshot() {
   const snapshot = safeReadLocalStorage(ACTIVE_GAME_STORAGE_KEY, null)
   if (!snapshot || !snapshot.state?.gameInProgress) return false
@@ -363,9 +325,7 @@ function restoreActiveGameFromSnapshot() {
   if (!BOARD.length) return false
 
   selectedDictId = dictionary.id
-  state.teams = Array.isArray(snapshot.state.teams)
-    ? snapshot.state.teams.map(getRestoredTeamIdentity)
-    : []
+  state.teams = Array.isArray(snapshot.state.teams) ? snapshot.state.teams.map(team => ({ ...team, players: [...team.players] })) : []
   state.teamIndex = Number(snapshot.state.teamIndex) || 0
   state.cellMode = snapshot.state.cellMode || null
   state.selectedCard = snapshot.state.selectedCard || null
@@ -915,7 +875,7 @@ function renderModeStats(team, turns = []) {
     <div class="team-mode-stats">
       ${modeStats.map(modeStat => `
         <div class="mode-stat-card">
-          <div class="mode-progress" style="--progress:${modeStat.successRatePercent}%">
+          <div class="mode-progress" style="--progress:${modeStat.successRatePercent}%;--accent:${escapeHtml(team.color)}">
             <span class="mode-progress-value">${modeStat.successRatePercent}%</span>
           </div>
           <div class="mode-stat-copy">
@@ -985,7 +945,7 @@ function renderTeamStats(summary) {
         <div class="team-summary-card">
           <div class="team-summary-head">
             <div>
-              <div class="team-summary-name">${teamMarker(team.color)}<span>${escapeHtml(team.name)}</span></div>
+              <div class="team-summary-name">${escapeHtml(team.name)}</div>
               <div class="team-summary-meta">${team.place === 1
                 ? 'Победители'
                 : `Набрано очков: ${Math.min(team.finalPosition, FINISH)}. Повезет в следующий раз!`}</div>
@@ -1459,12 +1419,33 @@ function renderBoard(containerId) {
     if (row < GRID_ROWS) grid[row][col] = slot
   }
 
+  function tokenOffset(count, index) {
+    const safeCount = Math.min(Math.max(count, 2), 6)
+    const arcAngles = {
+      2: [40, 140],
+      3: [35, 90, 145],
+      4: [25, 68, 112, 155],
+      5: [20, 55, 90, 125, 160],
+      6: [18, 48, 78, 102, 132, 162],
+    }
+    const radius = safeCount <= 2 ? 1.05 : 1.28
+    const angle = arcAngles[safeCount][Math.min(index, safeCount - 1)] * Math.PI / 180
+
+    return {
+      x: `${Number((Math.cos(angle) * radius).toFixed(2))}em`,
+      y: `${Number((Math.sin(angle) * radius).toFixed(2))}em`,
+    }
+  }
+
   function tokensHTML(teamsOnCell) {
     const count = teamsOnCell.length
     const countClass = ` tokens-count-${Math.min(count, 6)}`
-    return `<div class="tokens${countClass}">${teamsOnCell.map(t =>
-      `<span class="tok" style="--team-color:${TEAM_COLORS.includes(t.color) ? t.color : TEAM_COLORS[0]}" aria-hidden="true"></span>`
-    ).join('')}</div>`
+    const clusterClass = count >= 2 ? ' tokens-cluster' : ''
+    return `<div class="tokens${countClass}${clusterClass}">${teamsOnCell.map((t, i) => {
+      const offset = count >= 2 ? tokenOffset(count, i) : null
+      const positionStyle = offset ? `;--tx:${offset.x};--ty:${offset.y}` : ''
+      return `<span class="tok" style="background:${t.color}${positionStyle}"></span>`
+    }).join('')}</div>`
   }
 
   function cellHTML(slot, r, c) {
@@ -1509,7 +1490,7 @@ function renderBoard(containerId) {
   const labels = state.teams.map(t => {
     const posLabel = t.position >= FINISH ? 'Финиш' : t.position === 0 ? 'Старт' : t.position
     return `<span class="board-team-label">
-      <span class="board-team-symbol">${teamMarker(t.color)}</span>
+      <span class="board-team-dot" style="background:${t.color}"></span>
       <span class="board-team-name">${escapeHtml(t.name)}</span>
       <span class="board-team-position">${posLabel}</span>
     </span>`
@@ -1561,7 +1542,7 @@ async function loadDictionaries() {
       id: 'classic',
       name: 'Классический',
       subtitle: 'Всё обо всём',
-      iconAsset: '/assets/dictionary-icons/classic.svg',
+      icon: '🎭',
       file: 'words.json',
       wordCount: 922,
       available: true,
@@ -1586,31 +1567,34 @@ function renderDictGrid() {
   grid.innerHTML = dictionaries.map(d => {
     const isSel = d.id === selectedDictId
     const locked = !d.canPlay
-    const markerText = d.id === 'classic'
-      ? ''
-      : d.requiresPurchase
-        ? (d.priceLabel || '149 ₽')
-        : 'Бесплатно'
-    const iconAsset = d.iconAsset || `/assets/dictionary-icons/${d.id.replaceAll('_', '-')}.svg`
     const infoHtml = d.description
-      ? `<button class="dict-info-trigger" type="button" aria-label="Описание словаря ${escapeHtml(d.name)}">i<span class="dict-info-tooltip" role="tooltip">${escapeHtml(d.description)}</span></button>`
+      ? `<span class="dict-info-trigger" onclick="event.stopPropagation()" tabindex="0" role="button" aria-label="Описание словаря ${escapeHtml(d.name)}">i<span class="dict-info-tooltip">${escapeHtml(d.description)}</span></span>`
       : ''
-    const footerText = !d.available ? 'Скоро' : `${d.wordCount} карточек`
+    const footerText = !d.available
+      ? 'Словарь ещё не открыт'
+      : locked
+        ? d.lockedReason === 'login_required' && !d.requiresPurchase
+          ? 'Бесплатно после входа'
+          : d.requiresPurchase
+            ? 'Разово · 149 ₽'
+          : 'Нужна покупка'
+        : 'Карточек: ' + d.wordCount
     const actionHtml = !d.available
-      ? '<button class="dict-action-btn" type="button" disabled>Скоро</button>'
+      ? ''
       : locked && d.lockedReason === 'login_required' && !d.requiresPurchase
-        ? `<button class="dict-action-btn dict-login-btn" type="button" onclick="openDictionaryLogin('${d.id}')">Войти</button>`
+        ? `<button class="dict-buy-btn" onclick="event.stopPropagation(); showScreen('profile')">Войти</button>`
       : locked && d.requiresPurchase
         ? d.lockedReason === 'login_required'
-          ? `<button class="dict-action-btn dict-buy-btn" type="button" onclick="openDictionaryLogin('${d.id}')">Купить</button>`
-          : `<button class="dict-action-btn dict-buy-btn" type="button" ${auth.config?.paymentCheckoutReady ? '' : 'disabled'} onclick="startDictionaryPurchase('${d.id}', this)">${auth.config?.paymentCheckoutReady ? 'Купить' : 'Оплата скоро'}</button>`
+          ? `<button class="dict-buy-btn" onclick="event.stopPropagation(); showScreen('profile')">Войти</button>`
+          : `<button class="dict-buy-btn" ${auth.config?.paymentCheckoutReady ? '' : 'disabled'} onclick="event.stopPropagation(); startDictionaryPurchase('${d.id}', this)">${auth.config?.paymentCheckoutReady ? 'Купить · 149 ₽' : 'Оплата скоро'}</button>`
       : isSel
         ? `<div class="dict-state-pill">Выбран</div>`
-        : `<button class="dict-action-btn dict-select-btn" type="button" onclick="selectDict('${d.id}')">Выбрать</button>`
+        : `<button class="dict-select-btn" onclick="event.stopPropagation(); selectDict('${d.id}')">Выбрать</button>`
 
-    return `<div class="dict-card${isSel ? ' selected' : ''}${locked ? ' locked' : ''}${markerText ? ' has-marker' : ''}" role="listitem" aria-label="${escapeHtml(d.name)}${isSel ? ', выбран' : ''}">
-      ${markerText ? `<div class="dict-badge">${escapeHtml(markerText)}</div>` : ''}
-      <div class="dict-icon"><img src="${escapeHtml(iconAsset)}" alt="" aria-hidden="true"></div>
+    return `<div class="dict-card${isSel ? ' selected' : ''}${locked ? ' locked' : ''}"
+                 onclick="${locked ? `selectLockedDict('${d.id}')` : `selectDict('${d.id}')`}">
+      ${isSel ? '<div class="dict-check">✓</div>' : ''}
+      <div class="dict-icon">${dictionaryIconSvg(d.id)}</div>
       <div class="dict-name">${escapeHtml(d.name)}</div>
       <div class="dict-sub-row">
         <div class="dict-sub">${escapeHtml(d.subtitle)}</div>
@@ -1620,6 +1604,19 @@ function renderDictGrid() {
       ${actionHtml}
     </div>`
   }).join('')
+}
+
+function dictionaryIconSvg(id) {
+  const paths = {
+    classic: '<path d="M4 6.5h5v3a2.5 2.5 0 0 1-5 0v-3Zm11 0h5v3a2.5 2.5 0 0 1-5 0v-3ZM9 8h6v6a3 3 0 0 1-6 0V8Z"/><path d="M5.5 8.5h2M16.5 8.5h2M11 11.5h2"/>',
+    geo: '<circle cx="12" cy="12" r="8.5"/><path d="M3.8 10h16.4M3.8 14h16.4M12 3.5c2.3 2.4 3.4 5.2 3.4 8.5S14.3 18.1 12 20.5M12 3.5C9.7 5.9 8.6 8.7 8.6 12s1.1 6.1 3.4 8.5"/>',
+    society: '<path d="m3.5 9 8.5-5 8.5 5M5 9.5h14M6.5 10v7.5M10 10v7.5M14 10v7.5M17.5 10v7.5M4 20h16"/>',
+    around_us: '<path d="m12 3 1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6L12 3Z"/><path d="m5 14 .9 2.1L8 17l-2.1.9L5 20l-.9-2.1L2 17l2.1-.9L5 14Zm14-3 .7 1.8 1.8.7-1.8.7L19 16l-.7-1.8-1.8-.7 1.8-.7L19 11Z"/>',
+    cinema: '<rect x="3" y="6.5" width="18" height="13" rx="2"/><path d="M3 10.5h18M6 3l2 3.5M11 3l2 3.5M16 3l2 3.5"/>',
+    science: '<path d="M9 3h6M10 3v5l-4.8 8.2A3.2 3.2 0 0 0 8 21h8a3.2 3.2 0 0 0 2.8-4.8L14 8V3"/><path d="M7.5 15h9"/>',
+  }
+  const path = paths[id] || paths.classic
+  return `<svg viewBox="0 0 24 24" aria-hidden="true">${path}</svg>`
 }
 
 function setDictionaryNotice(message, variant = 'info') {
@@ -1693,31 +1690,11 @@ window.selectLockedDict = function(id) {
   setDictionaryNotice(`Словарь "${dict.name}" пока закрыт.`, 'warning')
 }
 
-window.openDictionaryLogin = function(id) {
-  const dict = dictionaries.find(item => item.id === id)
-  if (!dict) return
-  setDictionaryNotice(
-    dict.requiresPurchase
-      ? 'Сначала войдите через Telegram. После входа нажмите «Купить» ещё раз.'
-      : `Войдите через Telegram, чтобы открыть словарь «${dict.name}».`,
-    'warning'
-  )
-  showScreen('profile')
-  requestAnimationFrame(() => q('account-card')?.scrollIntoView({ block: 'center' }))
-}
-
 // ─── Setup ─────────────────────────────────────────────────────────────────────
 let teamCount = 2
-let teamIdentitySlots = [0, 1]
-let teamPresetIndices = [0, 0]
-let defaultNames = [TEAM_NAME_PRESETS[0][0], TEAM_NAME_PRESETS[1][0]]
+const defaultNames = ['Команда 1','Команда 2','Команда 3','Команда 4','Команда 5','Команда 6']
 // teamPlayers[i] = массив имён игроков команды i (минимум 1)
 let teamPlayers = [[''], ['']]
-let animatedTeamIndex = -1
-
-function firstUnusedTeamIdentitySlot() {
-  return TEAM_NAME_PRESETS.findIndex((_, identitySlot) => !teamIdentitySlots.includes(identitySlot))
-}
 
 function saveCurrentInputs() {
   for (let i = 0; i < teamCount; i++) {
@@ -1737,47 +1714,26 @@ function renderTeams() {
     const players = teamPlayers[i]
     const playersHTML = players.map((name, j) => `
       <div class="player-row">
-        <input class="player-input" id="pi${i}_${j}" placeholder="Имя игрока" value="${escapeHtml(name)}" aria-label="Игрок ${j + 1}, команда ${i + 1}">
+        <input class="player-input" id="pi${i}_${j}" placeholder="Имя игрока" value="${escapeHtml(name)}">
         ${players.length > 1
-          ? `<button class="icon-btn remove-player-btn" type="button" onclick="removePlayer(${i},${j})" aria-label="Удалить игрока ${j + 1}">×</button>`
+          ? `<button class="btn btn-sm btn-secondary" style="padding:4px 8px;font-size:.75rem" onclick="removePlayer(${i},${j})">✕</button>`
           : ''}
       </div>`).join('')
     const d = document.createElement('div')
     d.className = 'team-block'
     d.innerHTML = `<div class="team-header">
-      <div class="team-identity${animatedTeamIndex === i ? ' is-shuffling' : ''}" aria-hidden="true">
-        ${teamMarker(TEAM_COLORS[teamIdentitySlots[i]])}
-      </div>
+      <span class="team-color-dot" style="background:${TEAM_COLORS[i]}" aria-hidden="true"></span>
       <input class="team-name-input" id="ti${i}" value="${escapeHtml(defaultNames[i])}" aria-label="Название команды ${i + 1}">
-      <button class="icon-btn team-dice-btn" type="button" onclick="randomizeTeamPreset(${i})" aria-label="Сменить название команды ${i + 1}" title="Другое название">
-        <img src="/assets/twemoji/1f3b2.svg" alt="" aria-hidden="true" draggable="false">
-      </button>
-      ${teamCount > 2 ? `<button class="icon-btn remove-team-btn" type="button" onclick="removeTeam(${i})" aria-label="Удалить команду ${i + 1}">×</button>` : ''}
+      ${teamCount > 2 ? `<button class="btn btn-sm btn-danger" onclick="removeTeam(${i})">✕</button>` : ''}
     </div>
     <div class="players-section">
+      <div class="players-label">Игроки</div>
       ${playersHTML}
-      <button class="add-player-btn" type="button" onclick="addPlayer(${i})">
-        <svg class="btn-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4v12M4 10h12"/></svg>
-        <span>Добавить игрока</span>
-      </button>
+      <button class="add-player-btn" onclick="addPlayer(${i})">+ Добавить игрока</button>
     </div>`
     c.appendChild(d)
   }
-  q('add-team-btn').style.display = teamCount >= 6 ? 'none' : 'flex'
-}
-
-window.randomizeTeamPreset = function(i) {
-  saveCurrentInputs()
-  const identitySlot = teamIdentitySlots[i] ?? i
-  const presets = TEAM_NAME_PRESETS[identitySlot]
-  const current = teamPresetIndices[i] ?? 0
-  let next = current
-  while (next === current) next = Math.floor(Math.random() * presets.length)
-  teamPresetIndices[i] = next
-  defaultNames[i] = presets[next]
-  animatedTeamIndex = i
-  renderTeams()
-  window.setTimeout(() => { animatedTeamIndex = -1 }, 280)
+  q('add-team-btn').style.display = teamCount >= 6 ? 'none' : 'block'
 }
 
 window.addPlayer = function(i) {
@@ -1796,8 +1752,6 @@ window.removeTeam = function(i) {
   saveCurrentInputs()
   defaultNames.splice(i, 1)
   teamPlayers.splice(i, 1)
-  teamIdentitySlots.splice(i, 1)
-  teamPresetIndices.splice(i, 1)
   teamCount--
   renderTeams()
 }
@@ -1805,11 +1759,6 @@ window.removeTeam = function(i) {
 q('add-team-btn').addEventListener('click', () => {
   if (teamCount < 6) {
     saveCurrentInputs()
-    const identitySlot = firstUnusedTeamIdentitySlot()
-    if (identitySlot < 0) return
-    teamIdentitySlots.push(identitySlot)
-    teamPresetIndices.push(0)
-    defaultNames.push(TEAM_NAME_PRESETS[identitySlot][0])
     teamPlayers.push([''])
     teamCount++
     renderTeams()
@@ -1854,8 +1803,7 @@ q('start-btn').addEventListener('click', async () => {
   state.teams = names.map((name, i) => ({
     name,
     position: 0,
-    identitySlot: teamIdentitySlots[i],
-    color: TEAM_COLORS[teamIdentitySlots[i]],
+    color: TEAM_COLORS[i],
     players: playerLists[i],
     explainerIdx: 0,
   }))
@@ -1981,7 +1929,7 @@ function goExplaining() {
     q('normal-btns').style.display = 'none'
     q('open-round-btns').style.display = 'block'
     q('teams-btns-container').innerHTML = state.teams.map((t, i) =>
-      `<button class="btn btn-secondary open-round-team-btn" onclick="endOpenRound(${i})">${teamMarker(t.color)}${escapeHtml(t.name)}</button>`
+      `<button class="btn btn-success" style="padding: 18px; font-size: 1.1rem;" onclick="endOpenRound(${i})">${t.name}</button>`
     ).join('')
   } else {
     q('ex-pts-hint').textContent = `Угадаете — +${pts} очков, фишка вперёд на ${pts}`
@@ -2107,9 +2055,8 @@ function onTimerEnd() {
 function renderPositions() {
   const team = state.teams[state.teamIndex]
   q('ex-positions').innerHTML = state.teams.map(t =>
-    `<div class="pos-badge${t === team ? ' is-current' : ''}">
-      ${teamMarker(t.color)}
-      <span>${escapeHtml(t.name)}: кл.${Math.min(t.position, 40)}</span>
+    `<div class="pos-badge" style="${t.name===team.name?'border:1px solid '+t.color:''}">
+      <strong style="color:${t.color}">●</strong> ${t.name}: кл.${Math.min(t.position, 40)}
     </div>`
   ).join('')
 }
@@ -2180,11 +2127,11 @@ q('next-turn-btn').addEventListener('click', () => { sfxNavForward(); state.team
 function showGameOver(winner) {
   state.pendingTurnFeedback = null
   state.lastGameSummary = buildGameSummary(winner)
-  q('go-winner').innerHTML = `${teamMarker(winner.color, 'team-marker team-marker-title')}<span>${escapeHtml(winner.name)}</span>`
+  q('go-winner').textContent = winner.name
   const sorted = [...state.teams].sort((a, b) => b.position - a.position)
   q('go-scores').innerHTML = sorted.map(t =>
     `<div class="final-row${t.name===winner.name?' winner-row':''}">
-      <span class="final-team">${teamMarker(t.color)}<span>${t.name===winner.name?'🥇 ':''}${escapeHtml(t.name)}</span></span>
+      <span>${t.name===winner.name?'🥇 ':''}${t.name}</span>
       <strong>${t.position >= FINISH ? 'финиш 🏁' : `очки ${Math.min(t.position, FINISH)}/${FINISH}`}</strong>
     </div>`
   ).join('')
@@ -2203,9 +2150,8 @@ function showGameOver(winner) {
 q('restart-btn').addEventListener('click', () => {
   sfxNavForward();
   teamCount = 2
-  teamIdentitySlots = [0, 1]
-  teamPresetIndices = [0, 0]
-  defaultNames = [TEAM_NAME_PRESETS[0][0], TEAM_NAME_PRESETS[1][0]]
+  defaultNames.length = 0
+  defaultNames.push('Команда 1','Команда 2','Команда 3','Команда 4','Команда 5','Команда 6')
   teamPlayers = [[''], ['']]
   renderTeams()
   state.currentDictionary = null
@@ -2240,9 +2186,7 @@ function updateSetupMenuButtons() {
 
 // ─── Util ───────────────────────────────────────────────────────────────────────
 function setBadge(id, team) {
-  const el = q(id)
-  el.innerHTML = `${teamMarker(team.color)}<span>${escapeHtml(team.name)}</span>`
-  el.style.removeProperty('background')
+  const el = q(id); el.textContent = team.name; el.style.background = team.color
 }
 
 // ─── Init ───────────────────────────────────────────────────────────────────────

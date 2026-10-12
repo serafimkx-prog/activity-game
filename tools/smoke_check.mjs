@@ -174,24 +174,6 @@ function validateSourceContracts() {
   assert(script.includes("function renderSummaryInto(summary, ids, options = {})"), "renderSummaryInto supports options");
   assert(script.includes("{ compact: true }"), "showGameOver uses compact summary rendering");
   assert(countMatches(script, /ts-back-to-menu-btn'\)\.addEventListener/g) === 1, "turn-start back button has one listener");
-  const teamPresetStart = script.indexOf("const TEAM_NAME_PRESETS")
-  const teamPresetEnd = script.indexOf("const LEGACY_TEAM_NAME_MIGRATIONS", teamPresetStart)
-  const teamPresetBlock = teamPresetStart >= 0 && teamPresetEnd > teamPresetStart
-    ? script.slice(teamPresetStart, teamPresetEnd)
-    : ""
-  const identityNames = [...teamPresetBlock.matchAll(/'([^']+)'/g)].map(match => match[1]);
-  assert(identityNames.length === 24 && new Set(identityNames).size === 24, "team name presets contain 24 unique names");
-  assert(!identityNames.some(name => /^(Зелён|Син|Оранжев|Розов|Фиолетов|Бирюзов)/i.test(name)), "team identity names do not encode legacy colors");
-  assert(script.includes("const TEAM_COLORS") && script.includes("function teamMarker"), "team colors render through compact markers");
-  assert(style.includes(".team-marker") && style.includes("background:var(--team-color)"), "visible team markers use the assigned color");
-  assert(!script.includes("TEAM_ICON_ASSETS") && !script.includes("teamIconSvg") && !script.includes("iconId:"), "new team state has no emoji identity dependency");
-  assert(!style.includes(".team-icon"), "team emoji styles are removed");
-  assert(script.includes('<span class="tok" style="--team-color:'), "board tokens are colored pieces");
-  assert(countMatches(script, /teamMarker\(/g) >= 10, "team marker is reused across setup and gameplay surfaces");
-  assert(script.includes('class="team-summary-name">${teamMarker(team.color)}'), "history team header includes the colored marker");
-  assert(script.includes("q('go-winner').innerHTML = `${teamMarker(winner.color"), "game-over winner includes the colored marker");
-  const twemojiSvgFiles = fs.readdirSync(filePath("assets/twemoji")).filter(file => file.endsWith(".svg"));
-  assert(twemojiSvgFiles.length === 1 && twemojiSvgFiles[0] === "1f3b2.svg", "only the dice Twemoji remains outside dictionary icons");
 
   const lockedStart = script.indexOf("window.selectLockedDict = function");
   const lockedEnd = script.indexOf("// ─── Setup", lockedStart);
