@@ -263,11 +263,12 @@ Fallback:
 - `around_us`, `cinema` и `science` требуют подтверждённой разовой покупки.
 - JSON-файлы всех ограниченных словарей должны быть перечислены в `wrangler.jsonc` в `assets.run_worker_first`, иначе прямой asset-запрос обойдёт Worker-защиту.
 - Заказы хранятся в `purchase_orders`, а точные права заказа — в `purchase_order_entitlements`; старые ручные выдачи в `user_dictionary_access` продолжают учитываться.
-- Для оплаты нужны Cloudflare secrets `PAYANYWAY_ACCOUNT_ID` и `PAYANYWAY_INTEGRITY_CODE`. `PAYANYWAY_CHECKOUT_ENABLED` включается только после настройки Check URL/Pay URL, проверки НПД-чека и контролируемой реальной оплаты с возвратом.
+- Подтверждённый продавцом возврат доступа сверяется внутренним `tools/refund_order.mjs` по одному точному ID заказа. Dry-run включён по умолчанию; apply требует два явных флага, идемпотентен и не затрагивает соседние заказы или ручные права. Операторский процесс описан в `REFUND_OPERATIONS.md`; публичного refund/admin endpoint нет.
+- Для оплаты нужны Cloudflare secrets `PAYANYWAY_ACCOUNT_ID` и `PAYANYWAY_INTEGRITY_CODE`. Production checkout включён после настройки Pay URL, успешной проверки автоматического НПД-чека и контролируемой реальной оплаты с возвратом; repo-default `PAYANYWAY_CHECKOUT_ENABLED=false` остаётся fail-closed.
 - Для Self.PayAnyWay-аккаунта используется `PAYANYWAY_TEST_MODE=0`: именно продукт для самозанятых не использует тестовый режим. MONETA.Assistant в целом поддерживает demo/test-контур.
 - Self-кабинет не даёт выбрать HTTP-метод и отправляет Pay URL как GET. Worker принимает подписанные GET и POST для Check URL/Pay URL; все поля в обоих вариантах проходят одинаковую проверку подписи и заказа.
 - Успешный Pay URL отвечает подписанным XML с `INVENTORY`: названием доступа, точной ценой, количеством `1`, признаком `без НДС`, полным расчётом и объектом `услуга`. Для Self.PayAnyWay это обязательно для автоматической регистрации дохода НПД и формирования чека.
-- Локальная миграция находится в `db/migrations/2026-10-11-payanyway-one-time-products.sql`; её применение к remote D1 — отдельный релизный шаг.
+- Миграция находится в `db/migrations/2026-10-11-payanyway-one-time-products.sql`; к production D1 она применена 2026-10-11, а для нового окружения остаётся отдельным релизным шагом.
 - Фидбек по сложности слова для авторизованных пользователей сохраняется в backend и D1, а при недоступности сервера остаётся локальный fallback в `localStorage`.
 - Активная партия восстанавливается после `refresh` через `localStorage`.
 - Завершённые партии сначала ставятся в локальную очередь и повторно отправляются в backend при следующей возможности.
