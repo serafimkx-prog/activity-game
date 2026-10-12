@@ -11,6 +11,8 @@
     "binding": "ASSETS",
     "run_worker_first": [
       "/api/*",
+      "/words_geo.json",
+      "/words_society.json",
       "/words_around_us.json",
       "/words_cinema.json",
       "/words_science.json",
@@ -31,6 +33,7 @@
   "vars": {
     "APP_NAME": "activity",
     "TELEGRAM_BOT_USERNAME": "activity_auth_bot",
-    "YOOKASSA_RETURN_URL": "https://activity-game.ru/"
+    "PAYANYWAY_CHECKOUT_ENABLED": "true",
+    "PAYANYWAY_TEST_MODE": "0"
   }
 }

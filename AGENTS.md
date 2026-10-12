@@ -24,7 +24,7 @@ Activity is a browser game implemented with:
 - backend: Cloudflare Workers in `src/worker.js`
 - database: Cloudflare D1 with schema in `db/schema.sql`
 - auth: Telegram Login Widget
-- payments: YooKassa code for future premium dictionaries; the current catalog has no active premium dictionaries
+- payments: one-time Self.PayAnyWay purchases for three premium dictionaries and their fixed bundle
 - data: JSON dictionaries and dictionary metadata
 
 There is no frontend build step. The app is intentionally plain HTML/CSS/vanilla JS.
@@ -112,6 +112,7 @@ Important functions:
 - `access/index.html`
 - `requisites/index.html`
 - `privacy/index.html`
+- `support/index.html`
 - `sitemap.xml`
 - `robots.txt`
 
@@ -174,7 +175,7 @@ Intake
 
 ### Backend / Auth / Payment
 
-Use when touching Worker routes, Telegram auth, session cookies, D1 queries, protected assets, premium dictionaries, YooKassa, or Worker config.
+Use when touching Worker routes, Telegram auth, session cookies, D1 queries, protected assets, premium dictionaries, Self.PayAnyWay, or Worker config.
 
 ```text
 Intake
@@ -279,7 +280,7 @@ When changing gameplay, also check:
 - Telegram auth verification happens server-side.
 - Premium dictionary files must be protected by Worker asset logic.
 - Protected dictionary JSON files must be listed in `wrangler.jsonc` `assets.run_worker_first`; otherwise Cloudflare static assets can bypass Worker checks.
-- YooKassa payment creation, sync, and webhook handling must not grant access from unverified or failed states.
+- Self.PayAnyWay creation, Check URL and Pay URL handling must not grant access from unverified, mismatched or failed states.
 - Additive API payload changes are preferred.
 - If `db/schema.sql` changes, mention that remote D1 migration is a separate action.
 - If Worker vars or secrets change, document the deploy/config follow-up.
@@ -289,13 +290,13 @@ When changing gameplay, also check:
 Current released dictionaries:
 
 - `classic` -> `words.json`, free, open immediately
-- `geo` -> `words_geo.json`, free, open immediately
-- `society` -> `words_society.json`, free, open immediately
-- `around_us` -> `words_around_us.json`, free after Telegram login
-- `cinema` -> `words_cinema.json`, free after Telegram login
-- `science` -> `words_science.json`, free after Telegram login
+- `geo` -> `words_geo.json`, free after Telegram login
+- `society` -> `words_society.json`, free after Telegram login
+- `around_us` -> `words_around_us.json`, one-time purchase, 149 RUB
+- `cinema` -> `words_cinema.json`, one-time purchase, 149 RUB
+- `science` -> `words_science.json`, one-time purchase, 149 RUB
 
-There are no active premium dictionaries in the current `dictionaries.json` catalog. YooKassa endpoints, `purchase_orders`, and `user_dictionary_access` remain in the code for a future premium model.
+The three premium dictionaries can also be bought as the fixed `dictionaries_bundle` product for 379 RUB. There is no upgrade credit. Verified Pay URL notifications grant order-scoped access in `purchase_order_entitlements`; legacy rows in `user_dictionary_access` remain valid.
 
 Before changing dictionaries:
 

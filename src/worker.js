@@ -11,23 +11,18 @@ import {
   normalizeTelegramProfile,
   verifyTelegramAuth,
 } from "./lib/telegram.js";
+import {
+  PAYANYWAY_PROVIDER,
+  buildPayAnyWayCheckout,
+  buildResponseSignature,
+  callbackMatchesOrder,
+  entitlementsForProduct,
+  getPayAnyWayProduct,
+  orderMatchesProduct,
+  verifyCallbackSignature,
+} from "./lib/payanyway.mjs";
 
-const PREMIUM_DICTIONARY_PRODUCTS = {
-  society: {
-    productCode: "dictionary_society",
-    dictionaryId: "society",
-    amountValue: "149.00",
-    amountCurrency: "RUB",
-    description: "Платный словарь Общество",
-  },
-  around_us: {
-    productCode: "dictionary_around_us",
-    dictionaryId: "around_us",
-    amountValue: "149.00",
-    amountCurrency: "RUB",
-    description: "Платный словарь Вокруг нас",
-  },
-};
+const PAYANYWAY_ORDER_TTL_MINUTES = 30;
 
 function normalizeDictionaryMeta(dictionary) {
   return {
@@ -62,7 +57,14 @@ async function getUserDictionaryAccessIds(db, userId) {
     .prepare(
       `SELECT dictionary_id
        FROM user_dictionary_access
-       WHERE user_id = ?1`
+       WHERE user_id = ?1
+       UNION
+       SELECT poe.dictionary_id
+       FROM purchase_order_entitlements poe
+       JOIN purchase_orders po ON po.id = poe.purchase_order_id
+       WHERE po.user_id = ?1
+         AND po.status = 'succeeded'
+         AND poe.revoked_at IS NULL`
     )
     .bind(userId)
     .all();
@@ -94,176 +96,162 @@ function buildDictionaryClientMeta(dictionary, accessIds, user) {
   };
 }
 
-async function userHasDictionaryAccess(db, userId, dictionaryId) {
-  const existing = await db
-    .prepare(
-      `SELECT 1
-       FROM user_dictionary_access
-       WHERE user_id = ?1
-         AND dictionary_id = ?2
-       LIMIT 1`
-    )
-    .bind(userId, dictionaryId)
-    .first();
-
-  return Boolean(existing);
+function payAnyWayTestMode(env) {
+  return env.PAYANYWAY_TEST_MODE === "1" ? "1" : "0";
 }
 
-async function grantDictionaryAccess(db, userId, dictionaryId, accessSource, note) {
-  await db
-    .prepare(
-      `INSERT INTO user_dictionary_access (
-         user_id,
-         dictionary_id,
-         access_source,
-         note
-       ) VALUES (?1, ?2, ?3, ?4)
-       ON CONFLICT(user_id, dictionary_id) DO UPDATE SET
-         granted_at = CURRENT_TIMESTAMP,
-         access_source = excluded.access_source,
-         note = excluded.note`
-    )
-    .bind(userId, dictionaryId, accessSource, note || null)
-    .run();
+function payAnyWayCheckoutReady(env) {
+  return env.PAYANYWAY_CHECKOUT_ENABLED === "true"
+    && Boolean(env.PAYANYWAY_ACCOUNT_ID)
+    && Boolean(env.PAYANYWAY_INTEGRITY_CODE);
 }
 
-function getPremiumDictionaryProduct(dictionaryId) {
-  return PREMIUM_DICTIONARY_PRODUCTS[dictionaryId] || null;
-}
-
-function ensureYookassaConfig(env) {
-  if (!env.YOOKASSA_SHOP_ID || !env.YOOKASSA_SECRET_KEY || !env.YOOKASSA_RETURN_URL) {
-    return error("YooKassa is not configured", 500);
+function ensurePayAnyWayConfig(env, { requireEnabled = false } = {}) {
+  if (!env.PAYANYWAY_ACCOUNT_ID || !env.PAYANYWAY_INTEGRITY_CODE) {
+    return error("Payment provider is not configured", 503);
   }
-
+  if (requireEnabled && !payAnyWayCheckoutReady(env)) {
+    return error("Payment checkout is temporarily unavailable", 503);
+  }
   return null;
 }
 
-async function createYookassaPayment(env, requestOrigin, product, userId, idempotenceKey) {
-  const response = await fetch("https://api.yookassa.ru/v3/payments", {
-    method: "POST",
-    headers: {
-      authorization: `Basic ${btoa(`${env.YOOKASSA_SHOP_ID}:${env.YOOKASSA_SECRET_KEY}`)}`,
-      "content-type": "application/json",
-      "Idempotence-Key": idempotenceKey,
-    },
-    body: JSON.stringify({
-      amount: {
-        value: product.amountValue,
-        currency: product.amountCurrency,
-      },
-      capture: true,
-      confirmation: {
-        type: "redirect",
-        return_url: env.YOOKASSA_RETURN_URL || requestOrigin,
-      },
-      description: product.description,
-      metadata: {
-        user_id: String(userId),
-        dictionary_id: product.dictionaryId,
-        product_code: product.productCode,
-      },
-    }),
-  });
-
-  let payload = null;
-  try {
-    payload = await response.json();
-  } catch {
-    payload = null;
-  }
-
-  if (!response.ok) {
-    throw new Error(payload?.description || payload?.error || "Failed to create YooKassa payment");
-  }
-
-  return payload;
-}
-
-async function fetchYookassaPayment(env, providerPaymentId) {
-  const response = await fetch(`https://api.yookassa.ru/v3/payments/${providerPaymentId}`, {
-    method: "GET",
-    headers: {
-      authorization: `Basic ${btoa(`${env.YOOKASSA_SHOP_ID}:${env.YOOKASSA_SECRET_KEY}`)}`,
-    },
-  });
-
-  let payload = null;
-  try {
-    payload = await response.json();
-  } catch {
-    payload = null;
-  }
-
-  if (!response.ok) {
-    throw new Error(payload?.description || payload?.error || "Failed to verify YooKassa payment");
-  }
-
-  return payload;
-}
-
-async function syncPendingPurchasesForUser(db, env, userId, dictionaryId = null) {
-  const rows = await db
+async function getPurchaseOrderByTransaction(db, transactionId) {
+  if (!transactionId) return null;
+  return db
     .prepare(
-      `SELECT id, user_id, dictionary_id, provider_payment_id, status
+      `SELECT id, user_id, product_code, status, amount_value, amount_currency,
+              provider, provider_payment_id, idempotence_key, dictionary_id,
+              entitlement_ids_json, provider_test_mode, expires_at, paid_at
        FROM purchase_orders
-       WHERE user_id = ?1
-         AND status = 'pending'
-         AND provider_payment_id IS NOT NULL
-         AND (?2 IS NULL OR dictionary_id = ?2)
-       ORDER BY created_at DESC
-       LIMIT 20`
+       WHERE idempotence_key = ?1
+       LIMIT 1`
     )
-    .bind(userId, dictionaryId || null)
-    .all();
+    .bind(transactionId)
+    .first();
+}
 
-  const pendingOrders = rows?.results || [];
-  let updatedCount = 0;
+async function parsePayAnyWayFields(request) {
+  if (request.method === "GET") {
+    return Object.fromEntries(new URL(request.url).searchParams.entries());
+  }
+  const contentType = request.headers.get("content-type") || "";
+  if (!contentType.includes("application/x-www-form-urlencoded")
+      && !contentType.includes("multipart/form-data")) {
+    return null;
+  }
+  try {
+    return Object.fromEntries((await request.formData()).entries());
+  } catch {
+    return null;
+  }
+}
 
-  for (const order of pendingOrders) {
-    let verifiedPayment;
-    try {
-      verifiedPayment = await fetchYookassaPayment(env, order.provider_payment_id);
-    } catch {
-      continue;
-    }
+function xmlEscape(value) {
+  return String(value ?? "").replace(/[&<>"']/g, character => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "\"": "&quot;",
+    "'": "&apos;",
+  }[character]));
+}
 
-    const nextStatus = verifiedPayment?.status || order.status;
-    const paidAt = nextStatus === "succeeded" ? new Date().toISOString() : null;
+function payAnyWayReceiptInventory(order) {
+  const product = getPayAnyWayProduct(order?.product_code);
+  if (!product) return null;
 
-    await db
-      .prepare(
-        `UPDATE purchase_orders
-         SET status = ?2,
-             paid_at = COALESCE(?3, paid_at),
-             raw_webhook_payload = COALESCE(?4, raw_webhook_payload),
-             updated_at = CURRENT_TIMESTAMP
-         WHERE provider_payment_id = ?1`
-      )
-      .bind(
-        order.provider_payment_id,
-        nextStatus,
-        paidAt,
-        JSON.stringify({
-          source: "manual-sync",
-          payment: verifiedPayment,
-        })
-      )
-      .run();
+  return [{
+    name: product.receiptTitle,
+    price: product.amountValue,
+    quantity: "1",
+    vatTag: "1105",
+    pm: "full_payment",
+    po: "service",
+  }];
+}
 
-    if (nextStatus === "succeeded" && order.dictionary_id) {
-      await grantDictionaryAccess(
-        db,
-        order.user_id,
-        order.dictionary_id,
-        "yookassa",
-        `payment:${order.provider_payment_id}`
-      );
-      updatedCount += 1;
-    }
+function payAnyWayXmlResponse(
+  fields,
+  env,
+  resultCode,
+  description,
+  amount = null,
+  inventory = null
+) {
+  const accountId = fields?.MNT_ID || env.PAYANYWAY_ACCOUNT_ID || "";
+  const transactionId = fields?.MNT_TRANSACTION_ID || "";
+  const signature = buildResponseSignature(
+    resultCode,
+    accountId,
+    transactionId,
+    env.PAYANYWAY_INTEGRITY_CODE || ""
+  );
+  const amountElement = amount ? `\n  <MNT_AMOUNT>${xmlEscape(amount)}</MNT_AMOUNT>` : "";
+  const attributesElement = Array.isArray(inventory) && inventory.length
+    ? `\n  <MNT_ATTRIBUTES>\n    <ATTRIBUTE>\n      <KEY>INVENTORY</KEY>\n      <VALUE>${xmlEscape(JSON.stringify(inventory))}</VALUE>\n    </ATTRIBUTE>\n  </MNT_ATTRIBUTES>`
+    : "";
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<MNT_RESPONSE>
+  <MNT_ID>${xmlEscape(accountId)}</MNT_ID>
+  <MNT_TRANSACTION_ID>${xmlEscape(transactionId)}</MNT_TRANSACTION_ID>
+  <MNT_RESULT_CODE>${resultCode}</MNT_RESULT_CODE>
+  <MNT_DESCRIPTION>${xmlEscape(description)}</MNT_DESCRIPTION>${amountElement}
+  <MNT_SIGNATURE>${signature}</MNT_SIGNATURE>${attributesElement}
+</MNT_RESPONSE>`;
+  return new Response(xml, {
+    status: 200,
+    headers: {
+      "content-type": "application/xml; charset=UTF-8",
+      "cache-control": "no-store",
+    },
+  });
+}
+
+function orderIsExpired(order) {
+  if (!order?.expires_at) return false;
+  const expiresAt = new Date(order.expires_at);
+  return Number.isFinite(expiresAt.getTime()) && expiresAt.getTime() <= Date.now();
+}
+
+async function grantPurchaseOrderEntitlements(db, order) {
+  const productEntitlements = entitlementsForProduct(order.product_code);
+  let storedEntitlements = [];
+  try {
+    storedEntitlements = JSON.parse(order.entitlement_ids_json || "[]");
+  } catch {
+    storedEntitlements = [];
+  }
+  if (!Array.isArray(storedEntitlements)
+      || storedEntitlements.length !== productEntitlements.length
+      || storedEntitlements.some((id, index) => id !== productEntitlements[index])) {
+    throw new Error("Purchase order entitlements do not match product");
   }
 
-  return updatedCount;
+  const statements = [
+    db.prepare(
+      `UPDATE purchase_orders
+       SET status = 'succeeded',
+           provider_payment_id = COALESCE(provider_payment_id, ?2),
+           paid_at = COALESCE(paid_at, CURRENT_TIMESTAMP),
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = ?1
+         AND status IN ('pending', 'expired', 'succeeded')`
+    ).bind(order.id, order.providerOperationId),
+    ...storedEntitlements.map(dictionaryId => db.prepare(
+      `INSERT INTO purchase_order_entitlements (
+         purchase_order_id,
+         dictionary_id
+       )
+       SELECT ?1, ?2
+       FROM purchase_orders
+       WHERE id = ?1
+         AND status = 'succeeded'
+       ON CONFLICT(purchase_order_id, dictionary_id) DO UPDATE SET
+         revoked_at = NULL`
+    ).bind(order.id, dictionaryId)),
+  ];
+  await db.batch(statements);
 }
 
 async function upsertUser(db, profile) {
@@ -399,6 +387,7 @@ async function handleConfig(request, env) {
   return json({
     ok: true,
     telegramBotUsername: env.TELEGRAM_BOT_USERNAME || null,
+    paymentCheckoutReady: payAnyWayCheckoutReady(env),
   });
 }
 
@@ -413,6 +402,7 @@ async function handleDictionariesList(request, env) {
   return json({
     ok: true,
     dictionaries: dictionaries.map(dictionary => buildDictionaryClientMeta(dictionary, accessIds, user)),
+    ownedDictionaryIds: [...accessIds],
   });
 }
 
@@ -420,11 +410,11 @@ async function handlePurchaseCreate(request, env) {
   const wrongMethod = methodNotAllowed(request, "POST");
   if (wrongMethod) return wrongMethod;
 
-  const configError = ensureYookassaConfig(env);
-  if (configError) return configError;
-
   const { user, errorResponse } = await requireUser(request, env);
   if (errorResponse) return errorResponse;
+
+  const configError = ensurePayAnyWayConfig(env, { requireEnabled: true });
+  if (configError) return configError;
 
   let payload;
   try {
@@ -432,100 +422,118 @@ async function handlePurchaseCreate(request, env) {
   } catch {
     return error("Invalid JSON body", 400);
   }
+  const product = getPayAnyWayProduct(payload?.productCode);
+  if (!product) return error("Unsupported product", 400);
 
-  const dictionaryId = payload?.dictionaryId;
-  const product = getPremiumDictionaryProduct(dictionaryId);
-  if (!product) {
-    return error("Unsupported premium dictionary", 400, { dictionaryId });
+  const accessIds = await getUserDictionaryAccessIds(env.DB, user.id);
+  if (product.dictionaryIds.every(dictionaryId => accessIds.has(dictionaryId))) {
+    return json({ ok: true, alreadyOwned: true, productCode: product.productCode });
   }
-
-  const alreadyOwned = await userHasDictionaryAccess(env.DB, user.id, dictionaryId);
-  if (alreadyOwned) {
-    return json({
-      ok: true,
-      alreadyOwned: true,
-      dictionaryId,
-    });
-  }
-
-  const idempotenceKey = crypto.randomUUID();
-  const requestOrigin = new URL(request.url).origin;
-
-  let payment;
-  try {
-    payment = await createYookassaPayment(env, requestOrigin, product, user.id, idempotenceKey);
-  } catch (err) {
-    return error(err.message || "Failed to create payment", 502);
-  }
-
-  const confirmationUrl = payment?.confirmation?.confirmation_url || null;
 
   await env.DB
     .prepare(
-      `INSERT INTO purchase_orders (
-         user_id,
-         product_code,
-         dictionary_id,
-         status,
-         amount_value,
-         amount_currency,
-         provider,
-         provider_payment_id,
-         idempotence_key,
-         confirmation_url,
-         raw_create_response
-       ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'yookassa', ?7, ?8, ?9, ?10)`
+      `UPDATE purchase_orders
+       SET status = 'expired', updated_at = CURRENT_TIMESTAMP
+       WHERE user_id = ?1
+         AND provider = ?2
+         AND status = 'pending'
+         AND expires_at IS NOT NULL
+         AND datetime(expires_at) <= CURRENT_TIMESTAMP`
     )
-    .bind(
-      user.id,
-      product.productCode,
-      product.dictionaryId,
-      payment?.status || "pending",
-      product.amountValue,
-      product.amountCurrency,
-      payment?.id || null,
-      idempotenceKey,
-      confirmationUrl,
-      JSON.stringify(payment)
-    )
+    .bind(user.id, PAYANYWAY_PROVIDER)
     .run();
 
-  return json({
-    ok: true,
-    dictionaryId,
-    confirmationUrl,
-    alreadyOwned: false,
+  let order = await env.DB
+    .prepare(
+      `SELECT id, user_id, product_code, status, amount_value, amount_currency,
+              provider, idempotence_key, dictionary_id, entitlement_ids_json,
+              provider_test_mode, expires_at
+       FROM purchase_orders
+       WHERE user_id = ?1
+         AND product_code = ?2
+         AND provider = ?3
+         AND status = 'pending'
+         AND datetime(expires_at) > CURRENT_TIMESTAMP
+       ORDER BY created_at DESC
+       LIMIT 1`
+    )
+    .bind(user.id, product.productCode, PAYANYWAY_PROVIDER)
+    .first();
+
+  if (!order) {
+    const transactionId = `act_${crypto.randomUUID()}`;
+    const expiresAt = new Date(Date.now() + PAYANYWAY_ORDER_TTL_MINUTES * 60 * 1000).toISOString();
+    order = await env.DB
+      .prepare(
+        `INSERT INTO purchase_orders (
+           user_id,
+           product_code,
+           status,
+           amount_value,
+           amount_currency,
+           provider,
+           idempotence_key,
+           dictionary_id,
+           entitlement_ids_json,
+           provider_test_mode,
+           expires_at
+         ) VALUES (?1, ?2, 'pending', ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)
+         ON CONFLICT DO NOTHING
+         RETURNING id, user_id, product_code, status, amount_value, amount_currency,
+                   provider, idempotence_key, dictionary_id, entitlement_ids_json,
+                   provider_test_mode, expires_at`
+      )
+      .bind(
+        user.id,
+        product.productCode,
+        product.amountValue,
+        product.amountCurrency,
+        PAYANYWAY_PROVIDER,
+        transactionId,
+        product.dictionaryIds.length === 1 ? product.dictionaryIds[0] : null,
+        JSON.stringify(product.dictionaryIds),
+        payAnyWayTestMode(env),
+        expiresAt
+      )
+      .first();
+
+    if (!order) {
+      order = await env.DB
+        .prepare(
+          `SELECT id, user_id, product_code, status, amount_value, amount_currency,
+                  provider, idempotence_key, dictionary_id, entitlement_ids_json,
+                  provider_test_mode, expires_at
+           FROM purchase_orders
+           WHERE user_id = ?1
+             AND product_code = ?2
+             AND provider = ?3
+             AND status = 'pending'
+             AND datetime(expires_at) > CURRENT_TIMESTAMP
+           ORDER BY created_at DESC
+           LIMIT 1`
+        )
+        .bind(user.id, product.productCode, PAYANYWAY_PROVIDER)
+        .first();
+    }
+  }
+
+  if (!order) return error("Unable to initialize payment order", 503);
+
+  const checkout = buildPayAnyWayCheckout({
+    accountId: env.PAYANYWAY_ACCOUNT_ID,
+    integrityCode: env.PAYANYWAY_INTEGRITY_CODE,
+    transactionId: order.idempotence_key,
+    subscriberId: order.user_id,
+    product,
+    testMode: order.provider_test_mode,
   });
-}
-
-async function handlePurchaseSync(request, env) {
-  const wrongMethod = methodNotAllowed(request, "POST");
-  if (wrongMethod) return wrongMethod;
-
-  const configError = ensureYookassaConfig(env);
-  if (configError) return configError;
-
-  const { user, errorResponse } = await requireUser(request, env);
-  if (errorResponse) return errorResponse;
-
-  let payload = {};
-  try {
-    payload = await request.json();
-  } catch {
-    payload = {};
-  }
-
-  const dictionaryId = payload?.dictionaryId || null;
-  if (dictionaryId && !getPremiumDictionaryProduct(dictionaryId)) {
-    return error("Unsupported premium dictionary", 400, { dictionaryId });
-  }
-
-  const updatedCount = await syncPendingPurchasesForUser(env.DB, env, user.id, dictionaryId);
 
   return json({
     ok: true,
-    updatedCount,
-    dictionaryId,
+    alreadyOwned: false,
+    productCode: product.productCode,
+    checkout,
+    expiresAt: order.expires_at,
   });
 }
 
@@ -750,79 +758,83 @@ async function handleDictionaryFeedback(request, env) {
   return json({ ok: true });
 }
 
-async function handleYookassaWebhook(request, env) {
-  const wrongMethod = methodNotAllowed(request, "POST");
+async function handlePayAnyWayCheck(request, env) {
+  const wrongMethod = methodNotAllowed(request, ["GET", "POST"]);
   if (wrongMethod) return wrongMethod;
-
-  const configError = ensureYookassaConfig(env);
+  const configError = ensurePayAnyWayConfig(env);
   if (configError) return configError;
 
-  let payload;
+  const fields = await parsePayAnyWayFields(request);
+  if (!fields || fields.MNT_COMMAND !== "CHECK") {
+    return new Response("Invalid check request", { status: 400 });
+  }
+  if (fields.MNT_ID !== env.PAYANYWAY_ACCOUNT_ID
+      || !verifyCallbackSignature(fields, env.PAYANYWAY_INTEGRITY_CODE, true)) {
+    return new Response("Invalid check signature", { status: 403 });
+  }
+
+  const order = await getPurchaseOrderByTransaction(env.DB, fields.MNT_TRANSACTION_ID);
+  if (!orderMatchesProduct(order)
+      || !callbackMatchesOrder(fields, order, env.PAYANYWAY_ACCOUNT_ID)) {
+    return payAnyWayXmlResponse(fields, env, 500, "Order mismatch");
+  }
+
+  if (order.status === "succeeded") {
+    return payAnyWayXmlResponse(fields, env, 200, "Order paid", order.amount_value);
+  }
+  if (order.status !== "pending" || orderIsExpired(order)) {
+    return payAnyWayXmlResponse(fields, env, 500, "Order unavailable");
+  }
+  return payAnyWayXmlResponse(fields, env, 402, "Order ready", order.amount_value);
+}
+
+async function handlePayAnyWayPayment(request, env) {
+  const wrongMethod = methodNotAllowed(request, ["GET", "POST"]);
+  if (wrongMethod) return wrongMethod;
+  const configError = ensurePayAnyWayConfig(env);
+  if (configError) return configError;
+
+  const fields = await parsePayAnyWayFields(request);
+  if (!fields
+      || fields.MNT_ID !== env.PAYANYWAY_ACCOUNT_ID
+      || !verifyCallbackSignature(fields, env.PAYANYWAY_INTEGRITY_CODE, false)) {
+    return new Response("FAIL", {
+      status: 200,
+      headers: { "content-type": "text/plain; charset=UTF-8", "cache-control": "no-store" },
+    });
+  }
+
+  const order = await getPurchaseOrderByTransaction(env.DB, fields.MNT_TRANSACTION_ID);
+  if (!orderMatchesProduct(order)
+      || !callbackMatchesOrder(fields, order, env.PAYANYWAY_ACCOUNT_ID)
+      || !fields.MNT_OPERATION_ID) {
+    return payAnyWayXmlResponse(fields, env, 500, "Payment mismatch");
+  }
+
+  if (["refunded", "canceled"].includes(order.status)) {
+    return payAnyWayXmlResponse(fields, env, 200, "Order closed");
+  }
+  if (!["pending", "expired", "succeeded"].includes(order.status)) {
+    return payAnyWayXmlResponse(fields, env, 500, "Order unavailable");
+  }
+
   try {
-    payload = await request.json();
+    await grantPurchaseOrderEntitlements(env.DB, {
+      ...order,
+      providerOperationId: String(fields.MNT_OPERATION_ID),
+    });
   } catch {
-    return error("Invalid JSON body", 400);
+    return payAnyWayXmlResponse(fields, env, 302, "Payment processing");
   }
 
-  const event = payload?.event || null;
-  const paymentObject = payload?.object || null;
-  const providerPaymentId = paymentObject?.id || null;
-  if (!event || !paymentObject || !providerPaymentId) {
-    return error("Invalid YooKassa webhook payload", 400);
-  }
-
-  const order = await env.DB
-    .prepare(
-      `SELECT id, user_id, dictionary_id, status
-       FROM purchase_orders
-       WHERE provider_payment_id = ?1
-       LIMIT 1`
-    )
-    .bind(providerPaymentId)
-    .first();
-
-  if (!order) {
-    return json({ ok: true, ignored: true });
-  }
-
-  let verifiedPayment;
-  try {
-    verifiedPayment = await fetchYookassaPayment(env, providerPaymentId);
-  } catch (err) {
-    return error(err.message || "Failed to verify payment", 502);
-  }
-
-  const nextStatus = verifiedPayment?.status || paymentObject.status || order.status;
-  const paidAt = nextStatus === "succeeded" ? new Date().toISOString() : null;
-
-  await env.DB
-    .prepare(
-      `UPDATE purchase_orders
-       SET status = ?2,
-           paid_at = COALESCE(?3, paid_at),
-           raw_webhook_payload = ?4,
-           updated_at = CURRENT_TIMESTAMP
-       WHERE provider_payment_id = ?1`
-    )
-    .bind(
-      providerPaymentId,
-      nextStatus,
-      paidAt,
-      JSON.stringify(payload)
-    )
-    .run();
-
-  if (nextStatus === "succeeded" && order.dictionary_id) {
-    await grantDictionaryAccess(
-      env.DB,
-      order.user_id,
-      order.dictionary_id,
-      "yookassa",
-      `payment:${providerPaymentId}`
-    );
-  }
-
-  return json({ ok: true });
+  return payAnyWayXmlResponse(
+    fields,
+    env,
+    200,
+    "Payment accepted",
+    null,
+    payAnyWayReceiptInventory(order)
+  );
 }
 
 async function handleProfileSummary(request, env) {
@@ -969,12 +981,6 @@ export default {
       return handlePurchaseCreate(request, env);
     }
 
-    if (url.pathname === "/api/purchase/sync") {
-      const bindingError = ensureBindings(env);
-      if (bindingError) return bindingError;
-      return handlePurchaseSync(request, env);
-    }
-
     if (url.pathname === "/api/game-sessions") {
       const bindingError = ensureBindings(env);
       if (bindingError) return bindingError;
@@ -993,10 +999,16 @@ export default {
       return handleDictionaryFeedback(request, env);
     }
 
-    if (url.pathname === "/api/payment/webhook/yookassa") {
+    if (url.pathname === "/api/payment/check/payanyway") {
       const bindingError = ensureBindings(env);
       if (bindingError) return bindingError;
-      return handleYookassaWebhook(request, env);
+      return handlePayAnyWayCheck(request, env);
+    }
+
+    if (url.pathname === "/api/payment/webhook/payanyway") {
+      const bindingError = ensureBindings(env);
+      if (bindingError) return bindingError;
+      return handlePayAnyWayPayment(request, env);
     }
 
     const protectedDictionaryAssetResponse = await protectDictionaryAsset(request, env);
