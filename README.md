@@ -10,6 +10,7 @@
 ## Что есть в текущей версии
 
 - настройка партии: словарь, команды, игроки, время хода, открытый раунд;
+- компактный setup с локальными SVG-значками словарей и игровыми name/icon-парами команд для всех шести цветов;
 - игровое поле на 41 клетку плюс финиш;
 - три режима заданий:
   - `EXPLAIN`
@@ -159,6 +160,7 @@ node tools/smoke_check.mjs --base http://127.0.0.1:8080
 - `src/lib/telegram.js` — валидация Telegram auth payload.
 - `db/schema.sql` — схема D1.
 - `dictionaries.json` — метаданные словарей.
+- `assets/dictionary-icons/` и `assets/team-icons.svg` — локальные векторные значки, которые не зависят от системного набора emoji.
 - `words.json`, `words_geo.json`, `words_society.json`, `words_around_us.json`, `words_cinema.json`, `words_science.json` — словари.
 - `sitemap.xml` — карта сайта, включая главную, SEO-страницы и юридические страницы.
 - `7f3a9c1e4b8d43f6916a2c0e5d9b7a84.txt` — key-файл для IndexNow.
