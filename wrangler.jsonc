@@ -33,7 +33,7 @@
   "vars": {
     "APP_NAME": "activity",
     "TELEGRAM_BOT_USERNAME": "activity_auth_bot",
-    "PAYANYWAY_CHECKOUT_ENABLED": "false",
+    "PAYANYWAY_CHECKOUT_ENABLED": "true",
     "PAYANYWAY_TEST_MODE": "0"
   }
 }

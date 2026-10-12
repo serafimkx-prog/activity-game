@@ -624,7 +624,7 @@ Backend пишет:
 - D1 binding `DB`
 - `vars.APP_NAME`
 - `vars.TELEGRAM_BOT_USERNAME`
-- `vars.PAYANYWAY_CHECKOUT_ENABLED` — релизный рубильник, по умолчанию `false`
+- `vars.PAYANYWAY_CHECKOUT_ENABLED` — релизный рубильник; после проверенной реальной покупки, автоматического чека и возврата production-значение и репозиторный конфиг установлены в `true`
 - `vars.PAYANYWAY_TEST_MODE` — для Self-контура `0`
 - secrets `PAYANYWAY_ACCOUNT_ID`, `PAYANYWAY_INTEGRITY_CODE`
 

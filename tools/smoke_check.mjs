@@ -196,7 +196,7 @@ function validateSourceContracts() {
   assert(schema.includes("CREATE TABLE IF NOT EXISTS purchase_order_entitlements"), "schema defines order-scoped entitlements");
   assert(!schema.includes("CREATE TABLE IF NOT EXISTS subscriptions"), "fresh schema omits unreleased subscriptions");
   assert(!wrangler.includes('"crons"'), "wrangler has no recurring billing schedule");
-  assert(wrangler.includes('"PAYANYWAY_CHECKOUT_ENABLED": "false"'), "checkout stays fail-closed before account verification");
+  assert(wrangler.includes('"PAYANYWAY_CHECKOUT_ENABLED": "true"'), "verified production checkout stays enabled on deploy");
   for (const protectedDictionary of ["/words_geo.json", "/words_society.json", "/words_around_us.json", "/words_cinema.json", "/words_science.json"]) {
     assert(wrangler.includes(`"${protectedDictionary}"`), `wrangler runs Worker first for ${protectedDictionary}`);
   }
