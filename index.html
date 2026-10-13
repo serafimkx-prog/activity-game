@@ -59,15 +59,11 @@
 <!-- SETUP -->
 <div class="screen active" id="screen-setup">
   <h1>Активити Онлайн</h1>
-  <p class="subtitle">Настройте команды, выберите словарь и начните партию в браузере.</p>
   <nav class="nav-pill" aria-label="Основная навигация">
     <button type="button" class="nav-item active" aria-current="page" onclick="showScreen('setup')">Новая игра</button>
     <button type="button" class="nav-item" onclick="showScreen('rules')">Правила</button>
     <button type="button" class="nav-item" onclick="showScreen('profile')">Профиль</button>
   </nav>
-  <div class="quick-start" aria-label="Важная подсказка">
-    <div class="quick-step"><strong aria-hidden="true">!</strong><span>На просмотр слова телефон берёт только объясняющий. Остальные игроки отворачиваются.</span></div>
-  </div>
   <div class="section">
     <h2>Словарь</h2>
     <div class="dict-grid" id="dict-grid">
@@ -104,6 +100,7 @@
     </div>
   </div>
   <button class="btn btn-primary" id="start-btn">Начать игру</button>
+  <p class="setup-note">Экран телефона во время игры должен видеть только объясняющий.</p>
   <button class="btn btn-secondary" id="continue-game-btn" style="display: none;">Продолжить игру</button>
   <div class="seo-panel">
     <h2>Об Activity онлайн</h2>
@@ -122,7 +119,7 @@
 
 <!-- RULES -->
 <div class="screen" id="screen-rules">
-  <div class="screen-title">🎭 Activity</div>
+  <h1>Активити Онлайн</h1>
   <nav class="nav-pill" aria-label="Основная навигация">
     <button type="button" class="nav-item" onclick="showScreen('setup')">Новая игра</button>
     <button type="button" class="nav-item active" aria-current="page" onclick="showScreen('rules')">Правила</button>
@@ -164,7 +161,7 @@
 
 <!-- PROFILE -->
 <div class="screen" id="screen-profile">
-  <div class="screen-title">🎭 Activity</div>
+  <h1>Активити Онлайн</h1>
   <nav class="nav-pill" aria-label="Основная навигация">
     <button type="button" class="nav-item" onclick="showScreen('setup')">Новая игра</button>
     <button type="button" class="nav-item" onclick="showScreen('rules')">Правила</button>

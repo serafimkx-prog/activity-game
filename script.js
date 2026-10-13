@@ -1711,13 +1711,12 @@ function renderTeams() {
       </div>`).join('')
     const d = document.createElement('div')
     d.className = 'team-block'
-    d.style.borderLeftColor = TEAM_COLORS[i]
     d.innerHTML = `<div class="team-header">
-      <input class="team-name-input" id="ti${i}" value="${escapeHtml(defaultNames[i])}" style="border-bottom-color:${TEAM_COLORS[i]}" aria-label="Название команды ${i + 1}">
+      <span class="team-color-dot" style="background:${TEAM_COLORS[i]}" aria-hidden="true"></span>
+      <input class="team-name-input" id="ti${i}" value="${escapeHtml(defaultNames[i])}" aria-label="Название команды ${i + 1}">
       ${teamCount > 2 ? `<button class="btn btn-sm btn-danger" onclick="removeTeam(${i})">✕</button>` : ''}
     </div>
     <div class="players-section">
-      <div class="players-label">Игроки</div>
       ${playersHTML}
       <button class="add-player-btn" onclick="addPlayer(${i})">+ Добавить игрока</button>
     </div>`

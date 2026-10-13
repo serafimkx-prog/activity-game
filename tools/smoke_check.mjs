@@ -150,7 +150,12 @@ function validateSourceContracts() {
 
   assert(index.includes('class="skip-link"'), "index has skip link");
   assert(index.includes('onclick="showScreen(\'setup\')"'), "skip link opens visible setup screen");
-  assert(index.includes('class="quick-start"'), "index has setup handoff hint");
+  assert(index.includes('class="setup-note"'), "index has setup handoff note below the start action");
+  assert(index.includes("Экран телефона во время игры должен видеть только объясняющий."), "setup handoff note uses the short approved copy");
+  assert(index.indexOf('id="start-btn"') < index.indexOf('class="setup-note"'), "setup handoff note follows the start action");
+  assert(!index.includes("Настройте команды, выберите словарь и начните партию в браузере."), "setup subtitle is removed");
+  assert(countMatches(index, /<h1>Активити Онлайн<\/h1>/g) === 3, "all top-level tabs use the same title");
+  assert(!index.includes('class="screen-title"'), "top-level tabs do not use an alternate title treatment");
   assert(index.includes('class="turn-tip"'), "index has turn handoff tip");
   assert(index.includes('href="/privacy/"'), "index links privacy page");
   assert(countMatches(index, /<nav class="nav-pill"/g) === 3, "index has three nav landmarks");
@@ -162,7 +167,9 @@ function validateSourceContracts() {
 
   assert(style.includes(".skip-link"), "style has skip-link rules");
   assert(style.includes(":focus-visible"), "style has visible focus rules");
-  assert(style.includes(".quick-start") && style.includes(".quick-step"), "style has setup handoff hint rules");
+  assert(style.includes(".setup-note"), "style has compact setup handoff note rules");
+  assert(style.includes("html,body{width:100%;max-width:100%;overflow-x:hidden}"), "page prevents horizontal document drift");
+  assert(style.includes(".team-name-input,.player-input{font-size:16px}"), "mobile text inputs avoid focus zoom");
   assert(style.includes(".summary-details"), "style has compact summary details rules");
   assert(style.includes(".player-stats-table{display:block;overflow-x:auto;white-space:nowrap}"), "mobile player stats table scrolls");
   assert(style.includes(".nav-pill{width:100%}"), "mobile nav expands to full width");
