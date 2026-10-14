@@ -98,6 +98,11 @@ const TEAM_COLORS = ['#22c55e','#3b82f6','#f97316','#ec4899','#a855f7','#06b6d4'
 const DICTIONARY_FEEDBACK_STORAGE_KEY = 'activity_dictionary_feedback_v1'
 const ACTIVE_GAME_STORAGE_KEY = 'activity_active_game_v1'
 const GAME_SESSION_QUEUE_STORAGE_KEY = 'activity_pending_game_sessions_v1'
+const YANDEX_METRIKA_COUNTER_ID = 109002969
+const GAME_ANALYTICS_GOALS = {
+  started: 'activity_game_started',
+  finished: 'activity_game_finished',
+}
 
 // ─── State ─────────────────────────────────────────────────────────────────────
 const state = {
@@ -140,6 +145,34 @@ function shuffle(arr) {
 }
 
 function q(id) { return document.getElementById(id) }
+
+function trackGameAnalytics(eventKey, extraParams = {}) {
+  const goalId = GAME_ANALYTICS_GOALS[eventKey]
+  if (!goalId || typeof window.ym !== 'function') return false
+
+  const eventParams = {
+    count: 1,
+    dictionary_id: state.currentDictionary?.id || 'unknown',
+    team_count: state.teams.length,
+    participant_count: state.teams.reduce((sum, team) => sum + team.players.length, 0),
+    turn_time_seconds: Number(state.config.turnTime) || 0,
+    open_round_enabled: state.config.openRoundEnabled ? 1 : 0,
+    ...extraParams,
+  }
+
+  try {
+    window.ym(YANDEX_METRIKA_COUNTER_ID, 'params', {
+      activity_game: {
+        [eventKey]: eventParams,
+      },
+    })
+    window.ym(YANDEX_METRIKA_COUNTER_ID, 'reachGoal', goalId)
+    return true
+  } catch {
+    // Analytics must never interrupt the game, including when it is blocked.
+    return false
+  }
+}
 
 function safeReadLocalStorage(key, fallback) {
   try {
@@ -1804,6 +1837,7 @@ q('start-btn').addEventListener('click', async () => {
   state.currentTurnNumber = 0
   state.lastGameSummary = null
   state.gameInProgress = true; // Set game in progress
+  trackGameAnalytics('started')
   goTurnStart()
 })
 
@@ -2116,6 +2150,12 @@ q('next-turn-btn').addEventListener('click', () => { sfxNavForward(); state.team
 function showGameOver(winner) {
   state.pendingTurnFeedback = null
   state.lastGameSummary = buildGameSummary(winner)
+  trackGameAnalytics('finished', {
+    duration_seconds: state.lastGameSummary.game.durationSeconds,
+    turn_count: state.lastGameSummary.turns.length,
+    successful_turn_count: state.lastGameSummary.turns.filter(turn => turn.wasSuccessful).length,
+    open_round_count: state.lastGameSummary.game.openRoundCount,
+  })
   q('go-winner').textContent = winner.name
   const sorted = [...state.teams].sort((a, b) => b.position - a.position)
   q('go-scores').innerHTML = sorted.map(t =>

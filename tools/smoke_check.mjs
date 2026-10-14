@@ -158,6 +158,10 @@ function validateSourceContracts() {
   assert(!index.includes('class="screen-title"'), "top-level tabs do not use an alternate title treatment");
   assert(index.includes('class="turn-tip"'), "index has turn handoff tip");
   assert(index.includes('href="/privacy/"'), "index links privacy page");
+  assert(script.includes("function trackGameAnalytics(eventKey, extraParams = {})"), "game analytics helper exists");
+  assert(script.includes("trackGameAnalytics('started')"), "game start analytics is emitted");
+  assert(script.includes("trackGameAnalytics('finished'"), "game finish analytics is emitted");
+  assert(script.includes("typeof window.ym !== 'function'"), "game analytics tolerates a blocked counter");
   assert(countMatches(index, /<nav class="nav-pill"/g) === 3, "index has three nav landmarks");
   assert(countMatches(index, /<button type="button" class="nav-item/g) === 9, "top nav items are native buttons");
   assert(countMatches(index, /aria-current="page"/g) === 3, "active nav buttons expose aria-current");
