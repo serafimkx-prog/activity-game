@@ -98,11 +98,9 @@ const TEAM_COLORS = ['#22c55e','#3b82f6','#f97316','#ec4899','#a855f7','#06b6d4'
 const DICTIONARY_FEEDBACK_STORAGE_KEY = 'activity_dictionary_feedback_v1'
 const ACTIVE_GAME_STORAGE_KEY = 'activity_active_game_v1'
 const GAME_SESSION_QUEUE_STORAGE_KEY = 'activity_pending_game_sessions_v1'
-const YANDEX_METRIKA_COUNTER_ID = 109002969
-const GAME_ANALYTICS_GOALS = {
-  started: 'activity_game_started',
-  finished: 'activity_game_finished',
-}
+const ANALYTICS_VISITOR_STORAGE_KEY = 'activity_analytics_visitor_v1'
+const ANALYTICS_EVENT_QUEUE_STORAGE_KEY = 'activity_analytics_events_v1'
+const ANALYTICS_UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 // ─── State ─────────────────────────────────────────────────────────────────────
 const state = {
@@ -118,6 +116,7 @@ const state = {
   gameInProgress: false,
   currentDictionary: null,
   gameStartedAt: null,
+  analyticsGameId: null,
   turnLog: [],
   turnStartedAt: null,
   currentTurnNumber: 0,
@@ -146,32 +145,115 @@ function shuffle(arr) {
 
 function q(id) { return document.getElementById(id) }
 
-function trackGameAnalytics(eventKey, extraParams = {}) {
-  const goalId = GAME_ANALYTICS_GOALS[eventKey]
-  if (!goalId || typeof window.ym !== 'function') return false
+function createAnalyticsId() {
+  if (typeof crypto.randomUUID === 'function') return crypto.randomUUID()
 
-  const eventParams = {
-    count: 1,
-    dictionary_id: state.currentDictionary?.id || 'unknown',
-    team_count: state.teams.length,
-    participant_count: state.teams.reduce((sum, team) => sum + team.players.length, 0),
-    turn_time_seconds: Number(state.config.turnTime) || 0,
-    open_round_enabled: state.config.openRoundEnabled ? 1 : 0,
-    ...extraParams,
-  }
+  const bytes = crypto.getRandomValues(new Uint8Array(16))
+  bytes[6] = (bytes[6] & 0x0f) | 0x40
+  bytes[8] = (bytes[8] & 0x3f) | 0x80
+  const hex = [...bytes].map(byte => byte.toString(16).padStart(2, '0')).join('')
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+}
 
+function getAnalyticsVisitorId() {
   try {
-    window.ym(YANDEX_METRIKA_COUNTER_ID, 'params', {
-      activity_game: {
-        [eventKey]: eventParams,
-      },
+    const existing = window.localStorage.getItem(ANALYTICS_VISITOR_STORAGE_KEY)
+    if (existing && ANALYTICS_UUID_PATTERN.test(existing)) return existing
+  } catch {}
+
+  const visitorId = createAnalyticsId()
+  try {
+    window.localStorage.setItem(ANALYTICS_VISITOR_STORAGE_KEY, visitorId)
+  } catch {}
+  return visitorId
+}
+
+function getPendingAnalyticsEvents() {
+  const entries = safeReadLocalStorage(ANALYTICS_EVENT_QUEUE_STORAGE_KEY, [])
+  return Array.isArray(entries) ? entries : []
+}
+
+function queueAnalyticsEvent(path, gameId, payload) {
+  const eventId = `${path}:${gameId}`
+  const entries = getPendingAnalyticsEvents().filter(entry => entry.eventId !== eventId)
+  entries.push({ eventId, path, payload })
+  const queued = safeWriteLocalStorage(ANALYTICS_EVENT_QUEUE_STORAGE_KEY, entries.slice(-50))
+  if (queued && analyticsFlushPromise) {
+    analyticsFlushPromise.finally(() => {
+      if (getPendingAnalyticsEvents().some(entry => entry.eventId === eventId)) {
+        flushPendingAnalyticsEvents()
+      }
     })
-    window.ym(YANDEX_METRIKA_COUNTER_ID, 'reachGoal', goalId)
-    return true
-  } catch {
-    // Analytics must never interrupt the game, including when it is blocked.
-    return false
   }
+  return queued
+}
+
+function removePendingAnalyticsEvent(eventId) {
+  const entries = getPendingAnalyticsEvents().filter(entry => entry.eventId !== eventId)
+  return safeWriteLocalStorage(ANALYTICS_EVENT_QUEUE_STORAGE_KEY, entries)
+}
+
+let analyticsFlushPromise = null
+
+function flushPendingAnalyticsEvents() {
+  if (analyticsFlushPromise) return analyticsFlushPromise
+
+  analyticsFlushPromise = (async () => {
+    for (const entry of getPendingAnalyticsEvents()) {
+      try {
+        const response = await fetch(entry.path, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          credentials: 'same-origin',
+          keepalive: true,
+          body: JSON.stringify(entry.payload),
+        })
+
+        if (response.ok || (response.status >= 400 && response.status < 500 && response.status !== 429)) {
+          removePendingAnalyticsEvent(entry.eventId)
+          continue
+        }
+        break
+      } catch {
+        break
+      }
+    }
+  })().finally(() => {
+    analyticsFlushPromise = null
+  })
+
+  return analyticsFlushPromise
+}
+
+function queueGameAnalyticsStart() {
+  if (!state.analyticsGameId || !state.currentDictionary) return false
+
+  queueAnalyticsEvent('/api/analytics/game-start', state.analyticsGameId, {
+    gameId: state.analyticsGameId,
+    visitorId: getAnalyticsVisitorId(),
+    dictionaryId: state.currentDictionary.id,
+    teamCount: state.teams.length,
+    participantCount: state.teams.reduce((sum, team) => sum + team.players.length, 0),
+    turnTimeSeconds: Number(state.config.turnTime) || 0,
+    openRoundEnabled: Boolean(state.config.openRoundEnabled),
+  })
+  flushPendingAnalyticsEvents()
+  return true
+}
+
+function queueGameAnalyticsFinish(summary) {
+  if (!state.analyticsGameId || !summary?.game) return false
+
+  queueAnalyticsEvent('/api/analytics/game-finish', state.analyticsGameId, {
+    gameId: state.analyticsGameId,
+    visitorId: getAnalyticsVisitorId(),
+    durationSeconds: summary.game.durationSeconds,
+    turnCount: summary.turns.length,
+    successfulTurnCount: summary.turns.filter(turn => turn.wasSuccessful).length,
+    openRoundCount: summary.game.openRoundCount,
+  })
+  flushPendingAnalyticsEvents()
+  return true
 }
 
 function safeReadLocalStorage(key, fallback) {
@@ -254,6 +336,7 @@ function buildActiveGameSnapshot() {
       gameInProgress: state.gameInProgress,
       currentDictionaryId: state.currentDictionary.id,
       gameStartedAt: state.gameStartedAt,
+      analyticsGameId: state.analyticsGameId,
       turnLog: state.turnLog.map(turn => ({ ...turn })),
       turnStartedAt: state.turnStartedAt,
       currentTurnNumber: state.currentTurnNumber,
@@ -369,11 +452,14 @@ function restoreActiveGameFromSnapshot() {
   state.gameInProgress = true
   state.currentDictionary = dictionary
   state.gameStartedAt = snapshot.state.gameStartedAt || null
+  state.analyticsGameId = snapshot.state.analyticsGameId || createAnalyticsId()
   state.turnLog = Array.isArray(snapshot.state.turnLog) ? snapshot.state.turnLog.map(turn => ({ ...turn })) : []
   state.turnStartedAt = snapshot.state.turnStartedAt || null
   state.currentTurnNumber = Number(snapshot.state.currentTurnNumber) || 0
   state.lastGameSummary = null
   state.pendingTurnFeedback = snapshot.state.pendingTurnFeedback || null
+
+  if (!snapshot.state.analyticsGameId) queueGameAnalyticsStart()
 
   q('turn-time').value = state.config.turnTime || 60
   q('turn-time-value').textContent = String(state.config.turnTime || 60)
@@ -1832,12 +1918,13 @@ q('start-btn').addEventListener('click', async () => {
   state.teamIndex = 0
   state.currentDictionary = dict
   state.gameStartedAt = new Date().toISOString()
+  state.analyticsGameId = createAnalyticsId()
   state.turnLog = []
   state.turnStartedAt = null
   state.currentTurnNumber = 0
   state.lastGameSummary = null
   state.gameInProgress = true; // Set game in progress
-  trackGameAnalytics('started')
+  queueGameAnalyticsStart()
   goTurnStart()
 })
 
@@ -2150,12 +2237,7 @@ q('next-turn-btn').addEventListener('click', () => { sfxNavForward(); state.team
 function showGameOver(winner) {
   state.pendingTurnFeedback = null
   state.lastGameSummary = buildGameSummary(winner)
-  trackGameAnalytics('finished', {
-    duration_seconds: state.lastGameSummary.game.durationSeconds,
-    turn_count: state.lastGameSummary.turns.length,
-    successful_turn_count: state.lastGameSummary.turns.filter(turn => turn.wasSuccessful).length,
-    open_round_count: state.lastGameSummary.game.openRoundCount,
-  })
+  queueGameAnalyticsFinish(state.lastGameSummary)
   q('go-winner').textContent = winner.name
   const sorted = [...state.teams].sort((a, b) => b.position - a.position)
   q('go-scores').innerHTML = sorted.map(t =>
@@ -2185,6 +2267,7 @@ q('restart-btn').addEventListener('click', () => {
   renderTeams()
   state.currentDictionary = null
   state.gameStartedAt = null
+  state.analyticsGameId = null
   state.turnLog = []
   state.turnStartedAt = null
   state.currentTurnNumber = 0
@@ -2252,7 +2335,12 @@ q('continue-game-btn').addEventListener('click', () => {
 });
 
 window.addEventListener('pagehide', persistActiveGameSnapshot)
-window.addEventListener('online', flushPendingGameSessions)
+window.addEventListener('online', () => {
+  flushPendingGameSessions()
+  flushPendingAnalyticsEvents()
+})
+
+flushPendingAnalyticsEvents()
 
 q('turn-time').addEventListener('input', (event) => {
   q('turn-time-value').textContent = String(event.target.value || 60)

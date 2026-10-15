@@ -570,6 +570,208 @@ async function protectDictionaryAsset(request, env) {
   return env.ASSETS.fetch(request);
 }
 
+const ANALYTICS_UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function analyticsRequestError(request) {
+  const origin = request.headers.get("origin");
+  if (!origin || origin !== new URL(request.url).origin) {
+    return error("Same-origin request required", 403);
+  }
+
+  const contentLength = Number(request.headers.get("content-length") || 0);
+  if (contentLength > 8192) return error("Request body is too large", 413);
+  return null;
+}
+
+function analyticsInteger(value, min, max) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= min && parsed <= max ? parsed : null;
+}
+
+async function hashAnalyticsVisitorId(visitorId) {
+  const input = new TextEncoder().encode(`activity-analytics-v1:${visitorId}`);
+  const digest = await crypto.subtle.digest("SHA-256", input);
+  return [...new Uint8Array(digest)]
+    .map(byte => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+let analyticsSchemaBootstrapPromise = null;
+
+function ensureGameAnalyticsSchema(db) {
+  if (analyticsSchemaBootstrapPromise) return analyticsSchemaBootstrapPromise;
+
+  analyticsSchemaBootstrapPromise = db.batch([
+    db.prepare(
+      `CREATE TABLE IF NOT EXISTS game_analytics (
+         game_id TEXT PRIMARY KEY,
+         visitor_hash TEXT NOT NULL,
+         user_id INTEGER,
+         status TEXT NOT NULL DEFAULT 'started' CHECK (status IN ('started', 'finished')),
+         started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+         finished_at TEXT,
+         dictionary_id TEXT NOT NULL,
+         team_count INTEGER NOT NULL,
+         participant_count INTEGER NOT NULL,
+         turn_time_seconds INTEGER NOT NULL,
+         open_round_enabled INTEGER NOT NULL DEFAULT 1,
+         duration_seconds INTEGER,
+         turn_count INTEGER,
+         successful_turn_count INTEGER,
+         open_round_count INTEGER,
+         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+         updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+       )`
+    ),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_game_analytics_started_at ON game_analytics(started_at)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_game_analytics_status ON game_analytics(status)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_game_analytics_visitor_hash ON game_analytics(visitor_hash)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_game_analytics_user_id ON game_analytics(user_id)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_game_analytics_dictionary_id ON game_analytics(dictionary_id)"),
+  ]).catch(err => {
+    analyticsSchemaBootstrapPromise = null;
+    throw err;
+  });
+
+  return analyticsSchemaBootstrapPromise;
+}
+
+async function handleAnalyticsGameStart(request, env) {
+  const wrongMethod = methodNotAllowed(request, "POST");
+  if (wrongMethod) return wrongMethod;
+
+  const requestError = analyticsRequestError(request);
+  if (requestError) return requestError;
+
+  let payload;
+  try {
+    payload = await request.json();
+  } catch {
+    return error("Invalid JSON body", 400);
+  }
+
+  if (!ANALYTICS_UUID_PATTERN.test(payload?.gameId || "") || !ANALYTICS_UUID_PATTERN.test(payload?.visitorId || "")) {
+    return error("Invalid analytics identifier", 400);
+  }
+
+  const dictionaryId = String(payload?.dictionaryId || "");
+  const dictionaries = await loadDictionaryCatalog(request, env);
+  if (!dictionaries.some(dictionary => dictionary.id === dictionaryId && dictionary.available)) {
+    return error("Invalid dictionary", 400);
+  }
+
+  const teamCount = analyticsInteger(payload.teamCount, 2, 6);
+  const participantCount = analyticsInteger(payload.participantCount, 2, 120);
+  const turnTimeSeconds = analyticsInteger(payload.turnTimeSeconds, 30, 120);
+  if (
+    teamCount === null ||
+    participantCount === null ||
+    turnTimeSeconds === null ||
+    typeof payload.openRoundEnabled !== "boolean"
+  ) {
+    return error("Invalid game analytics values", 400);
+  }
+
+  const visitorHash = await hashAnalyticsVisitorId(payload.visitorId);
+  const user = await getOptionalUser(request, env);
+
+  // Release bootstrap: remove after the production D1 table has been verified.
+  await ensureGameAnalyticsSchema(env.DB);
+
+  await env.DB
+    .prepare(
+      `INSERT INTO game_analytics (
+         game_id,
+         visitor_hash,
+         user_id,
+         dictionary_id,
+         team_count,
+         participant_count,
+         turn_time_seconds,
+         open_round_enabled
+       ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+       ON CONFLICT(game_id) DO NOTHING`
+    )
+    .bind(
+      payload.gameId,
+      visitorHash,
+      user?.id || null,
+      dictionaryId,
+      teamCount,
+      participantCount,
+      turnTimeSeconds,
+      payload.openRoundEnabled ? 1 : 0
+    )
+    .run();
+
+  return json({ ok: true });
+}
+
+async function handleAnalyticsGameFinish(request, env) {
+  const wrongMethod = methodNotAllowed(request, "POST");
+  if (wrongMethod) return wrongMethod;
+
+  const requestError = analyticsRequestError(request);
+  if (requestError) return requestError;
+
+  let payload;
+  try {
+    payload = await request.json();
+  } catch {
+    return error("Invalid JSON body", 400);
+  }
+
+  if (!ANALYTICS_UUID_PATTERN.test(payload?.gameId || "") || !ANALYTICS_UUID_PATTERN.test(payload?.visitorId || "")) {
+    return error("Invalid analytics identifier", 400);
+  }
+
+  const durationSeconds = analyticsInteger(payload.durationSeconds, 0, 2592000);
+  const turnCount = analyticsInteger(payload.turnCount, 0, 10000);
+  const successfulTurnCount = analyticsInteger(payload.successfulTurnCount, 0, 10000);
+  const openRoundCount = analyticsInteger(payload.openRoundCount, 0, 10000);
+  if (
+    durationSeconds === null ||
+    turnCount === null ||
+    successfulTurnCount === null ||
+    openRoundCount === null ||
+    successfulTurnCount > turnCount ||
+    openRoundCount > turnCount
+  ) {
+    return error("Invalid finished game analytics values", 400);
+  }
+
+  const visitorHash = await hashAnalyticsVisitorId(payload.visitorId);
+  const user = await getOptionalUser(request, env);
+  const result = await env.DB
+    .prepare(
+      `UPDATE game_analytics
+       SET status = 'finished',
+           user_id = COALESCE(user_id, ?3),
+           finished_at = CURRENT_TIMESTAMP,
+           duration_seconds = ?4,
+           turn_count = ?5,
+           successful_turn_count = ?6,
+           open_round_count = ?7,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE game_id = ?1
+         AND visitor_hash = ?2`
+    )
+    .bind(
+      payload.gameId,
+      visitorHash,
+      user?.id || null,
+      durationSeconds,
+      turnCount,
+      successfulTurnCount,
+      openRoundCount
+    )
+    .run();
+
+  if (!result?.meta?.changes) return error("Analytics game not found", 404);
+  return json({ ok: true });
+}
+
 async function handleCreateGameSession(request, env) {
   const wrongMethod = methodNotAllowed(request, "POST");
   if (wrongMethod) return wrongMethod;
@@ -985,6 +1187,18 @@ export default {
       const bindingError = ensureBindings(env);
       if (bindingError) return bindingError;
       return handleCreateGameSession(request, env);
+    }
+
+    if (url.pathname === "/api/analytics/game-start") {
+      const bindingError = ensureBindings(env);
+      if (bindingError) return bindingError;
+      return handleAnalyticsGameStart(request, env);
+    }
+
+    if (url.pathname === "/api/analytics/game-finish") {
+      const bindingError = ensureBindings(env);
+      if (bindingError) return bindingError;
+      return handleAnalyticsGameFinish(request, env);
     }
 
     if (url.pathname === "/api/profile/summary") {
