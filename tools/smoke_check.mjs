@@ -147,6 +147,8 @@ function validateSourceContracts() {
   const sitemap = read("sitemap.xml");
   const wrangler = read("wrangler.jsonc");
   const schema = read("db/schema.sql");
+  const analyticsMigration = read("db/migrations/2026-10-15-game-analytics.sql");
+  const analyticsReport = read("tools/game_analytics_report.sql");
 
   assert(index.includes('class="skip-link"'), "index has skip link");
   assert(index.includes('onclick="showScreen(\'setup\')"'), "skip link opens visible setup screen");
@@ -158,10 +160,12 @@ function validateSourceContracts() {
   assert(!index.includes('class="screen-title"'), "top-level tabs do not use an alternate title treatment");
   assert(index.includes('class="turn-tip"'), "index has turn handoff tip");
   assert(index.includes('href="/privacy/"'), "index links privacy page");
-  assert(script.includes("function trackGameAnalytics(eventKey, extraParams = {})"), "game analytics helper exists");
-  assert(script.includes("trackGameAnalytics('started')"), "game start analytics is emitted");
-  assert(script.includes("trackGameAnalytics('finished'"), "game finish analytics is emitted");
-  assert(script.includes("typeof window.ym !== 'function'"), "game analytics tolerates a blocked counter");
+  assert(script.includes("function queueGameAnalyticsStart()"), "D1 game start analytics helper exists");
+  assert(script.includes("function queueGameAnalyticsFinish(summary)"), "D1 game finish analytics helper exists");
+  assert(script.includes("/api/analytics/game-start"), "frontend queues first-party game starts");
+  assert(script.includes("/api/analytics/game-finish"), "frontend queues first-party game finishes");
+  assert(script.includes("ANALYTICS_EVENT_QUEUE_STORAGE_KEY"), "analytics survives temporary network failures");
+  assert(!script.includes("activity_game_started") && !script.includes("activity_game_finished"), "game analytics no longer depends on Metrika goals");
   assert(countMatches(index, /<nav class="nav-pill"/g) === 3, "index has three nav landmarks");
   assert(countMatches(index, /<button type="button" class="nav-item/g) === 9, "top nav items are native buttons");
   assert(countMatches(index, /aria-current="page"/g) === 3, "active nav buttons expose aria-current");
@@ -200,11 +204,18 @@ function validateSourceContracts() {
   assert(!index.includes("в месяц") && !index.includes("автопродлен"), "index has no recurring billing copy");
   const worker = read("src/worker.js");
   assert(worker.includes("handlePayAnyWayCheck") && worker.includes("handlePayAnyWayPayment"), "Worker implements PayAnyWay Check and Pay URLs");
+  assert(worker.includes("handleAnalyticsGameStart") && worker.includes("handleAnalyticsGameFinish"), "Worker implements first-party game analytics endpoints");
+  assert(worker.includes("hashAnalyticsVisitorId") && worker.includes('crypto.subtle.digest("SHA-256"'), "Worker hashes anonymous browser identifiers");
+  assert(worker.includes('origin !== new URL(request.url).origin'), "anonymous analytics writes require the site origin");
   assert(countMatches(worker, /methodNotAllowed\(request, \["GET", "POST"\]\)/g) >= 2, "PayAnyWay Check and Pay endpoints accept signed Self GET and POST callbacks");
   assert(worker.includes("callbackMatchesOrder") && worker.includes("verifyCallbackSignature"), "Worker verifies callback signature and order fields");
   assert(worker.includes("purchase_order_entitlements"), "Worker grants order-scoped entitlements");
   assert(!worker.includes("subscription") && !worker.includes("yookassa"), "Worker has no subscription or YooKassa release path");
   assert(schema.includes("CREATE TABLE IF NOT EXISTS purchase_order_entitlements"), "schema defines order-scoped entitlements");
+  assert(schema.includes("CREATE TABLE IF NOT EXISTS game_analytics"), "schema defines first-party game analytics");
+  assert(analyticsMigration.includes("CREATE TABLE IF NOT EXISTS game_analytics"), "remote migration creates first-party game analytics");
+  assert(analyticsReport.includes("browser_installations") && analyticsReport.includes("authenticated_users"), "analytics report labels browser installations separately from accounts");
+  assert(!analyticsReport.includes("visitor_hash AS") && !analyticsReport.includes("telegram_user_id"), "analytics report exposes aggregates only");
   assert(!schema.includes("CREATE TABLE IF NOT EXISTS subscriptions"), "fresh schema omits unreleased subscriptions");
   assert(!wrangler.includes('"crons"'), "wrangler has no recurring billing schedule");
   assert(wrangler.includes('"PAYANYWAY_CHECKOUT_ENABLED": "true"'), "verified production checkout stays enabled on deploy");
