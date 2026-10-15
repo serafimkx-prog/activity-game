@@ -571,10 +571,15 @@ async function protectDictionaryAsset(request, env) {
 }
 
 const ANALYTICS_UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const ANALYTICS_PUBLIC_ORIGINS = new Set([
+  "https://activity-game.ru",
+  "https://www.activity-game.ru",
+]);
 
 function analyticsRequestError(request) {
   const origin = request.headers.get("origin");
-  if (!origin || origin !== new URL(request.url).origin) {
+  const requestOrigin = new URL(request.url).origin;
+  if (!origin || (origin !== requestOrigin && !ANALYTICS_PUBLIC_ORIGINS.has(origin))) {
     return error("Same-origin request required", 403);
   }
 

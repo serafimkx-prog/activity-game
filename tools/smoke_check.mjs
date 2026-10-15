@@ -205,8 +205,9 @@ function validateSourceContracts() {
   const worker = read("src/worker.js");
   assert(worker.includes("handlePayAnyWayCheck") && worker.includes("handlePayAnyWayPayment"), "Worker implements PayAnyWay Check and Pay URLs");
   assert(worker.includes("handleAnalyticsGameStart") && worker.includes("handleAnalyticsGameFinish"), "Worker implements first-party game analytics endpoints");
+  assert(worker.includes('"https://activity-game.ru"') && worker.includes('"https://www.activity-game.ru"'), "analytics accepts the public origins behind the production proxy");
   assert(worker.includes("hashAnalyticsVisitorId") && worker.includes('crypto.subtle.digest("SHA-256"'), "Worker hashes anonymous browser identifiers");
-  assert(worker.includes('origin !== new URL(request.url).origin'), "anonymous analytics writes require the site origin");
+  assert(worker.includes("ANALYTICS_PUBLIC_ORIGINS.has(origin)"), "anonymous analytics writes require a recognized site origin");
   assert(countMatches(worker, /methodNotAllowed\(request, \["GET", "POST"\]\)/g) >= 2, "PayAnyWay Check and Pay endpoints accept signed Self GET and POST callbacks");
   assert(worker.includes("callbackMatchesOrder") && worker.includes("verifyCallbackSignature"), "Worker verifies callback signature and order fields");
   assert(worker.includes("purchase_order_entitlements"), "Worker grants order-scoped entitlements");
