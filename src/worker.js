@@ -644,6 +644,9 @@ async function handleAnalyticsGameStart(request, env) {
   const requestError = analyticsRequestError(request);
   if (requestError) return requestError;
 
+  // Release bootstrap: remove after the production D1 table has been verified.
+  await ensureGameAnalyticsSchema(env.DB);
+
   let payload;
   try {
     payload = await request.json();
@@ -675,9 +678,6 @@ async function handleAnalyticsGameStart(request, env) {
 
   const visitorHash = await hashAnalyticsVisitorId(payload.visitorId);
   const user = await getOptionalUser(request, env);
-
-  // Release bootstrap: remove after the production D1 table has been verified.
-  await ensureGameAnalyticsSchema(env.DB);
 
   await env.DB
     .prepare(
