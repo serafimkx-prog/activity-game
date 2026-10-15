@@ -118,7 +118,7 @@ Results:
 
 Regressions found: none.
 
-Unverified scenarios: production D1 write and aggregate report until migration/deploy.
+Production verification: публичный origin принят, чужой origin отклонён; запрос завершения несуществующей партии дошёл до D1 и получил ожидаемый `404`, не создавая тестовую строку.
 
 ## 7. Docs Sync
 
@@ -134,22 +134,22 @@ Docs not changed because: no separate public dashboard is introduced.
 ## 8. Release Check
 
 Agent: Release Manager
-Verdict: pending
+Verdict: pass
 
-Diff reviewed:
+Diff reviewed: first-party client queue, Worker API, D1 schema/migration/report, privacy and project documentation, production-origin handling.
 
-Commands run:
+Commands run: `git diff --check`; JS syntax checks; `node tools/smoke_check.mjs`; Wrangler deploy dry-run; local D1 migration/report; local curl API matrix; local mobile Playwright flow; production curl probes.
 
-Manual checks:
+Manual checks: production accepted `https://activity-game.ru`, rejected `https://example.com`, and returned `404 Analytics game not found` after querying the deployed D1 table with a valid non-existent game UUID.
 
-Deploy follow-up: migration before Worker/frontend release.
+Deploy follow-up: completed through an idempotent one-release schema bootstrap; bootstrap removed after verification.
 
-D1 follow-up: apply `db/migrations/2026-10-15-game-analytics.sql` remotely and verify table/indexes.
+D1 follow-up: table and indexes created in production; migration remains canonical for new environments.
 
 Secret or config follow-up: none.
 
 Cache follow-up: normal static asset propagation.
 
-Open risks:
+Open risks: разные анонимные браузеры считаются отдельными установками; намеренное склеивание fingerprinting-ом не используется. При резком росте трафика можно добавить Cloudflare Rate Limiting.
 
-Ready to hand back: pending.
+Ready to hand back: yes.
