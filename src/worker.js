@@ -571,6 +571,8 @@ async function protectDictionaryAsset(request, env) {
 }
 
 const ANALYTICS_UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const ANALYTICS_CARD_ID_PATTERN = /^[0-9a-f]{16}$/;
+const ANALYTICS_CARD_BATCH_SIZE = 10;
 const ANALYTICS_PUBLIC_ORIGINS = new Set([
   "https://activity-game.ru",
   "https://www.activity-game.ru",
@@ -731,6 +733,101 @@ async function handleAnalyticsGameFinish(request, env) {
 
   if (!result?.meta?.changes) return error("Analytics game not found", 404);
   return json({ ok: true });
+}
+
+async function handleAnalyticsCardTurns(request, env) {
+  const wrongMethod = methodNotAllowed(request, "POST");
+  if (wrongMethod) return wrongMethod;
+
+  const requestError = analyticsRequestError(request);
+  if (requestError) return requestError;
+
+  let payload;
+  try {
+    payload = await request.json();
+  } catch {
+    return error("Invalid JSON body", 400);
+  }
+
+  if (!ANALYTICS_UUID_PATTERN.test(payload?.gameId || "") || !ANALYTICS_UUID_PATTERN.test(payload?.visitorId || "")) {
+    return error("Invalid analytics identifier", 400);
+  }
+  if (!Array.isArray(payload?.turns) || payload.turns.length < 1 || payload.turns.length > ANALYTICS_CARD_BATCH_SIZE) {
+    return error("Invalid card analytics batch", 400);
+  }
+
+  const turns = [];
+  for (const turn of payload.turns) {
+    const turnNumber = analyticsInteger(turn?.turnNumber, 1, 500);
+    const difficulty = analyticsInteger(turn?.difficulty, 3, 5);
+    const durationMs = analyticsInteger(turn?.durationMs, 0, 3600000);
+    const containsSensitiveField = ["word", "playerName", "teamName"]
+      .some(field => Object.prototype.hasOwnProperty.call(turn || {}, field));
+    if (
+      containsSensitiveField ||
+      turnNumber === null ||
+      difficulty === null ||
+      durationMs === null ||
+      !ANALYTICS_CARD_ID_PATTERN.test(turn?.cardId || "") ||
+      !["DRAW", "EXPLAIN", "ACT"].includes(turn?.mode) ||
+      !["success", "failed", "timeout"].includes(turn?.outcome) ||
+      typeof turn?.openRound !== "boolean"
+    ) {
+      return error("Invalid card analytics turn", 400);
+    }
+
+    turns.push({
+      turnNumber,
+      cardId: turn.cardId,
+      mode: turn.mode,
+      difficulty,
+      outcome: turn.outcome,
+      durationMs,
+      openRound: turn.openRound,
+    });
+  }
+
+  const visitorHash = await hashAnalyticsVisitorId(payload.visitorId);
+  const game = await env.DB
+    .prepare(
+      `SELECT dictionary_id
+       FROM game_analytics
+       WHERE game_id = ?1
+         AND visitor_hash = ?2`
+    )
+    .bind(payload.gameId, visitorHash)
+    .first();
+
+  if (!game) return error("Analytics game not found", 404);
+
+  await env.DB.batch(turns.map(turn => env.DB
+    .prepare(
+      `INSERT INTO card_analytics (
+         game_id,
+         turn_number,
+         card_id,
+         dictionary_id,
+         mode,
+         difficulty,
+         outcome,
+         duration_ms,
+         was_open_round
+       ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
+       ON CONFLICT(game_id, turn_number) DO NOTHING`
+    )
+    .bind(
+      payload.gameId,
+      turn.turnNumber,
+      turn.cardId,
+      game.dictionary_id,
+      turn.mode,
+      turn.difficulty,
+      turn.outcome,
+      turn.durationMs,
+      turn.openRound ? 1 : 0
+    )));
+
+  return json({ ok: true, accepted: turns.length });
 }
 
 async function handleCreateGameSession(request, env) {
@@ -1160,6 +1257,12 @@ export default {
       const bindingError = ensureBindings(env);
       if (bindingError) return bindingError;
       return handleAnalyticsGameFinish(request, env);
+    }
+
+    if (url.pathname === "/api/analytics/card-turns") {
+      const bindingError = ensureBindings(env);
+      if (bindingError) return bindingError;
+      return handleAnalyticsCardTurns(request, env);
     }
 
     if (url.pathname === "/api/profile/summary") {

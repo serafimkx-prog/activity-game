@@ -156,6 +156,8 @@
 
 - `activity_active_game_v1` — снимок активной партии;
 - `activity_pending_game_sessions_v1` — очередь завершённых партий до успешной отправки в backend;
+- `activity_analytics_events_v1` — очередь start/finish событий партии;
+- `activity_card_analytics_turns_v1` — ограниченная 200 записями очередь обезличенных итогов ходов;
 - `activity_dictionary_feedback_v1` — fallback фидбэка по сложности слова.
 
 ## 5. Поле и игровые режимы
@@ -466,6 +468,14 @@ Backend находится в [src/worker.js](src/worker.js).
 - требует авторизации;
 - делает upsert по паре `user_id + feedback_id`.
 
+`POST /api/analytics/card-turns`
+
+- работает без авторизации, но требует same-origin request и совпадение `game_id` с хешем browser installation;
+- принимает не более 10 ходов за запрос;
+- сохраняет opaque `card_id`, режим, уровень, исход, длительность и open-round flag;
+- не принимает текст слова, имена команд или игроков;
+- использует `ON CONFLICT(game_id, turn_number) DO NOTHING` для безопасных повторов.
+
 `GET|POST /api/payment/check/payanyway`
 
 - проверяет подпись CHECK-запроса и точное совпадение аккаунта, заказа, суммы, валюты, пользователя и режима;
@@ -544,6 +554,13 @@ Backend находится в [src/worker.js](src/worker.js).
 - связывает повторные игры только в пределах одной установки браузера по хешу случайного идентификатора;
 - при наличии серверной сессии дополнительно сохраняет `user_id`;
 - не хранит имена, слова, IP-адрес или полный summary.
+
+`card_analytics`
+
+- одна идемпотентная запись на завершённый ход;
+- хранит opaque `card_id`, словарь, режим, уровень, исход, длительность и open-round flag;
+- не хранит текст слова, имена или browser identifier;
+- имеет только составной primary key и не имеет вторичных индексов для снижения D1 write amplification.
 
 `dictionary_feedback`
 

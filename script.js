@@ -100,6 +100,9 @@ const ACTIVE_GAME_STORAGE_KEY = 'activity_active_game_v1'
 const GAME_SESSION_QUEUE_STORAGE_KEY = 'activity_pending_game_sessions_v1'
 const ANALYTICS_VISITOR_STORAGE_KEY = 'activity_analytics_visitor_v1'
 const ANALYTICS_EVENT_QUEUE_STORAGE_KEY = 'activity_analytics_events_v1'
+const CARD_ANALYTICS_QUEUE_STORAGE_KEY = 'activity_card_analytics_turns_v1'
+const CARD_ANALYTICS_BATCH_SIZE = 10
+const CARD_ANALYTICS_MAX_QUEUE_SIZE = 200
 const ANALYTICS_UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 // ─── State ─────────────────────────────────────────────────────────────────────
@@ -153,6 +156,24 @@ function createAnalyticsId() {
   bytes[8] = (bytes[8] & 0x3f) | 0x80
   const hex = [...bytes].map(byte => byte.toString(16).padStart(2, '0')).join('')
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+}
+
+function createAnalyticsCardId(dictionaryId, mode, difficulty, word) {
+  const normalizedWord = String(word || '').normalize('NFKC').trim().toLocaleLowerCase('ru-RU')
+  const input = `activity-card-v1:${dictionaryId}:${mode}:${difficulty}:${normalizedWord}`
+  let first = 0x811c9dc5
+  let second = 0x9e3779b9
+
+  for (let index = 0; index < input.length; index++) {
+    const code = input.charCodeAt(index)
+    first = Math.imul(first ^ code, 0x01000193)
+    second = Math.imul(second ^ code, 0x85ebca6b)
+    second ^= second >>> 13
+  }
+
+  return [first, second]
+    .map(value => (value >>> 0).toString(16).padStart(8, '0'))
+    .join('')
 }
 
 function getAnalyticsVisitorId() {
@@ -223,6 +244,95 @@ function flushPendingAnalyticsEvents() {
   })
 
   return analyticsFlushPromise
+}
+
+function getPendingCardAnalyticsTurns() {
+  const entries = safeReadLocalStorage(CARD_ANALYTICS_QUEUE_STORAGE_KEY, [])
+  return Array.isArray(entries) ? entries : []
+}
+
+function writePendingCardAnalyticsTurns(entries) {
+  return safeWriteLocalStorage(CARD_ANALYTICS_QUEUE_STORAGE_KEY, entries.slice(-CARD_ANALYTICS_MAX_QUEUE_SIZE))
+}
+
+function removePendingCardAnalyticsTurns(queueIds) {
+  const removedIds = new Set(queueIds)
+  return writePendingCardAnalyticsTurns(
+    getPendingCardAnalyticsTurns().filter(entry => !removedIds.has(entry.queueId))
+  )
+}
+
+function queueCardAnalyticsTurn(turn) {
+  const dictionaryId = state.currentDictionary?.id
+  const mode = state.cellMode?.key
+  const difficulty = Number(state.selectedCard?.points)
+  const word = state.selectedCard?.entries?.[mode]
+  if (!state.analyticsGameId || !dictionaryId || !mode || ![3, 4, 5].includes(difficulty) || !word) return false
+
+  const queueId = `${state.analyticsGameId}:${turn.turnNumber}`
+  const entries = getPendingCardAnalyticsTurns().filter(entry => entry.queueId !== queueId)
+  entries.push({
+    queueId,
+    gameId: state.analyticsGameId,
+    turn: {
+      turnNumber: turn.turnNumber,
+      cardId: createAnalyticsCardId(dictionaryId, mode, difficulty, word),
+      mode,
+      difficulty,
+      outcome: turn.cardWasGuessed ? 'success' : turn.timedOut ? 'timeout' : 'failed',
+      durationMs: Math.max(0, Math.round(Number(turn.durationSeconds || 0) * 1000)),
+      openRound: Boolean(turn.wasOpenRound),
+    },
+  })
+
+  const queued = writePendingCardAnalyticsTurns(entries)
+  const currentGameCount = entries.filter(entry => entry.gameId === state.analyticsGameId).length
+  if (queued && currentGameCount >= CARD_ANALYTICS_BATCH_SIZE) flushPendingCardAnalyticsTurns()
+  return queued
+}
+
+let cardAnalyticsFlushPromise = null
+
+function flushPendingCardAnalyticsTurns() {
+  if (cardAnalyticsFlushPromise) return cardAnalyticsFlushPromise
+
+  cardAnalyticsFlushPromise = (async () => {
+    while (true) {
+      const entries = getPendingCardAnalyticsTurns()
+      if (!entries.length) break
+
+      const gameId = entries[0].gameId
+      const batch = entries
+        .filter(entry => entry.gameId === gameId)
+        .slice(0, CARD_ANALYTICS_BATCH_SIZE)
+
+      try {
+        const response = await fetch('/api/analytics/card-turns', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          credentials: 'same-origin',
+          keepalive: true,
+          body: JSON.stringify({
+            gameId,
+            visitorId: getAnalyticsVisitorId(),
+            turns: batch.map(entry => entry.turn),
+          }),
+        })
+
+        if (response.ok || [400, 403, 413].includes(response.status)) {
+          removePendingCardAnalyticsTurns(batch.map(entry => entry.queueId))
+          continue
+        }
+        break
+      } catch {
+        break
+      }
+    }
+  })().finally(() => {
+    cardAnalyticsFlushPromise = null
+  })
+
+  return cardAnalyticsFlushPromise
 }
 
 function queueGameAnalyticsStart() {
@@ -742,7 +852,7 @@ function recordTurn({
   const finishedAtMs = Date.now()
   const winnerTeam = winnerTeamIndex === null ? null : state.teams[winnerTeamIndex]
 
-  state.turnLog.push({
+  const turnRecord = {
     turnNumber: state.currentTurnNumber,
     teamName: explainerTeam.name,
     explainerTeamName: explainerTeam.name,
@@ -765,7 +875,12 @@ function recordTurn({
     winnerTeamIndex,
     winnerPositionBefore,
     winnerPositionAfter,
-  })
+    cardWasGuessed: winnerTeamIndex !== null,
+    timedOut: winnerTeamIndex === null && state.timeLeft <= 0,
+  }
+
+  state.turnLog.push(turnRecord)
+  queueCardAnalyticsTurn(turnRecord)
 
   state.turnStartedAt = null
 }
@@ -2238,6 +2353,7 @@ function showGameOver(winner) {
   state.pendingTurnFeedback = null
   state.lastGameSummary = buildGameSummary(winner)
   queueGameAnalyticsFinish(state.lastGameSummary)
+  flushPendingCardAnalyticsTurns()
   q('go-winner').textContent = winner.name
   const sorted = [...state.teams].sort((a, b) => b.position - a.position)
   q('go-scores').innerHTML = sorted.map(t =>
@@ -2334,13 +2450,16 @@ q('continue-game-btn').addEventListener('click', () => {
   goTurnStart(); // Resume the game
 });
 
-window.addEventListener('pagehide', persistActiveGameSnapshot)
+window.addEventListener('pagehide', () => {
+  persistActiveGameSnapshot()
+  flushPendingCardAnalyticsTurns()
+})
 window.addEventListener('online', () => {
   flushPendingGameSessions()
-  flushPendingAnalyticsEvents()
+  flushPendingAnalyticsEvents().finally(flushPendingCardAnalyticsTurns)
 })
 
-flushPendingAnalyticsEvents()
+flushPendingAnalyticsEvents().finally(flushPendingCardAnalyticsTurns)
 
 q('turn-time').addEventListener('input', (event) => {
   q('turn-time-value').textContent = String(event.target.value || 60)
