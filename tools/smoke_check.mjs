@@ -90,6 +90,21 @@ function runNodeCheck(file) {
   }
 }
 
+function validateCardAnalyticsCatalog() {
+  const result = spawnSync(process.execPath, ["tools/card_analytics_catalog.mjs"], {
+    cwd: ROOT,
+    encoding: "utf8",
+  });
+  assert(result.status === 0, "card analytics ids have no collisions");
+  if (result.status !== 0) {
+    failures.push((result.stderr || result.stdout || "").trim());
+    return;
+  }
+
+  const summary = JSON.parse(result.stdout);
+  assert(summary.cards > 5000 && summary.collisions === 0, "card analytics catalog covers every released card without collisions");
+}
+
 function validateDictionaries() {
   const catalog = JSON.parse(read("dictionaries.json"));
   assert(Array.isArray(catalog), "dictionaries.json is an array");
@@ -149,6 +164,9 @@ function validateSourceContracts() {
   const schema = read("db/schema.sql");
   const analyticsMigration = read("db/migrations/2026-10-15-game-analytics.sql");
   const analyticsReport = read("tools/game_analytics_report.sql");
+  const cardAnalyticsMigration = read("db/migrations/2026-10-16-card-analytics.sql");
+  const cardAnalyticsReport = read("tools/card_analytics_report.sql");
+  const cardAnalyticsCatalog = read("tools/card_analytics_catalog.mjs");
 
   assert(index.includes('class="skip-link"'), "index has skip link");
   assert(index.includes('onclick="showScreen(\'setup\')"'), "skip link opens visible setup screen");
@@ -165,6 +183,10 @@ function validateSourceContracts() {
   assert(script.includes("/api/analytics/game-start"), "frontend queues first-party game starts");
   assert(script.includes("/api/analytics/game-finish"), "frontend queues first-party game finishes");
   assert(script.includes("ANALYTICS_EVENT_QUEUE_STORAGE_KEY"), "analytics survives temporary network failures");
+  assert(script.includes("CARD_ANALYTICS_BATCH_SIZE = 10"), "card analytics batches at most ten turns per request");
+  assert(script.includes("CARD_ANALYTICS_MAX_QUEUE_SIZE = 200"), "card analytics has a bounded local queue");
+  assert(script.includes("/api/analytics/card-turns"), "frontend sends first-party card analytics");
+  assert(script.includes("createAnalyticsCardId") && !script.includes("word: word"), "card analytics uses an opaque client-side card id");
   assert(!script.includes("activity_game_started") && !script.includes("activity_game_finished"), "game analytics no longer depends on Metrika goals");
   assert(countMatches(index, /<nav class="nav-pill"/g) === 3, "index has three nav landmarks");
   assert(countMatches(index, /<button type="button" class="nav-item/g) === 9, "top nav items are native buttons");
@@ -205,6 +227,7 @@ function validateSourceContracts() {
   const worker = read("src/worker.js");
   assert(worker.includes("handlePayAnyWayCheck") && worker.includes("handlePayAnyWayPayment"), "Worker implements PayAnyWay Check and Pay URLs");
   assert(worker.includes("handleAnalyticsGameStart") && worker.includes("handleAnalyticsGameFinish"), "Worker implements first-party game analytics endpoints");
+  assert(worker.includes("handleAnalyticsCardTurns") && worker.includes("ANALYTICS_CARD_BATCH_SIZE = 10"), "Worker validates bounded card analytics batches");
   assert(worker.includes('"https://activity-game.ru"') && worker.includes('"https://www.activity-game.ru"'), "analytics accepts the public origins behind the production proxy");
   assert(worker.includes("hashAnalyticsVisitorId") && worker.includes('crypto.subtle.digest("SHA-256"'), "Worker hashes anonymous browser identifiers");
   assert(worker.includes("ANALYTICS_PUBLIC_ORIGINS.has(origin)"), "anonymous analytics writes require a recognized site origin");
@@ -215,9 +238,14 @@ function validateSourceContracts() {
   assert(!worker.includes("subscription") && !worker.includes("yookassa"), "Worker has no subscription or YooKassa release path");
   assert(schema.includes("CREATE TABLE IF NOT EXISTS purchase_order_entitlements"), "schema defines order-scoped entitlements");
   assert(schema.includes("CREATE TABLE IF NOT EXISTS game_analytics"), "schema defines first-party game analytics");
+  assert(schema.includes("CREATE TABLE IF NOT EXISTS card_analytics"), "schema defines per-turn card analytics");
+  assert(!schema.includes("idx_card_analytics"), "card analytics avoids secondary-index write amplification");
   assert(analyticsMigration.includes("CREATE TABLE IF NOT EXISTS game_analytics"), "remote migration creates first-party game analytics");
+  assert(cardAnalyticsMigration.includes("CREATE TABLE IF NOT EXISTS card_analytics"), "remote migration creates per-turn card analytics");
   assert(analyticsReport.includes("browser_installations") && analyticsReport.includes("authenticated_users"), "analytics report labels browser installations separately from accounts");
   assert(!analyticsReport.includes("visitor_hash AS") && !analyticsReport.includes("telegram_user_id"), "analytics report exposes aggregates only");
+  assert(cardAnalyticsReport.includes("HAVING COUNT(*) >= 10"), "card report requires a minimum sample before ranking cards");
+  assert(cardAnalyticsCatalog.includes("collisions") && cardAnalyticsCatalog.includes("activity-card-v1"), "card catalog can resolve opaque ids and detect collisions");
   assert(!schema.includes("CREATE TABLE IF NOT EXISTS subscriptions"), "fresh schema omits unreleased subscriptions");
   assert(!wrangler.includes('"crons"'), "wrangler has no recurring billing schedule");
   assert(wrangler.includes('"PAYANYWAY_CHECKOUT_ENABLED": "true"'), "verified production checkout stays enabled on deploy");
@@ -257,7 +285,9 @@ async function validateProduction(base) {
 async function main() {
   runNodeCheck("script.js");
   runNodeCheck("src/worker.js");
+  runNodeCheck("tools/card_analytics_catalog.mjs");
   validateDictionaries();
+  validateCardAnalyticsCatalog();
   validateStaticPages();
   validateSourceContracts();
 
