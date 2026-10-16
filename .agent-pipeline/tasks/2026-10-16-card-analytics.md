@@ -77,13 +77,13 @@ Routed back to: not required.
 Agent: Functional QA / API QA
 Verdict: pass
 
-Checks performed: syntax/diff checks, 343 source assertions, 5632-card collision scan, fresh local D1 schema/report, Worker dry-run, local API matrix, mobile Playwright single-turn and 10-turn batching flows.
+Checks performed: syntax/diff checks, 344 local source assertions, 5632-card collision scan, fresh local D1 schema/report, Worker dry-run, local API matrix, mobile Playwright single-turn and 10-turn batching flows, 376 production smoke assertions.
 
 Results: 10 ходов ушли одним request размером 1446 bytes; payload без word; queue очистилась после `200`; duplicate batch не увеличил число строк; wrong visitor `404`; sensitive field и 11-turn batch `400`; opaque id успешно сопоставлен с локальным каталогом.
 
 Regressions found: none.
 
-Unverified scenarios: remote migration and production deploy.
+Unverified scenarios: none required for release; real observations intentionally begin only with real post-release turns.
 
 ## 7. Docs Sync
 
@@ -99,22 +99,22 @@ Docs not changed because: no UI copy or dictionary content changed.
 ## 8. Release Check
 
 Agent: Release Manager
-Verdict: pending
+Verdict: pass
 
-Diff reviewed:
+Diff reviewed: 13 files in PR #16, scoped to card analytics, schema, reports, privacy/docs and checks.
 
-Commands run:
+Commands run: `git diff --check`; JS syntax checks; `node tools/card_analytics_catalog.mjs`; local and production smoke; local D1 schema/report; Wrangler dry-run; local curl API matrix; two Playwright flows; remote migration and remote schema verification.
 
-Manual checks:
+Manual checks: production endpoint returns `400` for invalid same-origin payload and `403` for foreign origin; deployed `script.js` contains batch/queue limits; production `card_analytics` is empty before the first real post-release turn.
 
-Deploy follow-up:
+Deploy follow-up: PR #16 merged and Cloudflare Git deploy verified on `activity-game.ru`.
 
-D1 follow-up:
+D1 follow-up: `db/migrations/2026-10-16-card-analytics.sql` applied remotely; table and sole automatic primary-key index verified. Migration cost was 3 row writes; database size after migration is about 1.30 MB.
 
-Secret or config follow-up:
+Secret or config follow-up: none.
 
-Cache follow-up:
+Cache follow-up: production asset contains the new client code.
 
-Open risks:
+Open risks: public analytics can still be targeted by deliberate scripted abuse; add a Cloudflare Rate Limiting binding only if metrics show abuse. Free-tier budget estimate for a 30-turn game is about 3 extra Worker requests and about 60 card-table/index row writes; including game-level analytics the 100,000-row daily free allowance remains sufficient for roughly 1,400 such games/day.
 
-Ready to hand back: pending.
+Ready to hand back: yes.
