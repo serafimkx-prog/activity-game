@@ -86,6 +86,9 @@ input:focus-visible,
   outline-offset: 2px;
 }
 .setup-note{margin:0 10px 12px;color:#8f98ad;font-size:.78rem;line-height:1.4;text-align:center}
+.other-game-link{text-align:center;margin:6px 0 0;font-size:.88rem;line-height:1.4}
+.other-game-link a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;max-width:100%;padding:8px 12px;color:#c8d3ff;font-weight:600;text-decoration:underline;text-underline-offset:3px}
+.other-game-link a:hover{color:#fff}
 .turn-tip{margin:-4px 0 12px;color:#b9c2da;font-size:.9rem;line-height:1.45;text-align:center}
 
 /* Rules Section Styles */
